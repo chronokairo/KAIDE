@@ -1,5 +1,16 @@
 # TODO.md - Athena Server Improvements
 
+## P0 — Refatoração ChronoKairo AI
+
+- [ ] Substituir o branding Athena pela identidade ChronoKairo AI.
+- [ ] Decompor `src/App.tsx` em shell, chat, histórico, fontes, confirmações e resultados de ferramentas.
+- [ ] Adotar componentes e tokens do `@chronokairo/ui` em toda a interface.
+- [ ] Integrar Auth/SSO, organização e RBAC reais da Platform.
+- [ ] Separar consulta e manipulação em casos de uso e contratos versionados.
+- [ ] Exigir confirmação e auditoria para ferramentas de escrita sensíveis.
+- [ ] Implementar `/health`, `/ready` e `/version`.
+- [ ] Cobrir isolamento entre tenants, autorização, idempotência e tool calling com testes.
+
 This document outlines identified issues, technical debt, and potential improvements for the Athena server codebase. Based on code analysis, these items should be prioritized for better maintainability, performance, security, and scalability.
 
 ## 🚨 Critical Issues
