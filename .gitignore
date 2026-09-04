@@ -1,0 +1,93 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+# ChromaDB vector database
+chroma_db/
+data/
+vector_store/
+
+# Ollama models (if downloaded locally)
+ollama_models/
+
+# Problematic files folder
+problematicos/
+
+# Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+*.log
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+
+# Config files with secrets (if any)
+.env
+.env.*
+!.env.example
+config/secrets.json
+config/private.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+
+# Documentation
+docs/_build/
+
+# Backup files
+*.bak
+*.backup
