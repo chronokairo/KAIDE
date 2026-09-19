@@ -1,0 +1,13 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo 'Multi-agent plugin loaded. Available agents: kilo-code-agent, opencode-agent'"
+        }
+      ]
+    }
+  ]
+}
