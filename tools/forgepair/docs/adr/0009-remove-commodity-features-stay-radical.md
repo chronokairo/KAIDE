@@ -68,3 +68,45 @@ retried permanent errors, amplifying rate limits.
   the improver so it cannot rewrite its own rules.
 - Scope rules 10-13 are aspirational until the platform's session loop actually
   drops the planner/swap machinery; that work is tracked separately.
+
+## Implementation (2026-09-21)
+
+**Removed from `src/providers.lisp`:**
+- `*model-providers*` (6-provider catalog with 50+ models)
+- `*akita-tier*` (7 curated entries with scores/costs)
+- `*verify-candidates*` (23 provider/model pairs for probing)
+- `provider-definition` (catalog lookup)
+- `available-tier`, `credential-available-p`, `tier-entry->role-provider`
+- `auto-select-roles` (planner/executor/improver + pool selection)
+- `swap-model` (model swapping on validation failure)
+- `cost-benefit` (score/cost calculation)
+- `current-year-model-p`, `model-year`, `current-year` (model freshness checks)
+
+**Removed from `src/application.lisp`:**
+- Planner role, improver role, model-swapping loop
+- `run-planner`, `run-improver`, `mock-planner-call`, `mock-improver-call`
+- `*max-swaps*`, `*max-attempts*` (swap/attempt bounds)
+- 3-role validation loop with planner verdicts
+
+**Removed from `src/entrypoint.lisp`:**
+- CLI flags: `--verify-models`, `--list-providers`
+- `print-provider-catalogs`, `verify-models` invocation
+- Multi-role provider selection and pool passing to `run-session`
+- Telegram notify with planner/executor/improver labels
+
+**Removed from `src/adapters.lisp`:**
+- `list-provider-models` (live /models catalog fetch)
+- `probe-model` (per-model availability probe)
+- `verify-models` (bulk candidate probing)
+
+**Simplified to single-provider architecture:**
+- `config.sexp` / `config.example.sexp`: single provider with name, url, key-env, model, label
+- `src/providers.lisp`: minimal `provider-definition(config)` + `*default-provider*`
+- `src/application.lisp`: single executor role, evidence-based validation (non-empty output)
+- `src/entrypoint.lisp`: loads provider from config, passes to `run-session`
+- `src/adapters.lisp`: unchanged HTTP/sandbox/Telegram adapters
+
+**Tests passing:**
+- `./bin/forgepair --self-test`
+- `./bin/forgepair --mock --cli --prompt "test"`
+- `./bin/forgepair --telegram-test`

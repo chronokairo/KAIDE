@@ -21,8 +21,8 @@
 
 (defun run-process (program args &key output error)
   (let ((process (sb-ext:run-program program args :search t :wait t
-                                     :output (or output *standard-output*)
-                                     :error (or error *error-output*))))
+                                      :output (or output *standard-output*)
+                                      :error (or error *error-output*))))
     (sb-ext:process-exit-code process)))
 
 (defun load-dotenv (&optional (path (merge-pathnames ".env" *root*)))
@@ -46,69 +46,45 @@
 (defun make-credential-port (&optional (dotenv (load-dotenv)))
   (%make-credential-port
    :get (lambda (name)
-          (let ((value (or (sb-ext:posix-getenv name)
-                           (cdr (assoc name dotenv :test #'string=)))))
-            (if (and value (> (length value) 0)) value
-                (error "credential ~A is missing" name))))))
+           (let ((value (or (sb-ext:posix-getenv name)
+                            (cdr (assoc name dotenv :test #'string=)))))
+             (if (and value (> (length value) 0)) value
+                 (error "credential ~A is missing" name))))))
 
 (defun make-http-provider-port (credentials)
   (make-provider-port
    :call (lambda (provider system user)
-           (let* ((url (getf provider :url))
-                  (key (funcall (credential-port-get credentials) (getf provider :key-env)))
-                  (request (merge-pathnames "request.json" *runtime*))
-                  (response (merge-pathnames "response.json" *runtime*))
-                  (err (merge-pathnames "curl.err" *runtime*)))
-             (spit request
-                   (format nil "{\"model\":~A,\"temperature\":0.2,\"max_tokens\":1024,\"messages\":[{\"role\":\"system\",\"content\":~A},{\"role\":\"user\",\"content\":~A}]}"
-                           (json-string (getf provider :model))
-                           (json-string system) (json-string user)))
-             (with-open-file (out response :direction :output :if-exists :supersede :if-does-not-exist :create)
-               (with-open-file (error-stream err :direction :output :if-exists :supersede :if-does-not-exist :create)
-                 (unless (zerop (run-process "curl"
-                                             (list "--fail-with-body" "--silent" "--show-error"
-                                                   "--retry" "3" "--retry-all-errors" "--retry-delay" "2"
-                                                   "--connect-timeout" "20" "--max-time" "180"
-                                                   "-H" (format nil "Authorization: Bearer ~A" key)
-                                                   "-H" "Content-Type: application/json" "--data-binary"
-                                                   (format nil "@~A" (namestring request)) url)
-                                             :output out :error error-stream))
-                   (error "provider request failed: ~A~%~A" (slurp error-stream) (slurp response)))))
-             (let* ((document (parse-json (slurp response)))
-                    (choice (first (field "choices" document)))
-                    (message (field "message" choice))
-                    (content (field "content" message))
-                    (reasoning (field "reasoning" message)))
-               ;; Reasoning models sometimes leave content empty (all budget spent
-               ;; on the reasoning field). Fall back to reasoning so the protocol
-               ;; extractor can still find a JSON object; never signal here.
-               (cond ((and content (> (length content) 0)) content)
-                     ((and reasoning (> (length reasoning) 0)) reasoning)
-                     (t "")))))))
-
-(defun list-provider-models (provider credentials)
-  "Return the researched current-year snapshot, with live /models fallback."
-  (or (getf provider :models)
-      (let* ((key (funcall (credential-port-get credentials) (getf provider :key-env)))
-             (response (merge-pathnames "models.json" *runtime*)))
-        (with-open-file (out response :direction :output :if-exists :supersede
-                             :if-does-not-exist :create)
-          (unless (zerop (run-process "curl"
-                                      (list "--fail-with-body" "--silent" "--show-error"
-                                            "--connect-timeout" "20" "--max-time" "60"
-                                            "-H" (format nil "Authorization: Bearer ~A" key)
-                                            (getf provider :models-url))
-                                      :output out))
-            (error "provider model catalog request failed for ~A" (getf provider :name))))
-        (let* ((document (parse-json (slurp response)))
-               (entries (remove-if-not #'current-year-model-p
-                                       (or (field "data" document)
-                                           (field "models" document)))))
-          (remove nil
-                  (mapcar (lambda (entry)
-                            (or (field "id" entry)
-                                (field "name" entry)))
-                          entries))))))
+            (let* ((url (getf provider :url))
+                   (key (funcall (credential-port-get credentials) (getf provider :key-env)))
+                   (request (merge-pathnames "request.json" *runtime*))
+                   (response (merge-pathnames "response.json" *runtime*))
+                   (err (merge-pathnames "curl.err" *runtime*)))
+              (spit request
+                    (format nil "{\"model\":~A,\"temperature\":0.2,\"max_tokens\":1024,\"messages\":[{\"role\":\"system\",\"content\":~A},{\"role\":\"user\",\"content\":~A}]}"
+                            (json-string (getf provider :model))
+                            (json-string system) (json-string user)))
+              (with-open-file (out response :direction :output :if-exists :supersede :if-does-not-exist :create)
+                (with-open-file (error-stream err :direction :output :if-exists :supersede :if-does-not-exist :create)
+                  (unless (zerop (run-process "curl"
+                                              (list "--fail-with-body" "--silent" "--show-error"
+                                                    "--retry" "3" "--retry-all-errors" "--retry-delay" "2"
+                                                    "--connect-timeout" "20" "--max-time" "180"
+                                                    "-H" (format nil "Authorization: Bearer ~A" key)
+                                                    "-H" "Content-Type: application/json" "--data-binary"
+                                                    (format nil "@~A" (namestring request)) url)
+                                              :output out :error error-stream))
+                    (error "provider request failed: ~A~%~A" (slurp error-stream) (slurp response)))))
+              (let* ((document (parse-json (slurp response)))
+                     (choice (first (field "choices" document)))
+                     (message (field "message" choice))
+                     (content (field "content" message))
+                     (reasoning (field "reasoning" message)))
+                ;; Reasoning models sometimes leave content empty (all budget spent
+                ;; on the reasoning field). Fall back to reasoning so the protocol
+                ;; extractor can still find a JSON object; never signal here.
+                (cond ((and content (> (length content) 0)) content)
+                      ((and reasoning (> (length reasoning) 0)) reasoning)
+                      (t "")))))))
 
 (defun env-mask-args (&optional (dir *work-dir*))
   "Return bwrap args masking every .env* file with /dev/null so agent commands
@@ -176,34 +152,6 @@ mounted read-only so a command cannot rewrite its self."
                           name conclusion
                           (if (string= command "") "[nenhum]" command) output)
                   (force-output))))
-
-;;; Live model availability probe (zero-lib: reuses the http provider port).
-
-(defun probe-model (credentials provider-name model)
-  "Send a tiny real request to PROVIDER-NAME's MODEL. Returns t if the endpoint
-answers with assistant content, nil otherwise. Never prints the credential."
-  (let ((provider (append (list :model model)
-                          (copy-list (provider-definition provider-name)))))
-    (handler-case
-        (let ((content (funcall (provider-port-call (make-http-provider-port credentials))
-                                provider
-                                "You are a probe. Reply with the single word ok."
-                                "ok")))
-          (and content (> (length content) 0)))
-      (error () nil))))
-
-(defun verify-models (credentials)
-  "Probe every candidate model and report which actually work with the present
-credentials. Use the output to prune *akita-tier* to real availability."
-  (format t "~&Verificando disponibilidade real dos modelos (chamada minima por modelo)...~%")
-  (dolist (pair *verify-candidates*)
-    (destructuring-bind (provider-name model) pair
-      (if (credential-available-p credentials
-                                  (getf (provider-definition provider-name) :key-env))
-          (format t "  [~A] ~A -> ~A~%"
-                  provider-name model
-                  (if (probe-model credentials provider-name model) "OK" "FALHOU"))
-          (format t "  [~A] ~A -> sem credencial~%" provider-name model)))))
 
 ;;; Telegram integration (zero-lib: plain curl to the Bot API).
 
@@ -348,8 +296,7 @@ ChatGPT-style tool-call conversation."
      (let ((chat-id (funcall chat-id-fn)))
        (when chat-id
          (let* ((icon (cond ((search "Executor" name) (format nil "~C" #\U+2699))
-                            ((search "Improver" name) (format nil "~C" #\U+1F527))
-                            ((search "Planner"  name) (format nil "~C" #\U+1F3AF))
+                            ((search "Validation" name) (format nil "~C" #\U+1F3AF))
                             (t                        (format nil "~C" #\U+25B6))))
                 (cmd-block
                   (if (string= command "")
@@ -376,13 +323,12 @@ lives in one chat instead of being split or dropped when no chat is attached."
                (when (and chat-id (not (string= (trim (or text "")) "")))
                  (let* ((icon (cond ((string= kind "voce")     (format nil "~C" #\U+1F464))
                                     ((string= kind "tool")     (format nil "~C" #\U+1F5A5))
-                                    ((string= kind "planner")  (format nil "~C" #\U+1F3AF))
+                                    ((string= kind "validation") (format nil "~C" #\U+1F3AF))
                                     ((search "executor" kind)  (format nil "~C" #\U+2699))
-                                    ((search "improver" kind)  (format nil "~C" #\U+1F527))
                                     (t                         (format nil "~C" #\U+25B6))))
                         (label (cond ((string= kind "voce")      "voce")
                                      ((string= kind "tool")      "tool")
-                                     ((string= kind "planner")   "planner")
+                                     ((string= kind "validation") "validation")
                                      ((string= kind "sessao")    "sessao")
                                      ((string= kind "forgepair") "forgepair")
                                      (t kind))))
@@ -406,16 +352,16 @@ The value is captured lazily and cached so the request is stable across turns."
   (let ((cached nil) (loaded nil))
     (%make-prompt-port
      :get (lambda ()
-            (unless loaded
-              (setf cached
-                    (cond ((and fixed-prompt (> (length (trim fixed-prompt)) 0))
-                           fixed-prompt)
-                          (t
-                           (with-output-to-string (out)
-                             (loop for line = (read-line *standard-input* nil nil)
-                                   while line do (write-line line out))))))
-              (setf loaded t))
-            cached))))
+             (unless loaded
+               (setf cached
+                     (cond ((and fixed-prompt (> (length (trim fixed-prompt)) 0))
+                            fixed-prompt)
+                           (t
+                            (with-output-to-string (out)
+                              (loop for line = (read-line *standard-input* nil nil)
+                                    while line do (write-line line out))))))
+               (setf loaded t))
+             cached))))
 
 (defun make-notes-port ()
   (let ((notes nil) (lock (sb-thread:make-mutex :name "human-notes")))
@@ -436,6 +382,3 @@ The value is captured lazily and cached so the request is stable across turns."
                              (sb-thread:with-mutex (lock)
                                (push note notes)))))))
                :name "forgepair-human-input")))))
-
-
-
