@@ -170,24 +170,18 @@ pool), where:
   - improver = model B, chosen by capability (score).
   - pool     = the full available tier (best-first) for model-swapping on
                failed validation.
-Roles prefer distinct providers where the pool allows it. Signals a clear error
-if no provider credential is present."
+No provider-distinctness constraint: the executor and improver may share the
+planner's provider (each role keeps its own model and system prompt). Signals a
+clear error if no provider credential is present."
   (let ((available (available-tier credentials)))
     (unless available
       (error "automatic selection needs at least one provider credential in .env ~
 (OPENROUTER_API_KEY, NVIDIA_API_KEY, GEMINI_API_KEY, GROQ_API_KEY)."))
     (let* ((planner (first available))
+           ;; Everything below the planner, best-first. No provider filtering.
            (rest (or (remove planner available) available))
-           ;; Executor: best cost-benefit, preferring a provider != planner.
-           (exec-pool (or (remove (getf planner :provider) rest
-                                  :key (lambda (e) (getf e :provider)) :test #'string=)
-                          rest))
-           (executor (first (sort (copy-list exec-pool) #'> :key #'cost-benefit)))
-           ;; Improver: highest score, preferring a provider != executor.
-           (impr-pool (or (remove (getf executor :provider) rest
-                                  :key (lambda (e) (getf e :provider)) :test #'string=)
-                          rest))
-           (improver (first (sort (copy-list impr-pool) #'>
+           (executor (first (sort (copy-list rest) #'> :key #'cost-benefit)))
+           (improver (first (sort (copy-list rest) #'>
                                   :key (lambda (e) (or (getf e :score) 0))))))
       (values (tier-entry->role-provider planner :planner)
               (tier-entry->role-provider executor :executor)

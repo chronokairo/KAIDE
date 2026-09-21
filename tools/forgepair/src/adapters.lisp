@@ -110,11 +110,11 @@
                                 (field "name" entry)))
                           entries))))))
 
-(defun env-mask-args ()
+(defun env-mask-args (&optional (dir *work-dir*))
   "Return bwrap args masking every .env* file with /dev/null so agent commands
 cannot read credentials, whatever the suffix (.env, .env.local, .env.dev...).
 Filters by name prefix because pathname wildcards treat the suffix as a type."
-  (loop for path in (directory (merge-pathnames "*.*" *root*))
+  (loop for path in (directory (merge-pathnames "*.*" dir))
         for name = (file-namestring path)
         when (and name (>= (length name) 4) (string= (subseq name 0 4) ".env"))
           append (list "--ro-bind" "/dev/null" (namestring path))))
@@ -129,29 +129,45 @@ define its behavior (protects rule 4: do not weaken the sandbox)."
         when (probe-file path)
           append (list "--ro-bind" (namestring path) (namestring path))))
 
-(defun make-sandbox-command-port ()
+(defun make-sandbox-command-port (&optional (base *work-dir*))
+  "Command port whose sandbox is rooted at BASE and chdirs into it. BASE is the
+directory the agent may write in: the executor gets the project folder where
+the binary was opened (*work-dir*), the improver gets the Forgepair repo itself
+(*root*). When BASE is the Forgepair repo the coding agent's own machinery is
+mounted read-only so a command cannot rewrite its self."
   (make-command-port
    :execute (lambda (command)
-              (let ((out (merge-pathnames "command.out" *runtime*)))
-                (let ((code (with-open-file (stream out :direction :output :if-exists :supersede :if-does-not-exist :create)
-                              (run-process "bwrap"
-                                           (append
-                                            (list "--die-with-parent" "--unshare-all" "--unshare-net" "--new-session"
-                                                  "--ro-bind" "/usr" "/usr" "--ro-bind" "/bin" "/bin"
-                                                  "--ro-bind" "/lib" "/lib" "--ro-bind-try" "/lib64" "/lib64"
-                                                  "--proc" "/proc" "--dev" "/dev" "--tmpfs" "/tmp"
-                                                  "--bind" *root* *root*
-                                                  "--ro-bind" (namestring (merge-pathnames ".git/" *root*))
-                                                              (namestring (merge-pathnames ".git/" *root*)))
-                                            (readonly-self-args)
-                                            (env-mask-args)
-                                            (list "--chdir" *root* "--clearenv" "--setenv" "HOME" *root*
-                                                  "--setenv" "PATH" "/usr/bin:/bin" "/bin/sh" "-lc" command))
-                                           :output stream :error stream))))
+              (let* ((out (merge-pathnames "command.out" *runtime*))
+                     (forgepair-p (string= (namestring (truename base))
+                                           (namestring (truename *root*))))
+                     (git-path (merge-pathnames ".git/" base))
+                     (git-ro (when (probe-file git-path)
+                               (list "--ro-bind" (namestring (truename git-path))
+                                             (namestring (truename git-path))))))
+                (let ((code (with-open-file
+                                 (stream out :direction :output
+                                         :if-exists :supersede :if-does-not-exist :create)
+                               (run-process "bwrap"
+                                            (append
+                                             (list "--die-with-parent" "--unshare-all" "--unshare-net" "--new-session"
+                                                   "--ro-bind" "/usr" "/usr" "--ro-bind" "/bin" "/bin"
+                                                   "--ro-bind" "/lib" "/lib" "--ro-bind-try" "/lib64" "/lib64"
+                                                   "--proc" "/proc" "--dev" "/dev" "--tmpfs" "/tmp"
+                                                   "--bind" base base)
+                                             git-ro
+                                             (when forgepair-p (readonly-self-args))
+                                             (env-mask-args base)
+                                             (list "--chdir" base "--clearenv"
+                                                   "--setenv" "HOME" base
+                                                   "--setenv" "PATH" "/usr/bin:/bin"
+                                                   "/bin/sh" "-lc" command))
+                                            :output stream :error stream))))
                   (with-open-file (stream out :direction :output :if-exists :append)
                     (format stream "~%[exit ~D]~%" code)))
                 (let ((text (slurp out)))
-                  (if (> (length text) 12000) (subseq text (- (length text) 12000)) text))))))
+                  (if (> (length text) 12000)
+                      (subseq text (- (length text) 12000))
+                      text))))))
 
 (defun make-cli-output-port ()
   (make-output-port
@@ -288,6 +304,16 @@ Loops indefinitely on transport errors so a brief outage does not abort."
                     (or (field "description" doc) "resposta sem ok"))))
     (error (condition)
       (format t "telegram-test: ~A~%" condition))))
+
+(defun telegram-notify (token chat-id-fn text)
+  "Send TEXT to the chat resolved by CHAT-ID-FN. Silently no-ops when the
+chat-id is not yet known or Telegram is unavailable. Used for session
+lifecycle messages (startup, shutdown) that must never abort the session."
+  (handler-case
+      (let ((chat-id (and chat-id-fn (funcall chat-id-fn))))
+        (when (and token chat-id)
+          (telegram-send token chat-id text)))
+    (error () nil)))
 
 (defun make-telegram-prompt-port (token)
   "Prompt port that reads the user's request from the next Telegram message.

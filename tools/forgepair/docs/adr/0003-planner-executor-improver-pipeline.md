@@ -76,6 +76,12 @@ Key design points:
 - If both executor and improver exhaust their swap budget in the same turn, the
   planner accepts the last attempt regardless of quality. Session quality
   degrades silently rather than aborting.
-- The improver scope ("ONLY the Forgepair repository") is enforced by prompt
-  instruction, not by sandbox policy. A misbehaving model could still write to
-  the user's project if it ignores the instruction.
+- The improver scope ("ONLY the Forgepair repository") is enforced by sandbox
+  policy as well as by prompt: the improver's command port roots its Bubblewrap
+  sandbox at the Forgepair repo (`*root*`), so it physically cannot write to the
+  user's project. The executor's port is rooted at the project folder where
+  forgepair was opened (`*work-dir*`) — indistinguishable from `*root*` when
+  forgepair is run on its own repository, which is where the improver observes
+  the executor's on-disk results in that case (an actual `--bind` of the same
+  host directory, read-write for the executor, with only the Forgepair
+  machinery read-only). Each sandbox still gets a private `--tmpfs /tmp`.

@@ -102,28 +102,10 @@ note)."
                     (field "improver_ok" reply)
                     (or (field "note" reply) "")))))))
 
-(defun compact-session-text (request planner executor improver
-                             turn turns executor-message improvement improvements note)
-  "Single-bubble Telegram view: only the essentials, re-rendered each turn."
-  (format nil "Forgepair — sessao~%~
-Pedido: ~A~%~
-Planner: ~A~%Executor(A): ~A | Improver(B): ~A~%~
-Turno ~D/~D~%~
-Acao executor: ~A~%~
-Melhorias (repo Forgepair):~%~A~%~
-Planner: ~A"
-          request (getf planner :label) (getf executor :label) (getf improver :label)
-          turn turns
-          (if (string= (trim executor-message) "") "(sem mensagem)" executor-message)
-          (if (string= improvements "")
-              (if (string= (trim improvement) "") " (nenhuma ainda)"
-                  (format nil " - Turno ~D: ~A" turn improvement))
-              improvements)
-          (if (string= (trim note) "") "(ok)" note)))
-
 (defun run-session (config planner-provider executor-provider improver-provider pool
-                    provider-port command-port output-port notes-port prompt-port
-                    &key cli mock turns-override session-port)
+                    provider-port executor-command-port improver-command-port
+                    output-port notes-port prompt-port
+                    &key cli mock turns-override session-port on-start)
   (let* ((rules (slurp (merge-pathnames ".forgepair/RULES.md" *root*)))
          (request (user-prompt prompt-port))
          (history "No executor action has happened yet.")
@@ -137,6 +119,14 @@ Planner: ~A"
       (error "no user request provided; pass --prompt or pipe it on stdin"))
     (when mock (setf *mock-step* 0))
     (unless cli (funcall (notes-port-start notes-port)))
+    ;; Startup hook — called once the prompt is known (chat-id is captured).
+    (when on-start (funcall on-start))
+    ;; Chat-style Telegram: echo the pedido and the chosen pairing first.
+    (session-event session-port "voce" request)
+    (session-event session-port "forgepair"
+                   (format nil "planner=~A | executor(A)=~A | improver(B)=~A"
+                           (getf planner-provider :label) (getf executor :label)
+                           (getf improver :label)))
     (dotimes (turn turns)
       (let* ((notes (notes-text notes-port))
              (executor-message "") (executor-command "") (executor-output "")
@@ -148,19 +138,19 @@ Planner: ~A"
         ;; validation the planner swaps that role's model and the turn retries
         ;; (bounded by *max-swaps*).
         (loop
-          ;; Executor (model A).
+          ;; Executor (model A) — works in the project dir opened by the user.
           (multiple-value-setq (executor-message executor-command)
             (run-executor mock provider-port executor rules request history notes))
           (setf executor-output
                 (if (string= executor-command "") "[no command]"
-                    (execute-command command-port executor-command)))
+                    (execute-command executor-command-port executor-command)))
           ;; Improver (model B) — Forgepair repo only.
           (multiple-value-setq (improvement rationale improver-command)
             (run-improver mock provider-port improver rules request
                           executor-message executor-command executor-output improvements))
           (setf improver-output
                 (if (string= improver-command "") "[no command]"
-                    (execute-command command-port improver-command)))
+                    (execute-command improver-command-port improver-command)))
           ;; Planner validation.
           (multiple-value-setq (executor-ok improver-ok note)
             (run-planner mock provider-port planner-provider rules request
@@ -176,6 +166,9 @@ Planner: ~A"
               (render-turn output-port (1+ turn) turns "Planner"
                            (format nil "executor nao implementou; trocando ~A -> ~A"
                                    (getf executor :label) (getf new :label)) "" note)
+              (session-event session-port "planner"
+                             (format nil "executor nao implementou; trocando ~A -> ~A"
+                                     (getf executor :label) (getf new :label)))
               (setf executor new)
               (pushnew (getf executor :model) tried-executor :test #'string=)))
           (unless improver-ok
@@ -184,6 +177,9 @@ Planner: ~A"
               (render-turn output-port (1+ turn) turns "Planner"
                            (format nil "improver nao implementou; trocando ~A -> ~A"
                                    (getf improver :label) (getf new :label)) "" note)
+              (session-event session-port "planner"
+                             (format nil "improver nao implementou; trocando ~A -> ~A"
+                                     (getf improver :label) (getf new :label)))
               (setf improver new)
               (pushnew (getf improver :model) tried-improver :test #'string=))))
         ;; Render the accepted turn.
@@ -204,14 +200,28 @@ Planner: ~A"
                               executor-output))
         (when (and improver-ok (not (string= (trim improvement) "")))
           (setf improvements (format nil "~A - Turn ~D: ~A~%" improvements (1+ turn) improvement)))
-        (session-update session-port
-                        (compact-session-text request planner-provider executor improver
-                                              (1+ turn) turns executor-message
-                                              improvement improvements note))))
+        ;; Chat-style: post the accepted turn as separate messages so the user
+        ;; watches the conversation and tool calls unfold (like a chat app).
+        (session-event session-port
+                       (format nil "executor T~D (~A)" (1+ turn) (getf executor :label))
+                       (if (string= (trim executor-message) "") "(sem mensagem)" executor-message))
+        (unless (string= executor-command "")
+          (session-event session-port "tool"
+                         (format nil "$ ~A~%~A" executor-command executor-output)))
+        (session-event session-port
+                       (format nil "improver T~D (~A)" (1+ turn) (getf improver :label))
+                       (format nil "~A~@[~%motivo: ~A~]" improvement
+                               (unless (string= (trim rationale) "") rationale)))
+        (unless (string= improver-command "")
+          (session-event session-port "tool"
+                         (format nil "$ ~A~%~A" improver-command improver-output)))
+        (session-event session-port "planner"
+                       (format nil "executor_ok=~A improver_ok=~A~@[ — ~A~]"
+                               (if executor-ok "sim" "nao") (if improver-ok "sim" "nao")
+                               (unless (string= (trim note) "") note)))))
     (format t "~&Concluido. Revise com: git diff~%")
     (unless (string= improvements "")
       (format t "~%Melhorias no repo Forgepair identificadas nesta sessao:~%~A" improvements))
-    (session-update session-port
-                    (format nil "Forgepair — sessao concluida~%Pedido: ~A~%Planner: ~A~%Melhorias (repo Forgepair):~%~A"
-                            request (getf planner-provider :label)
-                            (if (string= improvements "") " (nenhuma)" improvements)))))
+    (session-event session-port "sessao"
+                   (format nil "concluida. Melhorias no repo Forgepair:~%~A"
+                           (if (string= improvements "") " (nenhuma)" improvements)))))

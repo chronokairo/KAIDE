@@ -151,15 +151,17 @@ git diff
 
 ## Segurança
 
-Os comandos gerados pelos modelos são executados com:
+Os comandos gerados pelos modelos são executados em sandboxes Bubblewrap:
 
-- somente este repositório gravável, **exceto** `src/`, `config.sexp`,
-  `config.example.sexp`, `forgepair.asd`, `bin/` e `.forgepair/RULES.md`, que são
-  montados como somente leitura para o agente não reescrever a própria máquina;
+- o **executor** trabalha somente na pasta de projeto onde o `bin/forgepair` foi
+  aberto (`*work-dir*`, o `pwd` na inicialização): ele lê e escreve nela, com
+  `.env*` mascarados por `/dev/null` e `.git` somente leitura;
+- o **improver** trabalha somente no repositório Forgepair, onde `src/`,
+  `config.sexp`, `config.example.sexp`, `forgepair.asd`, `bin/` e
+  `.forgepair/RULES.md` são montados somente leitura para ele não reescrever a
+  própria máquina;
 - ferramentas e bibliotecas do sistema somente para leitura;
 - ambiente limpo, sem credenciais herdadas;
-- todos os `.env*` mascarados por `/dev/null`;
-- `.git` somente para leitura;
 - rede desativada;
 - `/tmp` e namespaces privados.
 

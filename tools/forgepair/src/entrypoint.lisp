@@ -32,7 +32,7 @@
                (setf turns (parse-integer (pop args))))
               ((or (string= arg "--help") (string= arg "-h"))
                (format t "Usage: bin/forgepair [--prompt REQUEST] [--cli] [--mock] [--telegram-test] [--verify-models] [--list-providers] [--turns N]~%~
-Model selection is automatic: the two best available providers from the Akita coding tier are paired as executor + improver based on the credentials present in .env.~%")
+Model selection is automatic: the planner picks the best available model from the Akita coding tier, the executor (model A) is chosen by best cost-benefit and works in the project folder where the binary was opened, and the improver (model B, best capability) works only on the Forgepair repo.~%")
                (sb-ext:exit :code 0))
               (t (error "unknown option: ~A" arg)))))
         (list :cli cli :mock mock :turns-override turns
@@ -143,6 +143,22 @@ Model selection is automatic: the two best available providers from the Akita co
         (assert (getf executor :model))
         (assert (getf improver :model))
         (assert (plusp (length pool)))))
+    ;; No distinct-provider rule: executor/improver come from the whole rest
+    ;; pool ranked purely by cost-benefit / score, not filtered by provider.
+    (let ((groq-nvidia (%make-credential-port
+                        :get (lambda (name)
+                               (if (member name '("GROQ_API_KEY" "NVIDIA_API_KEY")
+                                           :test #'string=)
+                                   "x"
+                                   (error "missing ~A" name))))))
+      (multiple-value-bind (planner executor improver pool) (auto-select-roles groq-nvidia)
+        (let ((rest (remove (getf planner :model) pool :key (lambda (e) (getf e :model))
+                            :test #'string=)))
+          (let ((best-cb (reduce #'max rest :key #'cost-benefit))
+                (best-score (reduce #'max rest
+                                    :key (lambda (e) (or (getf e :score) 0)))))
+            (assert (= (cost-benefit executor) best-cb))
+            (assert (= (or (getf improver :score) 0) best-score))))))
     ;; No credentials at all must fail with a clear error.
     (let ((none (%make-credential-port :get (lambda (name) (error "missing ~A" name)))))
       (assert (nth-value 1 (ignore-errors (auto-select-roles none)))))
@@ -179,18 +195,16 @@ Model selection is automatic: the two best available providers from the Akita co
                                           (funcall (credential-port-get credentials)
                                                    "TELEGRAM_BOT_TOKEN")
                                         (error () nil)))
-                            ;; Telegram prompt port: captures chat-id lazily on first access.
+                            ;; Prompt port: Telegram (lazy) or CLI/stdin.
                             (tg-prompt-plist (and tg-token (make-telegram-prompt-port tg-token)))
                             (tg-prompt-port  (and tg-prompt-plist
                                                   (getf tg-prompt-plist :prompt-port)))
                             (tg-chat-id-fn   (and tg-prompt-plist
                                                   (getf tg-prompt-plist :chat-id-fn)))
-                            ;; Use Telegram for input only when --prompt is not given.
                             (prompt-port (if (getf options :prompt)
                                             (make-prompt-port (getf options :prompt))
-                                            (or tg-prompt-port
-                                                (make-prompt-port nil))))
-                            ;; Output: always CLI; fan to Telegram chat when token present.
+                                            (or tg-prompt-port (make-prompt-port nil))))
+                            ;; Output: always CLI; fan to Telegram when token present.
                             (tg-out-port (and tg-token tg-chat-id-fn
                                              (make-telegram-output-port tg-token tg-chat-id-fn)))
                             (output-port (if tg-out-port
@@ -200,18 +214,36 @@ Model selection is automatic: the two best available providers from the Akita co
                        (when tg-token
                          (format t "~&Telegram: modo chat ativo — cada turno vira uma nova mensagem.~%")
                          (force-output))
-                       (apply #'run-session
-                              session-config
-                              planner executor improver pool
-                              (make-http-provider-port credentials)
-                              (make-sandbox-command-port)
-                              output-port
-                              (make-notes-port)
-                              prompt-port
-                              (list :cli (getf options :cli)
-                                    :mock (getf options :mock)
-                                    :turns-override (getf options :turns-override)
-                                    :session-port nil))))))))))
+                       (unwind-protect
+                            (apply #'run-session
+                                   session-config
+                                   planner executor improver pool
+                                   (make-http-provider-port credentials)
+                                   (make-sandbox-command-port *work-dir*)
+                                   (make-sandbox-command-port *root*)
+                                   output-port
+                                   (make-notes-port)
+                                   prompt-port
+                                   (list :cli (getf options :cli)
+                                         :mock (getf options :mock)
+                                         :turns-override (getf options :turns-override)
+                                         :session-port nil
+                                         :on-start (lambda ()
+                                                      (telegram-notify
+                                                       tg-token tg-chat-id-fn
+                                                       (format nil
+                                                               "Forgepair ativo~%Planner: ~A~%Executor A: ~A~%Improver B: ~A~%Turnos: ~A"
+                                                               (getf planner :label)
+                                                               (getf executor :label)
+                                                               (getf improver :label)
+                                                               (or (getf config :turns) 6))))))
+                         ;; Cleanup: runs on normal end, error, or Ctrl-C.
+                         (telegram-notify tg-token tg-chat-id-fn
+                                          "Forgepair encerrado."))))))))))
+     (sb-sys:interactive-interrupt (e)
+      (declare (ignore e))
+      (format t "~&Interrompido.~%")
+      (sb-ext:exit :code 0))
     (error (condition) (fail "~A" condition))))
 
 (run-entrypoint)

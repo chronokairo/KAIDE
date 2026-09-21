@@ -39,12 +39,12 @@ in `.env`, then assigns:
 |------|---------------------|
 | **Planner** | Highest `:score` (top of available tier) |
 | **Executor** | Best `score/cost` ratio (cost-benefit) |
-| **Improver** | Highest `:score`, preferring a provider ≠ executor |
+| **Improver** | Highest `:score` |
 
-Roles prefer distinct providers where the available pool permits.
-
-`swap-model` applies the same per-role ordering when the planner rejects a
-result and needs a replacement candidate.
+There is no provider-distinctness constraint: roles may share a provider, since
+each keeps its own model and system prompt. `swap-model` applies the same
+per-role ordering when the planner rejects a result and needs a replacement
+candidate.
 
 `--verify-models` probes every candidate with a real HTTP call so the tier can
 be re-audited at any time without relying on the curated snapshot.

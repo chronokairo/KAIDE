@@ -10,11 +10,11 @@
 (defstruct (prompt-port (:constructor %make-prompt-port)) get)
 (defstruct (session-port (:constructor %make-session-port)) update)
 
-(defun session-update (port compact-text)
-  "Persist the compact session state to the external bubble, if any. A nil port
-or nil updater is a no-op so the session runs the same with or without it."
+(defun session-event (port kind text)
+  "Post one chat event (kind + text) to the external chat, if any. A nil port or
+nil updater is a no-op so the session runs the same with or without it."
   (when (and port (session-port-update port))
-    (funcall (session-port-update port) compact-text)))
+    (funcall (session-port-update port) kind text)))
 
 (defun user-prompt (port)
   "Return the user's request that the executor must fulfill this session."
