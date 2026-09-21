@@ -141,12 +141,22 @@ planner can inspect them after selection."
             (copy-list provider))))
 
 (defun available-tier (credentials)
-  "Tier entries whose provider credential is present, best-first (tier order)."
-  (remove-if-not
-   (lambda (entry)
-     (credential-available-p credentials
-                             (getf (provider-definition (getf entry :provider)) :key-env)))
-   *akita-tier*))
+  "Tier entries whose provider credential is present, best-first by capability.
+
+The source list is a curated snapshot, not a guarantee that entries are
+ordered by score (newer entries may be appended). Sort a copy here so the
+planner really receives the best available model."
+  (sort
+   (remove-if-not
+    (lambda (entry)
+      (credential-available-p credentials
+                              (getf (provider-definition (getf entry :provider)) :key-env)))
+    (copy-list *akita-tier*))
+   (lambda (left right)
+     (or (> (or (getf left :score) 0) (or (getf right :score) 0))
+         (and (= (or (getf left :score) 0) (or (getf right :score) 0))
+              (< (or (getf left :cost) most-positive-fixnum)
+                 (or (getf right :cost) most-positive-fixnum)))))))
 
 (defun cost-benefit (entry)
   "Higher is better: Akita score per unit of relative cost."
@@ -184,18 +194,24 @@ if no provider credential is present."
               (tier-entry->role-provider improver :improver)
               available))))
 
-(defun swap-model (current-role-provider role pool)
+(defun swap-model (current-role-provider role pool &key exclude-models)
   "Pick the next candidate from POOL for ROLE, skipping the model currently in
 CURRENT-ROLE-PROVIDER (used when the planner rejects a result). Candidates are
 ordered by the same criterion used at initial selection:
   - :executor  -> best cost-benefit (score/cost)
   - :improver  -> highest score
   - any other  -> pool order (best-first)
-Prefers a different provider where possible; falls back to any other model;
-returns the current role provider unchanged if the pool offers no alternative."
+Falls back to any other model when the preferred candidate was already tried.
+EXCLUDE-MODELS contains candidates already tried in this turn, preventing a
+failed validation from cycling back to an earlier model. Returns the current
+role provider unchanged if the pool offers no alternative."
   (let* ((current-model (getf current-role-provider :model))
          (alternatives (remove current-model pool
                                :key (lambda (e) (getf e :model)) :test #'string=))
+         (alternatives (remove-if
+                        (lambda (entry)
+                          (member (getf entry :model) exclude-models :test #'string=))
+                        alternatives))
          (sorted (cond ((eq role :executor)
                         (sort (copy-list alternatives) #'> :key #'cost-benefit))
                        ((eq role :improver)

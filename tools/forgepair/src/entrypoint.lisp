@@ -112,7 +112,27 @@ Model selection is automatic: the two best available providers from the Akita co
           (assert (string= (getf swapped :name) "executor")))
         ;; swap-model for :improver returns a role-named provider.
         (let ((swapped (swap-model improver :improver pool)))
-          (assert (string= (getf swapped :name) "improver")))))
+          (assert (string= (getf swapped :name) "improver")))
+        ;; A later validation failure must not cycle back to a rejected model.
+        (let* ((first-swap (swap-model executor :executor pool))
+               (second-swap (swap-model first-swap :executor pool
+                                        :exclude-models
+                                        (list (getf executor :model)
+                                              (getf first-swap :model)))))
+          (assert (not (string= (getf second-swap :model)
+                                (getf executor :model)))))))
+    ;; Available entries are ranked by score, even when the curated source
+    ;; list is not in score order.
+    (let ((creds (%make-credential-port
+                  :get (lambda (name)
+                         (if (member name '("GEMINI_API_KEY" "NVIDIA_API_KEY")
+                                     :test #'string=)
+                             "x"
+                             (error "missing ~A" name))))))
+      (multiple-value-bind (planner executor improver pool) (auto-select-roles creds)
+        (declare (ignore executor improver))
+        (assert (= (getf planner :score)
+                   (reduce #'max pool :key (lambda (entry) (getf entry :score)))))))
     ;; With a single provider credential, selection still yields all roles (the
     ;; planner may reuse a provider when the pool is small).
     (let ((solo (%make-credential-port

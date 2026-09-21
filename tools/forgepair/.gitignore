@@ -1,4 +1,4 @@
 .forgepair/runtime/
 .env
+.env.*
 *.fasl
-gateway/node_modules/
