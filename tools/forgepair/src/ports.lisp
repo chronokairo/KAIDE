@@ -26,5 +26,5 @@ nil updater is a no-op so the session runs the same with or without it."
 (defun execute-command (port command)
   (funcall (command-port-execute port) command))
 
-(defun render-turn (port turn turns name conclusion command output)
-  (funcall (output-port-render-turn port) turn turns name conclusion command output))
+(defun render-turn (port name conclusion command output)
+  (funcall (output-port-render-turn port) name conclusion command output))

@@ -42,11 +42,11 @@ The captured `chat-id` is stored in a closure and shared with the output port.
 
 ### Output — `make-telegram-output-port` + `make-combined-output-port`
 
-Every `render-turn` call (one per executor/improver/planner per turn) sends a
+Every `render-turn` call (one per executor/improver/planner per run) sends a
 **new** `sendMessage` to the same chat. The message format is:
 
 ```
-⚙️ Executor(Gemini 3.6) [1/6]
+⚙️ Executor(Gemini 3.6)
 <conclusion text>
 
 $ git status
@@ -54,18 +54,35 @@ $ git status
 [exit 0]
 ```
 
-Role icons: ⚙️ Executor · 🔧 Improver · 🎯 Planner.
+Role icons: ⚙️ Executor · 🔧 Improver · 🎯 Planner. There is no turn counter:
+the line header is the role label only (see ADR-0003 for the turn-less loop).
 
 `make-combined-output-port` fans every render-turn call to both the CLI and the
 Telegram output port so local monitoring is not lost.
+
+### Session events — `make-telegram-session-port`
+
+The chat is unified: the session port is wired to the **same Telegram chat and
+token** as the output port, so everything Forgepair says lands in one chat:
+
+- the user-request echo (`"voce"`, 👤),
+- the model pairing line (`"forgepair"`),
+- every per-role message (⚙️ / 🔧),
+- each tool call block (`"tool"`, 🖥️) with its command and output,
+- the planner verdict (`"planner"`, 🎯),
+- the final session summary (`"sessao"`).
+
+The `kind` from `session-event` chooses the icon and label, so the conversation
+reads like a chat app instead of dropping events when no chat is attached.
 
 ### Compatibility
 
 - `--prompt` takes priority over Telegram input; the output port is still wired
   to Telegram even when `--prompt` is used.
-- If `TELEGRAM_BOT_TOKEN` is absent, the session runs as before (CLI only).
-- `session-port` (the old single-bubble updater) is now `nil` — `session-update`
-  in `application.lisp` is a no-op when the port is nil.
+- If `TELEGRAM_BOT_TOKEN` is absent, the session runs as before (CLI only), and
+  `session-event` is a no-op (`session-port` is nil).
+- `session-event` is safe when the port or its updater is nil; the application
+  never depends on one being attached.
 
 ### Removed
 
@@ -94,9 +111,10 @@ Telegram output port so local monitoring is not lost.
 - `--telegram-test` still works as a lightweight connectivity check.
 
 **Neutral:**
-- Each turn produces 3 Telegram messages (executor + improver + planner).
-  A 6-turn session → 18 messages. Telegram's default send rate limit is
-  30 messages/second; this is well within limits.
+- The session produces messages per role run (executor + improver + planner)
+  plus one per session event; a session's message count is bounded by
+  `*max-attempts*` (default 6) rather than a fixed turn count. Telegram's
+  default send rate limit is 30 messages/second; this is well within limits.
 - Output is truncated to 4 096 chars per message (Telegram's API limit) and
   command output is further capped to the last 1 200 chars to leave room for
   the conclusion text.

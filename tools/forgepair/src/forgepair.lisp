@@ -219,8 +219,8 @@
                          "--bind" *root* *root*
                          "--ro-bind" (namestring (merge-pathnames ".git/" *root*))
                                      (namestring (merge-pathnames ".git/" *root*))
-                         "--ro-bind" (namestring (merge-pathnames ".forgepair/RULES.md" *root*))
-                                     (namestring (merge-pathnames ".forgepair/RULES.md" *root*))
+                         "--ro-bind" (namestring (merge-pathnames "AGENTS.md" *root*))
+                                     (namestring (merge-pathnames "AGENTS.md" *root*))
                          "--ro-bind" "/dev/null" (namestring (merge-pathnames ".env" *root*))
                          "--chdir" *root* "--clearenv"
                          "--setenv" "HOME" *root* "--setenv" "PATH" "/usr/bin:/bin"
@@ -347,7 +347,7 @@
 
 (defun main (&key cli mock turns-override)
   (let* ((config (load-config))
-         (rules (slurp (merge-pathnames ".forgepair/RULES.md" *root*)))
+         (rules (slurp (merge-pathnames "AGENTS.md" *root*)))
          (system (format nil "You are one of two autonomous agents researching iterative self-improvement in this repository.~%~A~%Decide for yourself what action, if any, is useful. You are not required to read files or execute a command. Your message is a private action summary and is not sent to your peer. Never use markdown around the JSON." rules))
          (transcript "No previous peer conclusion. Choose your next step autonomously.")
          (agents (mapcar (lambda (agent) (cons (getf agent :name) agent))

@@ -15,7 +15,7 @@
     (with-open-file (in path) (read in))))
 
 (defun parse-options (args)
-  (let ((cli nil) (mock nil) (turns nil) (list-providers nil) (prompt nil)
+  (let ((cli nil) (mock nil) (list-providers nil) (prompt nil)
         (telegram-test nil) (verify-models nil))
     (loop while args do
       (let ((arg (pop args)))
@@ -27,15 +27,12 @@
               ((string= arg "--telegram-test") (setf telegram-test t cli t))
               ((string= arg "--verify-models") (setf verify-models t cli t))
               ((string= arg "--list-providers") (setf list-providers t cli t))
-              ((string= arg "--turns")
-               (unless args (error "--turns requires a positive integer"))
-               (setf turns (parse-integer (pop args))))
               ((or (string= arg "--help") (string= arg "-h"))
-               (format t "Usage: bin/forgepair [--prompt REQUEST] [--cli] [--mock] [--telegram-test] [--verify-models] [--list-providers] [--turns N]~%~
-Model selection is automatic: the planner picks the best available model from the Akita coding tier, the executor (model A) is chosen by best cost-benefit and works in the project folder where the binary was opened, and the improver (model B, best capability) works only on the Forgepair repo.~%")
+               (format t "Usage: forgepair.sh [--prompt REQUEST] [--cli] [--mock] [--telegram-test] [--verify-models] [--list-providers]~%~
+Model selection is automatic: the planner picks the best available model from the Akita coding tier, the executor (model A) is chosen by best cost-benefit and works in the project folder where the binary was opened, and the improver (model B, best capability) works only on the Forgepair repo. The agent works continuously until the planner validates the request, swapping a failing role's model when needed.~%")
                (sb-ext:exit :code 0))
               (t (error "unknown option: ~A" arg)))))
-        (list :cli cli :mock mock :turns-override turns
+        (list :cli cli :mock mock
           :prompt prompt :telegram-test telegram-test :verify-models verify-models
           :list-providers list-providers)))
 
@@ -190,7 +187,7 @@ Model selection is automatic: the planner picks the best available model from th
                              (getf planner :label) (getf planner :model)
                              (getf executor :label) (getf executor :model)
                              (getf improver :label) (getf improver :model))
-                     (let* ((session-config (list :mode :pipeline :turns (getf config :turns)))
+                     (let* ((session-config (list :mode :pipeline))
                             (tg-token (handler-case
                                           (funcall (credential-port-get credentials)
                                                    "TELEGRAM_BOT_TOKEN")
@@ -210,9 +207,15 @@ Model selection is automatic: the planner picks the best available model from th
                             (output-port (if tg-out-port
                                             (make-combined-output-port
                                              (make-cli-output-port) tg-out-port)
-                                            (make-cli-output-port))))
+                                            (make-cli-output-port)))
+                            ;; Session: the SAME Telegram chat as the output, so the
+                            ;; whole conversation (voce echo, pairing, role messages,
+                            ;; tool calls, planner verdict) lives in one chat.
+                            (session-port (and tg-token tg-chat-id-fn
+                                              (make-telegram-session-port tg-token
+                                                                          tg-chat-id-fn))))
                        (when tg-token
-                         (format t "~&Telegram: modo chat ativo — cada turno vira uma nova mensagem.~%")
+                         (format t "~&Telegram: modo chat ativo — a conversa (voce, turnos e ferramentas) vai para o mesmo chat.~%")
                          (force-output))
                        (unwind-protect
                             (apply #'run-session
@@ -226,17 +229,15 @@ Model selection is automatic: the planner picks the best available model from th
                                    prompt-port
                                    (list :cli (getf options :cli)
                                          :mock (getf options :mock)
-                                         :turns-override (getf options :turns-override)
-                                         :session-port nil
+                                         :session-port session-port
                                          :on-start (lambda ()
-                                                      (telegram-notify
-                                                       tg-token tg-chat-id-fn
-                                                       (format nil
-                                                               "Forgepair ativo~%Planner: ~A~%Executor A: ~A~%Improver B: ~A~%Turnos: ~A"
-                                                               (getf planner :label)
-                                                               (getf executor :label)
-                                                               (getf improver :label)
-                                                               (or (getf config :turns) 6))))))
+                                                     (telegram-notify
+                                                      tg-token tg-chat-id-fn
+                                                      (format nil
+                                                              "Forgepair ativo~%Planner: ~A~%Executor A: ~A~%Improver B: ~A"
+                                                              (getf planner :label)
+                                                              (getf executor :label)
+                                                              (getf improver :label))))))
                          ;; Cleanup: runs on normal end, error, or Ctrl-C.
                          (telegram-notify tg-token tg-chat-id-fn
                                           "Forgepair encerrado."))))))))))

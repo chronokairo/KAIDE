@@ -126,10 +126,10 @@
 
 ;;; System prompts for the three roles.
 ;;;
-;;; The planner is the best model of the tier: it orchestrates, and after each
-;;; turn validates whether the executor fulfilled the user's request and whether
-;;; the improver applied a real improvement to Forgepair itself. The executor
-;;; (model A, picked for cost-benefit) works ON the user's request. The improver
+;;; The planner is the best model of the tier: it orchestrates and validates
+;;; whether the executor fulfilled the user's request and whether the improver
+;;; applied a real improvement to Forgepair itself. The executor (model A,
+;;; picked for cost-benefit) works ON the user's request. The improver
 ;;; (model B) improves ONLY the Forgepair repository (its own coding agent).
 
 (defun planner-system (user-prompt rules)
@@ -140,16 +140,21 @@ Reply with only one JSON object:~%~
 {\"executor_ok\":true|false,\"improver_ok\":true|false,\"note\":\"one line of guidance\"}~%~
 executor_ok is true only if the executor actually advanced the user's request. ~
 improver_ok is true only if the improver applied a concrete improvement to the ~
-Forgepair repository itself. If a role did not implement, set its flag false so ~
-its model is swapped.~%User request:~%~A~%Rules:~%~A"
+Forgepair repository itself. If a role did not implement, set its flag false and ~
+write actionable guidance in note; that role will then keep working (and its ~
+model may be swapped).~%User request:~%~A~%Rules:~%~A"
           user-prompt rules))
 
 (defun executor-system (user-prompt rules)
   (format nil "You are the executor coding agent (model chosen by the planner for ~
-cost-benefit). Fulfill the user's request by inspecting the repository and, when ~
-useful, running exactly one shell command per turn. Reply with only one JSON object:~%~
-{\"message\":\"what you did or found\",\"command\":\"one shell command or empty string\"}~%~
-User request:~%~A~%Rules:~%~A"
+cost-benefit). Fulfill the user's request by working autonomously in the project ~
+directory. You may call tools several times: each tool reply returns its result ~
+and you can keep calling tools until the request is complete. Reply with only ~
+one JSON object:~%~
+- while working: {\"message\":\"what you are doing now\",\"tools\":[{\"name\":\"shell\",\"command\":\"one shell command\"}]}~%~
+- when done:    {\"done\":true,\"message\":\"what you changed or found\"}~%~
+Available tools: shell (run one shell command). You may send up to one tool call ~
+per reply and can chain freely until done.~%User request:~%~A~%Rules:~%~A"
           user-prompt rules))
 
 (defun improver-system (user-prompt rules)
@@ -158,23 +163,29 @@ do NOT work on the user's request. You improve ONLY the Forgepair repository ~
 itself — its own prompts, rules, config, or behavior as a coding agent. Never ~
 touch the user's target project. Watching how the executor handles the user's ~
 requests, identify one concrete improvement to Forgepair; if small and ~
-verifiable, apply it with exactly one shell command, otherwise leave command ~
-empty and describe it. Reply with only one JSON object:~%~
-{\"improvement\":\"the improvement to the Forgepair repo\",\"rationale\":\"why the user's prompts justify it\",\"command\":\"one shell command or empty string\"}~%~
+verifiable, apply it with tool calls in the Forgepair repo (Forgepair is your ~
+working directory), otherwise leave the tools empty and describe it. Reply with ~
+only one JSON object:~%~
+- while working: {\"tools\":[{\"name\":\"shell\",\"command\":\"one shell command\"}]}~%~
+- when done:    {\"done\":true,\"improvement\":\"the improvement to the Forgepair repo\",\"rationale\":\"why the user's prompts justify it\"}~%~
 User request being served:~%~A~%Rules:~%~A"
           user-prompt rules))
 
-;;; Turn prompts.
+;;; Session prompts.
 
-(defun action-prompt (user-prompt history notes)
-  "Executor sees the user's request, its own prior work, and human notes."
-  (format nil "User request:~%~A~%~%Your work so far:~%~A~A"
-          user-prompt history notes))
+(defun action-prompt (user-prompt history notes &optional feedback)
+  "Executor sees the user's request, its own prior work, human notes, and any
+planner feedback from a rejected attempt."
+  (format nil "User request:~%~A~%~%Your work so far: ~A~%~A~A"
+          user-prompt history notes
+          (if (and feedback (not (string= (trim feedback) "")))
+              (format nil "~%Planner feedback to address: ~A" feedback)
+              "")))
 
 (defun improve-prompt (user-prompt executor-message executor-command executor-output
                        improvements)
-  "Improver sees the user's request, the executor's latest turn, and the
-improvements already accumulated this session (Forgepair repo only)."
+  "Improver sees the user's request, the executor's latest run, and the
+improvements already accepted this session (Forgepair repo only)."
   (format nil "User request:~%~A~%~%Executor's latest action: ~A~%Executor's command: ~A~%Executor's terminal result:~%~A~%~%Improvements to Forgepair accepted so far:~%~A"
           user-prompt executor-message
           (if (string= executor-command "") "[none]" executor-command)
@@ -183,7 +194,7 @@ improvements already accumulated this session (Forgepair repo only)."
 
 (defun planner-prompt (user-prompt executor-message executor-command executor-output
                        improvement improver-command improver-output)
-  "Planner validates the executor and improver results of the current turn."
+  "Planner validates the executor and improver results of the current attempt."
   (format nil "User request:~%~A~%~%Executor said: ~A~%Executor command: ~A~%Executor result:~%~A~%~%Improver said: ~A~%Improver command: ~A~%Improver result:~%~A~%~%Did each role implement real work? Answer with the JSON validation object."
           user-prompt executor-message
           (if (string= executor-command "") "[none]" executor-command)

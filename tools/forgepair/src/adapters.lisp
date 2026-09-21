@@ -124,7 +124,7 @@ Filters by name prefix because pathname wildcards treat the suffix as a type."
 command cannot rewrite the sources, config, launcher, or constitution that
 define its behavior (protects rule 4: do not weaken the sandbox)."
   (loop for rel in '("src/" "config.sexp" "config.example.sexp"
-                     "forgepair.asd" "bin/" ".forgepair/RULES.md")
+                     "forgepair.asd" "bin/" "AGENTS.md")
         for path = (merge-pathnames rel *root*)
         when (probe-file path)
           append (list "--ro-bind" (namestring path) (namestring path))))
@@ -171,9 +171,9 @@ mounted read-only so a command cannot rewrite its self."
 
 (defun make-cli-output-port ()
   (make-output-port
-   :render-turn (lambda (turn turns name conclusion command output)
-                  (format t "~&[~D/~D] ~A~%conclusao: ~A~%comando: ~A~%saida:~%~A~%"
-                          turn turns name conclusion
+   :render-turn (lambda (name conclusion command output)
+                  (format t "~&~A~%conclusao: ~A~%comando: ~A~%saida:~%~A~%"
+                          name conclusion
                           (if (string= command "") "[nenhum]" command) output)
                   (force-output))))
 
@@ -339,12 +339,12 @@ output port to pick up: (getf port :chat-id)."
 
 (defun make-telegram-output-port (token chat-id-fn)
   "Output port that sends one new Telegram message per render-turn call.
-Each bubble shows: role icon + name + turn counter, the conclusion text,
-and (when a command was run) the command and its trailing output — exactly
-what you see in a ChatGPT-style tool-call conversation."
+Each bubble shows: role icon + name, the conclusion text, and (when a command
+was run) the command and its trailing output — exactly what you see in a
+ChatGPT-style tool-call conversation."
   (make-output-port
    :render-turn
-   (lambda (turn turns name conclusion command output)
+   (lambda (name conclusion command output)
      (let ((chat-id (funcall chat-id-fn)))
        (when chat-id
          (let* ((icon (cond ((search "Executor" name) (format nil "~C" #\U+2699))
@@ -360,19 +360,45 @@ what you see in a ChatGPT-style tool-call conversation."
                                 (if (> (length out) 1200)
                                     (subseq out (- (length out) 1200))
                                     out)))))
-                (text (format nil "~A ~A [~D/~D]~%~A~A"
-                              icon name turn turns conclusion cmd-block)))
+                (text (format nil "~A ~A~%~A~A"
+                              icon name conclusion cmd-block)))
            (handler-case (telegram-send token chat-id text)
              (error () nil))))))))
+
+(defun make-telegram-session-port (token chat-id-fn)
+  "Session port that posts chat lifecycle and per-role events to the SAME
+Telegram chat as the output port, so the whole conversation — the user's
+'voce' echo, model pairing, each role's message, tool calls, planner verdict —
+lives in one chat instead of being split or dropped when no chat is attached."
+  (%make-session-port
+   :update (lambda (kind text)
+             (let ((chat-id (funcall chat-id-fn)))
+               (when (and chat-id (not (string= (trim (or text "")) "")))
+                 (let* ((icon (cond ((string= kind "voce")     (format nil "~C" #\U+1F464))
+                                    ((string= kind "tool")     (format nil "~C" #\U+1F5A5))
+                                    ((string= kind "planner")  (format nil "~C" #\U+1F3AF))
+                                    ((search "executor" kind)  (format nil "~C" #\U+2699))
+                                    ((search "improver" kind)  (format nil "~C" #\U+1F527))
+                                    (t                         (format nil "~C" #\U+25B6))))
+                        (label (cond ((string= kind "voce")      "voce")
+                                     ((string= kind "tool")      "tool")
+                                     ((string= kind "planner")   "planner")
+                                     ((string= kind "sessao")    "sessao")
+                                     ((string= kind "forgepair") "forgepair")
+                                     (t kind))))
+                   (handler-case
+                       (telegram-send token chat-id
+                                      (format nil "~A ~A~%~A" icon label text))
+                     (error () nil))))))))
 
 (defun make-combined-output-port (cli-port telegram-port)
   "Fan render-turn calls to both CLI-PORT and TELEGRAM-PORT (if non-nil)."
   (make-output-port
    :render-turn
-   (lambda (turn turns name conclusion command output)
-     (funcall (output-port-render-turn cli-port) turn turns name conclusion command output)
+   (lambda (name conclusion command output)
+     (funcall (output-port-render-turn cli-port) name conclusion command output)
      (when (and telegram-port (output-port-render-turn telegram-port))
-       (funcall (output-port-render-turn telegram-port) turn turns name conclusion command output)))))
+       (funcall (output-port-render-turn telegram-port) name conclusion command output)))))
 
 (defun make-prompt-port (fixed-prompt)
   "User-request channel. Uses --prompt when given, otherwise reads stdin once.

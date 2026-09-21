@@ -8,6 +8,12 @@ a plataforma.
 
 ## Trabalho planejado
 
+- [x] Remover turnos fixos (`--turns`, `:turns`, contador `[N/D]`) em favor de
+      sessão contínua com limite de segurança interno (ADR-0003/0008).
+- [x] Implementar multi-tool calling (`shell`/`read`/`list`, cadeia até `done`)
+      para executor e improver (ADR-0008).
+- [x] Unificar o chat: session-port do Telegram recebe os mesmos eventos do
+      output-port (voce, pares, ferramentas, planner) no mesmo chat (ADR-0006/0008).
 - [ ] Adicionar testes de contrato para cada adapter de provider.
 - [ ] Adicionar descoberta opcional de modelos AWS Bedrock.
 - [ ] Melhorar a validação de comandos antes da execução no sandbox.

@@ -6,21 +6,24 @@ Forgepair é um orquestrador de agentes escrito em Common Lisp e sem bibliotecas
 de terceiros. Dois modelos de IA de providers distintos trabalham juntos: um
 **executor** faz o que o usuário pediu e um **improver** (meta-agente) observa
 como o executor atende os pedidos e identifica melhorias no próprio coding agent.
-Você acompanha tudo em um TUI e pode enviar observações sem interromper a conversa.
+Você acompanha tudo em um terminal e pode enviar observações sem interromper a conversa.
 
 ## Como funciona
 
-1. O **executor** recebe o *prompt do usuário* e realiza a tarefa, usando no
-   máximo um comando de terminal por turno.
-2. O comando é executado dentro de um sandbox Bubblewrap.
+1. O **executor** recebe o *prompt do usuário* e trabalha como um agente de
+   coding: chama ferramentas (`shell`, `read`, `list`) em sequência, vendo o
+   resultado de cada uma, até concluir a tarefa.
+2. Cada ferramenta é executada dentro de um sandbox Bubblewrap.
 3. O **improver** recebe o prompt do usuário e o resultado do executor.
 4. O improver identifica uma melhoria concreta no coding agent (prompts, regras,
-   config ou comportamento). Se for pequena e verificável, aplica com um comando;
-   senão apenas descreve.
-5. O ciclo executor/improver se repete pelo número de turnos configurado, e as
-   melhorias identificadas são resumidas no fim.
+   config ou comportamento) e, se pequena e verificável, aplica no repo Forgepair.
+5. O **planner** (melhor modelo do tier) valida se o executor e o improver
+   fizeram trabalho real. Se um falhou, o modelo daquele papel é trocado e a
+   orientação do planner é devolvida ao substituto para corrigir. A sessão roda
+   continuamente até a validação passar (limitada por segurança), sem contador
+   de turnos. As melhorias identificadas são resumidas no fim.
 
-O modo sempre usa dois providers distintos, escolhidos automaticamente.
+A seleção dos modelos é automática (tier Akita, veja abaixo).
 
 ## Requisitos
 
@@ -55,15 +58,17 @@ dentro dos terminais dos agentes.
 Não há mais `--provider`/`--model`. A seleção é **automática**: Forgepair
 percorre um tier curado dos melhores modelos de coding de 2026 (veja abaixo),
 mantém apenas os providers cuja credencial está presente no `.env` e escolhe o
-executor e o improver a partir de **dois providers distintos**, o melhor para
-cada papel.
+executor (melhor custo-benefício) e o improver (melhor pontuação) a partir desse
+tier. Nenhum provider é pré-excluído da seleção por "distintividade".
 
-O `config.sexp` guarda só a quantidade de turnos:
+O `config.sexp` guarda o modo da sessão:
 
 ```lisp
-(:mode :pipeline
- :turns 6)
+(:mode :pipeline)
 ```
+
+Não há mais configuração de turnos: a sessão roda até o planner validar o
+trabalho, dentro de limites de segurança internos.
 
 ### Tier de modelos (benchmark do Akita, 2026)
 
@@ -94,20 +99,20 @@ echo "refatore o parser JSON" | ./bin/forgepair
 ```
 
 Durante a execução, digite no campo `voce>` para adicionar uma observação. Ela
-será entregue no próximo turno sem cancelar o modelo que já estiver trabalhando.
-Use `Ctrl+C` para encerrar.
+será entregue ao executor sem cancelar o trabalho em andamento. Use `Ctrl+C`
+para encerrar.
 
-Para acompanhar como logs simples, sem TUI:
+Para acompanhar como logs simples:
 
 ```bash
 ./bin/forgepair --cli --prompt "..."
 ```
 
-Use `--turns N` para sobrescrever a quantidade de turnos. Para testar offline a
-execução no sandbox sem chamar providers:
+Para testar offline a execução no sandbox sem chamar providers (o mock executa
+de verdade uma ferramenta, vê o resultado e conclui):
 
 ```bash
-./bin/forgepair --mock --turns 3 --prompt "qualquer pedido"
+./bin/forgepair --mock --prompt "qualquer pedido"
 ```
 
 Para verificar o núcleo sem requisições externas:
@@ -132,15 +137,17 @@ em `.env` como `TELEGRAM_BOT_TOKEN`. Para validar o token sem enviar mensagens
 ./bin/forgepair --telegram-test
 ```
 
-A função `telegram-send` (em `src/adapters.lisp`) envia mensagens via
-`sendMessage` e pode ser usada para notificar um chat sobre a sessão.
+Com o token presente, Forgepair aguarda sua mensagem no Telegram e responde ali
+mesmo: o pedido, a escolha dos modelos, cada mensagem e ferramenta do executor e
+do improver, o veredito do planner e o resumo final aparecem **no mesmo chat**,
+como uma conversa.
 
 ## Autonomia experimental
 
 O orquestrador não manda os agentes lerem uma lista de arquivos. Cada agente
-escolhe sua própria ação a partir do prompt do usuário, do histórico e das regras
-de segurança. Se decidir alterar algo, a constituição exige leitura prévia e uma
-mudança pequena e verificável.
+escolhe sua própria ação a partir do prompt do usuário, do histórico, das
+ferramentas que chama e das regras de segurança. Se decidir alterar algo, a
+constituição exige leitura prévia e uma mudança pequena e verificável.
 
 Depois da sessão, revise tudo:
 
@@ -158,7 +165,7 @@ Os comandos gerados pelos modelos são executados em sandboxes Bubblewrap:
   `.env*` mascarados por `/dev/null` e `.git` somente leitura;
 - o **improver** trabalha somente no repositório Forgepair, onde `src/`,
   `config.sexp`, `config.example.sexp`, `forgepair.asd`, `bin/` e
-  `.forgepair/RULES.md` são montados somente leitura para ele não reescrever a
+  `AGENTS.md` são montados somente leitura para ele não reescrever a
   própria máquina;
 - ferramentas e bibliotecas do sistema somente para leitura;
 - ambiente limpo, sem credenciais herdadas;
@@ -181,14 +188,14 @@ apenas como mensagem e não executa comandos.
 ```text
 bin/forgepair             launcher
 src/entrypoint.lisp       composition root, CLI e seleção automática
-src/application.lisp      caso de uso da sessão executor/improver
+src/application.lisp      caso de uso da sessão executor/improver (multi-tool)
 src/domain.lisp           protocolo JSON, prompts e decisões puras
 src/ports.lisp            contratos dos adapters (inclui prompt-port)
 src/providers.lisp        catálogo, tier Akita e auto-seleção
 src/adapters.lisp         dotenv, curl, Bubblewrap, Telegram, verify-models
 src/forgepair.lisp        implementação legada mantida como referência
-config.sexp               quantidade de turnos
-.forgepair/RULES.md       constituição dos agentes (executor + improver)
+config.sexp               modo da sessão
+AGENTS.md                 constituição dos agentes (regras + executor + improver)
 .env                      credenciais locais, ignoradas pelo Git
 ```
 

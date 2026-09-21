@@ -1,2 +1,1 @@
-(:mode :pipeline
- :turns 6)
+(:mode :pipeline)
