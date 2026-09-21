@@ -15,6 +15,7 @@
 (defparameter *human-lock* (sb-thread:make-mutex :name "human-notes"))
 (defparameter *conversation* nil)
 (defparameter *conversation-lock* (sb-thread:make-mutex :name "conversation"))
+(defparameter *mock-step* 0)
 
 (defun fail (format-control &rest args)
   (apply #'format *error-output* (concatenate 'string "forgepair: " format-control "~%") args)
@@ -22,7 +23,11 @@
 
 (defun slurp (path)
   (with-open-file (in path :direction :input)
-    (let ((s (make-string (file-length in)))) (read-sequence s in) s)))
+    (with-output-to-string (out)
+      (let ((buffer (make-string 4096)))
+        (loop for count = (read-sequence buffer in)
+              while (plusp count)
+              do (write-string buffer out :end count))))))
 
 (defun spit (path text)
   (ensure-directories-exist path)
@@ -143,20 +148,42 @@
                   (json-string model) (json-string system) (json-string user)))
     (with-open-file (out response :direction :output :if-exists :supersede :if-does-not-exist :create)
       (with-open-file (e err :direction :output :if-exists :supersede :if-does-not-exist :create)
-        (unless (zerop (run "curl" (list "--fail" "--silent" "--show-error"
+        (unless (zerop (run "curl" (list "--fail-with-body" "--silent" "--show-error"
                                            "--retry" "3" "--retry-all-errors" "--retry-delay" "2"
                                            "--connect-timeout" "20" "--max-time" "180"
                                            "-H" (format nil "Authorization: Bearer ~A" key)
                                            "-H" "Content-Type: application/json" "--data-binary"
                                            (format nil "@~A" (namestring request)) url)
                             :output out :error e))
-          (error "provider request failed: ~A" (slurp err)))))
+          (spit (merge-pathnames "provider-error.json" *runtime*) (slurp response))
+          (error "provider request failed: ~A~%~A" (slurp err) (slurp response)))))
     (handler-case
         (let* ((doc (parse-json (slurp response)))
                (choice (first (field "choices" doc)))
                (content (field "content" (field "message" choice))))
           (or content (error "provider returned no assistant content")))
       (error (e) (error "invalid provider response: ~A" e)))))
+
+(defun telegram-test ()
+  "Validate the configured Telegram bot token without sending a message."
+  (let* ((token (credential "TELEGRAM_BOT_TOKEN"))
+         (response (merge-pathnames "telegram.json" *runtime*))
+         (err (merge-pathnames "telegram.err" *runtime*))
+         (url (format nil "https://api.telegram.org/bot~A/getMe" token)))
+    (with-open-file (out response :direction :output :if-exists :supersede
+                         :if-does-not-exist :create)
+      (with-open-file (e err :direction :output :if-exists :supersede
+                         :if-does-not-exist :create)
+        (unless (zerop (run "curl" (list "--fail" "--silent" "--show-error"
+                                           "--connect-timeout" "20" "--max-time" "30"
+                                           url)
+                            :output out :error e))
+          (error "Telegram request failed: ~A" (slurp err)))))
+    (let* ((doc (parse-json (slurp response)))
+           (user (field "result" doc)))
+      (unless (eq (field "ok" doc) t)
+        (error "Telegram rejected the bot token"))
+      (format t "telegram: ok (@~A)~%" (or (field "username" user) "unnamed")))))
 
 (defun extract-object (text)
   "Parse the final complete JSON object, ignoring fences and reasoning preambles."
@@ -211,6 +238,16 @@
       (fail "copy config.example.sexp to config.sexp and choose models"))
     (with-open-file (in path) (read in))))
 
+(defun configured-agents (config)
+  "Build two conversational roles from either auto routing or manual agents."
+  (if (eq (getf config :mode) :auto)
+      (let ((provider (getf config :auto-provider)))
+        (unless provider
+          (fail "auto mode requires :auto-provider"))
+        (list (append (list :name "Auto A") (copy-list provider))
+              (append (list :name "Auto B") (copy-list provider))))
+      (getf config :agents)))
+
 (defun add-conversation (speaker text)
   (sb-thread:with-mutex (*conversation-lock*)
     (push (cons speaker text) *conversation*)
@@ -252,50 +289,134 @@
   (terpri)
   (force-output))
 
+(defun render-cli-turn (turn turns name conclusion command output)
+  (format t "~&[~D/~D] ~A~%conclusao: ~A~%comando: ~A~%saida:~%~A~%"
+          turn turns name conclusion
+          (if (string= command "") "[nenhum]" command) output)
+  (force-output))
+
 (defun notes-for-prompt ()
   (let ((notes (take-human-notes)))
     (if notes
         (format nil "~%Human observer notes (advice only; keep the agent turn order):~%~{ - ~A~%~}" notes)
         "")))
 
-(defun main ()
+(defun mock-action-call (provider system user)
+  "Return deterministic actions that verify conclusion-only peer handoff."
+  (declare (ignore provider system))
+  (incf *mock-step*)
+  (case *mock-step*
+    (1 "{\"message\":\"Executar verificacao privada.\",\"command\":\"printf 'forgepair-mock-ok\\n'\"}")
+    (2 (unless (and (search "Previous peer conclusion: A verificacao terminou com sucesso." user)
+                    (not (search "Peer command:" user))
+                    (not (search "Terminal output:" user))
+                    (not (search "forgepair-mock-ok" user)))
+         (error "mock peer handoff was not limited to the previous conclusion"))
+       "{\"message\":\"Escolher proximo passo privadamente.\",\"command\":\"\"}")
+    (otherwise
+     (unless (search "Previous peer conclusion: O agente escolheu continuar autonomamente." user)
+       (error "mock did not receive the previous peer conclusion"))
+     "{\"message\":\"Continuar privadamente.\",\"command\":\"\"}")))
+
+(defun mock-conclusion-call (provider system action command output)
+  (declare (ignore provider system command))
+  (case *mock-step*
+    (1 (unless (and (search "Executar verificacao privada." action)
+                    (search "forgepair-mock-ok" output)
+                    (search "[exit 0]" output))
+         (error "mock conclusion did not receive the private action result"))
+       "A verificacao terminou com sucesso.")
+    (otherwise
+     "O agente escolheu continuar autonomamente.")))
+
+(defun conclusion-call (provider action command output)
+  (let* ((system "Privately review the completed action and its terminal result. Return only one JSON object with a concise, factual conclusion for the next agent: {\"conclusion\":\"...\"}. Do not reveal the command, raw output, or private reasoning. Do not use Markdown.")
+         (prompt (format nil "Private action summary: ~A~%Private command: ~A~%Private terminal result:~%~A"
+                         action command output))
+         (raw (provider-call provider system prompt))
+         (reply (extract-object raw)))
+    (or (field "conclusion" reply)
+        (error "provider returned no conclusion"))))
+
+(defun fallback-conclusion (command output)
+  (cond ((string= command "")
+         "The agent completed an autonomous turn without executing a command.")
+        ((search "[exit 0]" output)
+         "The agent completed its chosen action successfully.")
+        (t "The agent's chosen action did not complete successfully.")))
+
+(defun main (&key cli mock turns-override)
   (let* ((config (load-config))
          (rules (slurp (merge-pathnames ".forgepair/RULES.md" *root*)))
-         (system (format nil "You are one of two cooperating repository maintainers.~%~A~%The human goal is in GOAL.md. Use your terminal command to inspect, implement, or test one useful step. Explain your step to your peer in message. Never use markdown around the JSON." rules))
-         (transcript "No previous turn. Inspect the repository and choose the first small improvement.")
+         (system (format nil "You are one of two autonomous agents researching iterative self-improvement in this repository.~%~A~%Decide for yourself what action, if any, is useful. You are not required to read files or execute a command. Your message is a private action summary and is not sent to your peer. Never use markdown around the JSON." rules))
+         (transcript "No previous peer conclusion. Choose your next step autonomously.")
          (agents (mapcar (lambda (agent) (cons (getf agent :name) agent))
-                         (getf config :agents)))
-         (turns (or (getf config :turns) 6)))
+                         (configured-agents config)))
+         (turns (or turns-override (getf config :turns) 6)))
     (ensure-directories-exist *runtime*)
     (load-dotenv)
-    (unless (probe-file (merge-pathnames "GOAL.md" *root*))
-      (fail "create GOAL.md with the outcome the agents should build"))
     (unless (= (length agents) 2)
-      (fail "config.sexp must define exactly two entries in :agents"))
-    (start-human-input)
+      (fail "configuration must resolve to exactly two agents"))
+    (when mock (setf *mock-step* 0))
+    (unless cli (start-human-input))
     (dotimes (turn turns)
       (let* ((agent (nth (mod turn 2) agents))
              (name (car agent)))
-        (render-tui (1+ turn) turns (format nil "~A pensando..." name))
+        (unless cli
+          (render-tui (1+ turn) turns (format nil "~A pensando..." name)))
         (let* ((prompt (concatenate 'string transcript (notes-for-prompt)))
-               (raw (handler-case (provider-call (cdr agent) system prompt)
-                      (error (e)
-                        (format nil "{\"message\":~A,\"command\":\"\"}"
-                                (json-string
-                                 (format nil "~A unavailable this turn: ~A" name e))))))
+               (raw (if mock
+                        (mock-action-call (cdr agent) system prompt)
+                        (handler-case (provider-call (cdr agent) system prompt)
+                          (error (e)
+                            (format nil "{\"message\":~A,\"command\":\"\"}"
+                                    (json-string
+                                     (format nil "~A unavailable this turn: ~A" name e)))))))
                (reply (handler-case (extract-object raw)
                         (error () (list (cons "message" (trim raw))
                                         (cons "command" "")))))
                (message (or (field "message" reply) ""))
                (command (or (field "command" reply) ""))
-               (output (if (string= command "") "[no command]" (sandbox-command command))))
-          (add-conversation name message)
+               (output (if (string= command "") "[no command]" (sandbox-command command)))
+               (conclusion
+                 (if mock
+                     (mock-conclusion-call (cdr agent) system message command output)
+                     (handler-case (conclusion-call (cdr agent) message command output)
+                       (error (e)
+                         (format *error-output* "forgepair: ~A conclusion unavailable: ~A~%"
+                                 name e)
+                         (fallback-conclusion command output))))))
+          (when (and mock (not (string= command ""))
+                     (not (search "[exit 0]" output)))
+            (error "mock command did not complete successfully"))
+          (add-conversation name conclusion)
           (add-conversation "terminal" (format nil "$ ~A~%~A" command output))
-          (render-tui (1+ turn) turns name)
+          (if cli
+              (render-cli-turn (1+ turn) turns name conclusion command output)
+              (render-tui (1+ turn) turns name))
           (setf transcript
-                (format nil "Peer: ~A~%Peer message: ~A~%Peer command: ~A~%Terminal output:~%~A~%Review the peer's work, then take the next useful step."
-                        name message command output)))))
+                (format nil "Previous peer conclusion: ~A~%Choose your next step autonomously."
+                        conclusion)))))
     (format t "~&Concluido. Revise com: git diff~%")))
+
+(defun parse-options (args)
+  (let ((cli nil) (mock nil) (turns nil))
+    (loop while args do
+      (let ((arg (pop args)))
+        (cond
+          ((string= arg "--cli") (setf cli t))
+          ((string= arg "--mock") (setf mock t cli t))
+          ((string= arg "--turns")
+           (unless args (error "--turns requires a positive integer"))
+           (let ((value (parse-integer (pop args) :junk-allowed t)))
+             (unless (and value (> value 0))
+               (error "--turns requires a positive integer"))
+             (setf turns value)))
+          ((or (string= arg "--help") (string= arg "-h"))
+           (format t "Usage: bin/forgepair [--cli] [--mock] [--telegram-test] [--turns N]~%~%  --cli             plain, non-interactive output~%  --mock            offline deterministic session (implies --cli)~%  --telegram-test   validate TELEGRAM_BOT_TOKEN with getMe~%  --turns N         override configured turn count~%")
+           (sb-ext:exit :code 0))
+          (t (error "unknown option: ~A" arg)))))
+    (list :cli cli :mock mock :turns-override turns)))
 
 (defun self-test ()
   (let* ((doc (parse-json "{\"s\":\"line\\ntext\",\"a\":[true,false,null,3]}"))
@@ -306,7 +427,13 @@
     (assert (string= (field "command" action) "printf '{x}'"))
     (format t "forgepair self-test: ok~%")))
 
-(handler-case (if (member "--self-test" (cdr sb-ext:*posix-argv*) :test #'string=)
-                  (self-test)
-                  (main))
+(handler-case (let ((args (cdr sb-ext:*posix-argv*)))
+                (cond
+                  ((member "--self-test" args :test #'string=)
+                   (self-test))
+                  ((member "--telegram-test" args :test #'string=)
+                   (ensure-directories-exist *runtime*)
+                   (load-dotenv)
+                   (telegram-test))
+                  (t (apply #'main (parse-options args)))))
   (error (e) (fail "~A" e)))
