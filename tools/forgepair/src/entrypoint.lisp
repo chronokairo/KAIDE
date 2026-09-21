@@ -174,25 +174,44 @@ Model selection is automatic: the two best available providers from the Akita co
                              (getf planner :label) (getf planner :model)
                              (getf executor :label) (getf executor :model)
                              (getf improver :label) (getf improver :model))
-                     (let ((session-config (list :mode :pipeline :turns (getf config :turns)))
-                           (telegram (make-telegram-session credentials)))
-                       (when telegram
-                         (format t "~&Telegram: bubble da sessao criado (compact edit por turno).~%"))
+                     (let* ((session-config (list :mode :pipeline :turns (getf config :turns)))
+                            (tg-token (handler-case
+                                          (funcall (credential-port-get credentials)
+                                                   "TELEGRAM_BOT_TOKEN")
+                                        (error () nil)))
+                            ;; Telegram prompt port: captures chat-id lazily on first access.
+                            (tg-prompt-plist (and tg-token (make-telegram-prompt-port tg-token)))
+                            (tg-prompt-port  (and tg-prompt-plist
+                                                  (getf tg-prompt-plist :prompt-port)))
+                            (tg-chat-id-fn   (and tg-prompt-plist
+                                                  (getf tg-prompt-plist :chat-id-fn)))
+                            ;; Use Telegram for input only when --prompt is not given.
+                            (prompt-port (if (getf options :prompt)
+                                            (make-prompt-port (getf options :prompt))
+                                            (or tg-prompt-port
+                                                (make-prompt-port nil))))
+                            ;; Output: always CLI; fan to Telegram chat when token present.
+                            (tg-out-port (and tg-token tg-chat-id-fn
+                                             (make-telegram-output-port tg-token tg-chat-id-fn)))
+                            (output-port (if tg-out-port
+                                            (make-combined-output-port
+                                             (make-cli-output-port) tg-out-port)
+                                            (make-cli-output-port))))
+                       (when tg-token
+                         (format t "~&Telegram: modo chat ativo — cada turno vira uma nova mensagem.~%")
+                         (force-output))
                        (apply #'run-session
                               session-config
-                              planner
-                              executor
-                              improver
-                              pool
+                              planner executor improver pool
                               (make-http-provider-port credentials)
                               (make-sandbox-command-port)
-                              (make-cli-output-port)
+                              output-port
                               (make-notes-port)
-                              (make-prompt-port (getf options :prompt))
+                              prompt-port
                               (list :cli (getf options :cli)
                                     :mock (getf options :mock)
                                     :turns-override (getf options :turns-override)
-                                    :session-port (%make-session-port :update telegram)))))))))))
+                                    :session-port nil))))))))))
     (error (condition) (fail "~A" condition))))
 
 (run-entrypoint)

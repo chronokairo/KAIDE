@@ -191,16 +191,17 @@ credentials. Use the output to prune *akita-tier* to real availability."
 
 ;;; Telegram integration (zero-lib: plain curl to the Bot API).
 
-(defun telegram-api (token method &optional data-json)
+(defun telegram-api (token method &optional data-json (max-time "30"))
   "Call a Telegram Bot API method with curl. Returns the parsed JSON document.
-Signals on transport failure; the caller inspects the \"ok\" field."
+Signals on transport failure; the caller inspects the \"ok\" field.
+MAX-TIME overrides the default 30s curl limit; use \"60\" for long-polling."
   (let ((url (format nil "https://api.telegram.org/bot~A/~A" token method))
         (response (merge-pathnames "telegram.json" *runtime*))
         (err (merge-pathnames "telegram.err" *runtime*)))
     (with-open-file (out response :direction :output :if-exists :supersede :if-does-not-exist :create)
       (with-open-file (error-stream err :direction :output :if-exists :supersede :if-does-not-exist :create)
         (let ((args (list "--silent" "--show-error"
-                          "--connect-timeout" "20" "--max-time" "30" url)))
+                          "--connect-timeout" "20" "--max-time" max-time url)))
           (when data-json
             (setf args (append (list "-H" "Content-Type: application/json"
                                      "--data-binary" data-json)
@@ -209,59 +210,69 @@ Signals on transport failure; the caller inspects the \"ok\" field."
     (parse-json (slurp response))))
 
 (defun telegram-send (token chat-id text)
-  "Send a message to a chat. Returns the new message_id on success, nil otherwise."
-  (let ((doc (telegram-api token "sendMessage"
-                           (format nil "{\"chat_id\":~A,\"text\":~A}"
-                                   (json-string chat-id) (json-string text)))))
+  "Send a new message. Returns the message_id on success, nil otherwise.
+Truncates TEXT to 4096 bytes (Telegram's per-message limit)."
+  (let* ((safe (if (> (length text) 4096) (subseq text 0 4096) text))
+         (doc (telegram-api token "sendMessage"
+                            (format nil "{\"chat_id\":~A,\"text\":~A}"
+                                    (json-string chat-id) (json-string safe)))))
     (and (field "ok" doc) (field "message_id" (field "result" doc)))))
 
 (defun telegram-edit (token chat-id message-id text)
-  "Edit an existing message (the session bubble). Returns t on success. Telegram
-rejects edits whose text is byte-identical to the current one (400); we treat
-that as success so an unchanged turn is a no-op."
-  (let ((doc (telegram-api token "editMessageText"
-                           (format nil "{\"chat_id\":~A,\"message_id\":~A,\"text\":~A}"
-                                   (json-string chat-id)
-                                   (if (stringp message-id) (json-string message-id)
-                                       (princ-to-string message-id))
-                                   (json-string text)))))
+  "Edit an existing message. Returns t on success.
+Treats 'message is not modified' as success (unchanged turn is a no-op)."
+  (let* ((safe (if (> (length text) 4096) (subseq text 0 4096) text))
+         (doc (telegram-api token "editMessageText"
+                            (format nil "{\"chat_id\":~A,\"message_id\":~A,\"text\":~A}"
+                                    (json-string chat-id)
+                                    (if (stringp message-id) (json-string message-id)
+                                        (princ-to-string message-id))
+                                    (json-string safe)))))
     (or (and (field "ok" doc) t)
         (let ((desc (field "description" (field "error" doc))))
           (and desc (search "not modified" desc) t))
         (let ((desc (field "description" doc)))
           (and desc (search "not modified" desc) t)))))
 
-(defun telegram-chat-id (token &optional credentials)
-  "Resolve the chat id for the session bubble: prefer TELEGRAM_CHAT_ID from the
-environment, else fall back to the most recent chat that messaged the bot via
-getUpdates. Returns the id as a string, or nil if none can be determined."
-  (or (and credentials
-           (handler-case (funcall (credential-port-get credentials) "TELEGRAM_CHAT_ID")
-             (error () nil)))
-      (let* ((doc (telegram-api token "getUpdates"))
-             (updates (and (field "ok" doc) (field "result" doc)))
-             (last (car (last updates))))
-        (when last
-          (let* ((msg (or (field "message" last) (field "channel_post" last)))
-                 (chat (and msg (field "chat" msg)))
-                 (id (and chat (field "id" chat))))
-            (and id (princ-to-string id)))))))
-
-(defun make-telegram-session (credentials)
-  "Create a Telegram session bubble (one message per Forgepair session) and
-return a closure (lambda (compact-text)) that edits that same bubble with the
-compact text each turn. Returns nil when Telegram is unavailable (no token or no
-chat id) so the session runs normally without notifications."
+(defun telegram-drain-updates (token)
+  "Consume all pending updates and return the next offset so the session
+ignores stale messages that arrived before startup."
   (handler-case
-      (let* ((token (funcall (credential-port-get credentials) "TELEGRAM_BOT_TOKEN"))
-             (chat-id (and token (telegram-chat-id token credentials))))
-        (when (and token chat-id (> (length token) 0))
-          (let ((message-id (telegram-send token chat-id "Forgepair: iniciando sessao...")))
-            (when message-id
-              (lambda (compact-text)
-                (handler-case (telegram-edit token chat-id message-id compact-text)
-                  (error () nil)))))))
-    (error () nil)))
+      (let* ((doc (telegram-api token "getUpdates" nil "10"))
+             (updates (and (field "ok" doc) (field "result" doc))))
+        (if updates
+            (1+ (reduce #'max updates
+                        :key (lambda (u) (or (field "update_id" u) 0))
+                        :initial-value 0))
+            0))
+    (error () 0)))
+
+(defun telegram-await-message (token &optional (offset 0))
+  "Long-poll getUpdates (timeout=25s, max-time=60s) until a text message
+arrives. Returns (values text chat-id-string next-offset).
+Loops indefinitely on transport errors so a brief outage does not abort."
+  (loop
+    (handler-case
+        (let* ((doc (telegram-api
+                     token "getUpdates"
+                     (format nil "{\"offset\":~D,\"timeout\":25,\"allowed_updates\":[\"message\"]}"
+                             offset)
+                     "60"))
+               (updates (and (field "ok" doc) (field "result" doc))))
+          (dolist (u (or updates nil))
+            (let* ((uid  (field "update_id" u))
+                   (msg  (or (field "message" u) (field "channel_post" u)))
+                   (text (and msg (field "text" msg)))
+                   (chat (and msg (field "chat" msg)))
+                   (id   (and chat (field "id" chat))))
+              (when uid (setf offset (1+ uid)))
+              (when (and text id (> (length (trim text)) 0))
+                (return-from telegram-await-message
+                  (values (trim text) (princ-to-string id) offset))))))
+      (error (condition)
+        (format *error-output* "~&telegram poll: ~A~%" condition)
+        (force-output)
+        (sleep 2)))))
 
 (defun telegram-test (credentials)
   "Validate TELEGRAM_BOT_TOKEN via getMe without sending any message."
@@ -277,6 +288,65 @@ chat id) so the session runs normally without notifications."
                     (or (field "description" doc) "resposta sem ok"))))
     (error (condition)
       (format t "telegram-test: ~A~%" condition))))
+
+(defun make-telegram-prompt-port (token)
+  "Prompt port that reads the user's request from the next Telegram message.
+Drains stale pending updates first so only a NEW message is used.
+The captured text and chat-id are stored in the returned plist for the
+output port to pick up: (getf port :chat-id)."
+  (let ((cached-text nil) (chat-id nil) (loaded nil)
+        (offset (telegram-drain-updates token)))
+    (list :prompt-port
+          (%make-prompt-port
+           :get (lambda ()
+                  (unless loaded
+                    (format t "~&Telegram: aguardando mensagem do usuario...~%")
+                    (force-output)
+                    (multiple-value-setq (cached-text chat-id offset)
+                      (telegram-await-message token offset))
+                    (setf loaded t)
+                    (format t "~&Telegram: pedido recebido (chat ~A): ~A~%"
+                            chat-id cached-text)
+                    (force-output))
+                  cached-text))
+          :chat-id-fn (lambda () chat-id))))
+
+(defun make-telegram-output-port (token chat-id-fn)
+  "Output port that sends one new Telegram message per render-turn call.
+Each bubble shows: role icon + name + turn counter, the conclusion text,
+and (when a command was run) the command and its trailing output — exactly
+what you see in a ChatGPT-style tool-call conversation."
+  (make-output-port
+   :render-turn
+   (lambda (turn turns name conclusion command output)
+     (let ((chat-id (funcall chat-id-fn)))
+       (when chat-id
+         (let* ((icon (cond ((search "Executor" name) (format nil "~C" #\U+2699))
+                            ((search "Improver" name) (format nil "~C" #\U+1F527))
+                            ((search "Planner"  name) (format nil "~C" #\U+1F3AF))
+                            (t                        (format nil "~C" #\U+25B6))))
+                (cmd-block
+                  (if (string= command "")
+                      ""
+                      (let ((out (trim output)))
+                        (format nil "~%~%$ ~A~%~A"
+                                command
+                                (if (> (length out) 1200)
+                                    (subseq out (- (length out) 1200))
+                                    out)))))
+                (text (format nil "~A ~A [~D/~D]~%~A~A"
+                              icon name turn turns conclusion cmd-block)))
+           (handler-case (telegram-send token chat-id text)
+             (error () nil))))))))
+
+(defun make-combined-output-port (cli-port telegram-port)
+  "Fan render-turn calls to both CLI-PORT and TELEGRAM-PORT (if non-nil)."
+  (make-output-port
+   :render-turn
+   (lambda (turn turns name conclusion command output)
+     (funcall (output-port-render-turn cli-port) turn turns name conclusion command output)
+     (when (and telegram-port (output-port-render-turn telegram-port))
+       (funcall (output-port-render-turn telegram-port) turn turns name conclusion command output)))))
 
 (defun make-prompt-port (fixed-prompt)
   "User-request channel. Uses --prompt when given, otherwise reads stdin once.
@@ -314,3 +384,6 @@ The value is captured lazily and cached so the request is stable across turns."
                              (sb-thread:with-mutex (lock)
                                (push note notes)))))))
                :name "forgepair-human-input")))))
+
+
+
