@@ -26,8 +26,14 @@ Os repositórios `chronokairo/cli`, `chronokairo/desktop` e `chronokairo/ai` for
 ## Débitos Técnicos (ABERTOS)
 
 1. **Wiring Tauri ↔ ckc**: os comandos Tauri que expõem as capacidades do núcleo (`agent`, `llm`, `tools`, `repo`, terminal, etc.) ainda serão conectados incrementalmente. Hoje há apenas um comando de exemplo (`ckc_version`).
-2. **Fusão profunda do frontend**: portar as features RAG (TOTVS/MCP/Ollama) do `web-ai` (React 18/Vite) para dentro do Next (React 19) — hoje coexistem como apps separados no monorepo (incompatibilidade React 18↔19, Vite↔Next, Tailwind 3↔4 impede bundle único imediato).
+2. **Fusão profunda do frontend**: portar as features RAG (TOTVS/MCP/Ollama) do `web-ai` (React 18/Vite) para dentro do Next (React 19).
 3. **`cargo build` completo** não executado nesta fase (apenas `cargo metadata`): a compilação real do Tauri + ckc deve ser validada em ambiente com toolchain/deps.
+
+### Atualização 2026-09-22 (RAG movido para src/, UI do platform)
+
+- **RAG unificado no Next**: o conteúdo do `web-ai/` foi movido para `src/` — frontend em `src/modules/rag/` (`RagApp.tsx`, exposto na rota `/rag`) e backend em `src/server/rag/`. A pasta `web-ai/` foi removida; docs preservados em `docs/rag/`. Deps do RAG instaladas na raiz (react-markdown, chart.js, react-chartjs-2, jspdf, html2canvas) via **npm**.
+- **DÉBITO — backend Express do RAG**: `src/server/rag` é o servidor Express original (`express`, `ollama`, `lowdb`, `node-cache`, `express-rate-limit`, `http-proxy-middleware`) e **não** foi portado para Next API routes. Está **excluído do type-check do Next** (`tsconfig` `exclude: ["src/server"]`) para não quebrar o build. Ação futura: portar as rotas Express para `app/api/**/route.ts` e instalar/typar as deps, ou rodar o servidor como processo separado.
+- **DÉBITO — UI do platform**: adicionada a dependência `@chronokairo/platform` (git, npm) para o `ai` consumir a UI compartilhada (`@chronokairo/platform/ui`). A **substituição dos componentes de shell locais** (`src/shared/components/dashboard/{SideNavBar,TopNavBar,BottomNavBar}`) pelos equivalentes do platform ainda **não foi feita** — fica como débito para uma passada dedicada, evitando regressões visuais na entrega atual.
 
 ## Consequências
 
