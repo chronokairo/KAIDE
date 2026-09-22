@@ -1,0 +1,22 @@
+{
+  "modules/ai/core/providers/nvidia-nim-provider.ts -> @/shared/supabase": {
+    "id": 2385,
+    "files": []
+  },
+  "modules/ai/core/tools/domain/web-tools.ts -> @/modules/dev/harness-client": {
+    "id": 5924,
+    "files": []
+  },
+  "modules/dev/harness/agent.ts -> @tauri-apps/api/core": {
+    "id": 3516,
+    "files": [
+      "static/chunks/516.b93d79ca6027e998.js"
+    ]
+  },
+  "modules/dev/harness/transport.ts -> @tauri-apps/api/core": {
+    "id": 3516,
+    "files": [
+      "static/chunks/516.b93d79ca6027e998.js"
+    ]
+  }
+}

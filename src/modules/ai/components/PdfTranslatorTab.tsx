@@ -615,7 +615,7 @@ Regras:
           </div>
 
           <button
-            onClick={handleTranslateCurrentPage}
+            onClick={() => handleTranslateCurrentPage()}
             disabled={!pdfDocRef.current || isTranslating}
             className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-medium px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-600/30"
           >
