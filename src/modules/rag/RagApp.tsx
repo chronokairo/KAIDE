@@ -1,8 +1,8 @@
+'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import React from 'react'
-import ReactDOM from 'react-dom/client'
-import './App.css'
+import './RagApp.css'
 import {
     Send,
     Search,

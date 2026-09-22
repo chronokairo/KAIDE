@@ -8,20 +8,23 @@
     "start": "next start -p 3010",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "web-ai:install": "npm --prefix web-ai install",
-    "web-ai:dev": "npm --prefix web-ai run dev",
-    "web-ai:build": "npm --prefix web-ai run build"
+    "tauri:dev": "tauri dev"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.93",
     "@assistant-ui/react": "^0.15.15",
+    "@chronokairo/platform": "github:chronokairo/platform#master",
     "@tauri-apps/api": "^2.0.0",
     "ai": "^7.0.90",
+    "chart.js": "^4.5.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
     "lucide-react": "^1.31.0",
     "next": "^16.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.2.8",
+    "react-markdown": "^9.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
