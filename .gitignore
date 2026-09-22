@@ -91,3 +91,7 @@ docs/_build/
 # Backup files
 *.bak
 *.backup
+
+# Next.js build output
+.next/
+out/
