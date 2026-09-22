@@ -29,17 +29,32 @@ HTTP/SSE/MCP adapters -> application use cases -> domain -> output ports -> infr
 
 ## UI e experiência
 
-- Refatorar a interface para o design system padrão ChronoKairo (`@chronokairo/ui`) e seus tokens de tema.
+- Refatorar a interface para o design system padrão ChronoKairo (`@chronokairo/platform/ui`) e seus tokens de tema.
 - Reutilizar AppBar, navegação, identidade autenticada, ícones, estados de carregamento, feedback e componentes acessíveis da plataforma.
 - O tema claro/escuro deve aparecer apenas como ícone na AppBar; não duplicar controles na sidebar.
 - O chat é a experiência principal. Busca, fontes, ferramentas executadas, confirmações e resultados devem ser distinguíveis e rastreáveis.
 - Remover branding e padrões visuais legados de Athena/TOTVS quando não forem necessários ao domínio da integração.
-- Não duplicar componentes compartilhados localmente. Quando `@chronokairo/ui` ainda não oferecer um componente, criar uma porta visual local e planejar sua promoção ao pacote compartilhado.
+- Não duplicar componentes compartilhados localmente. Quando `@chronokairo/platform/ui` ainda não oferecer um componente, criar uma porta visual local e planejar sua promoção ao pacote compartilhado.
+
+## Organização do monorepo
+
+Este repositório consolida `cli`, `desktop` e `ai`:
+
+- **`src-tauri/core`** — núcleo Rust **zero-lib** (crate `ckc`), fonte de verdade da lógica do agente. Preservar o zero-lib; não introduzir dependências pesadas nesse crate.
+- **`src-tauri/shell`** — casca Tauri fina que consome o `ckc`. Toda a lógica vive no núcleo; a casca só faz bootstrap e a ponte de comandos.
+- **`src/`** — frontend Next.js (React 19) e o subsistema RAG (`src/modules/rag`, backend em `src/server/rag`).
+- Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
 ## Critérios mínimos
 
 - `GET /health`, `GET /ready` e `GET /version`.
 - Testes unitários dos casos de uso e políticas de autorização.
 - Testes de integração para consulta, escrita autorizada, negação por tenant/RBAC e idempotência.
-- Lint, typecheck, testes e build executados por Deno.
+- Lint, typecheck, testes e build executados via **npm**.
 - Nenhuma resposta mockada em caminhos de produção.
+
+## Débitos técnicos abertos (ver docs/adr/0001)
+
+- Portar o backend Express do RAG (`src/server/rag`) para Next API routes (hoje excluído do typecheck).
+- Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais).
+- Conectar os comandos Tauri ao núcleo `ckc` (wiring incremental).
