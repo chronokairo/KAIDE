@@ -2,9 +2,6 @@
   "name": "chronokairo-desktop",
   "private": true,
   "version": "1.0.0",
-  "workspaces": [
-    "web-ai"
-  ],
   "scripts": {
     "dev": "next dev --webpack -p 3010",
     "build": "cross-env TAURI_BUILD=true next build --webpack",
@@ -12,8 +9,9 @@
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "web-ai:dev": "npm --workspace @chronokairo/ai run dev",
-    "web-ai:build": "npm --workspace @chronokairo/ai run build"
+    "web-ai:install": "npm --prefix web-ai install",
+    "web-ai:dev": "npm --prefix web-ai run dev",
+    "web-ai:build": "npm --prefix web-ai run build"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.93",

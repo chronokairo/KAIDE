@@ -28,6 +28,7 @@ import { ContextFragmentsPanel } from '@/modules/ai/components/ContextFragmentsP
 import { HooksPanel } from '@/modules/ai/components/HooksPanel';
 import { PromptTemplatesPanel } from '@/modules/ai/components/PromptTemplatesPanel';
 import { DiagnosticsPanel } from '@/modules/ai/components/DiagnosticsPanel';
+import { GitAttributionPanel } from '@/modules/ai/components/GitAttributionPanel';
 import { ExecPolicyPanel } from '@/modules/ai/components/ExecPolicyPanel';
 import { FileSearchPanel } from '@/modules/ai/components/FileSearchPanel';
 import { DevConfiguracoesTab } from '@/modules/ai/components/DevConfiguracoesTab';
