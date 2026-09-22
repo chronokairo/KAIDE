@@ -95,3 +95,4 @@ docs/_build/
 # Next.js build output
 .next/
 out/
+next-env.d.ts
