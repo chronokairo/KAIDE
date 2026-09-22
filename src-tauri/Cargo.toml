@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = ["core", "shell"]
+
+# Núcleo: crate zero-lib `ckc` (core) — fonte de verdade do código Rust.
+# Casca: crate `shell` (Tauri) que consome o núcleo.
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
