@@ -53,7 +53,7 @@ Este repositório consolida `cli`, `desktop` e `ai`:
 - Lint, typecheck, testes e build executados via **npm**.
 - Nenhuma resposta mockada em caminhos de produção.
 
-## Débitos técnicos abertos (ver docs/adr/0001)
+## Débitos técnicos abertos (ver docs/adr/0005)
 
 - Portar o backend Express do RAG (`src/server/rag`) para Next API routes (hoje excluído do typecheck).
 - Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais).

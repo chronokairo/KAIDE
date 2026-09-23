@@ -8,6 +8,11 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0002](./adr/0002-centralizacao-ia-no-ai.md) | Centralização da IA do ecossistema no `ai` (recebe FroiaChat/proxy do froia; remove LLM providers p/ readição desacoplada) | 2026-09-23 | Aceito |
 | [ADR-0003](./adr/0003-centralizacao-telas-ia-data.md) | Centralização das telas de IA do app data no `ai` (subpath `./data-screens`) | 2026-09-23 | Aceito |
 | [ADR-0004](./adr/0004-rename-package-chronokairo-ai.md) | Renomear pacote `chronokairo-desktop` → `@chronokairo/ai` (escopo npm consistente com ecossistema) | 2026-09-23 | Aceito |
+| [ADR-0005](./adr/0005-debitos-tecnicos-pos-centralizacao.md) | Registro dos débitos técnicos pós-centralização (providers, RAG, UI, wiring) | 2026-09-23 | Aceito (débitos abertos) |
 
 ## Débitos técnicos abertos
-- **Readicionar LLM providers desacoplados** (ADR-0002): 17 providers removidos por dependerem de `kairos/plugin-sdk` (não publicado). Padrão de desacoplamento validado no piloto `groq` (shim `_sdk/`). Providers pesados (google, github-copilot, ollama, deepinfra) exigem reimplementar runtime de image/video/speech/oauth/embeddings.
+- **Readicionar LLM providers desacoplados** (ADR-0002/0005): 17 providers removidos por dependerem de `kairos/plugin-sdk` (não publicado). Padrão de desacoplamento validado no piloto `groq` (shim `_sdk/`). Providers pesados (google, github-copilot, ollama, deepinfra) exigem reimplementar runtime de image/video/speech/oauth/embeddings.
+- **Backend RAG Express → Next API routes** (ADR-0005): `src/server/rag` segue excluído do typecheck; portar para `src/app/api/`.
+- **UI shell/navegação para `@chronokairo/platform/ui`** (ADR-0005): AppBar, navegação e tokens ainda locais; não duplicar componentes compartilhados.
+- **Wiring dos comandos Tauri ao núcleo `ckc`** (ADR-0005): casca `src-tauri/shell` deve chamar comandos do crate `ckc` (zero-lib) incrementalmente.
+- **Rotas de IA vindas do platform** (ADR-0005): `src/app/api/ai/*` e `ai-credentials` recém-recebidos aguardam cobertura de testes de integração e validação de CORS/auth nos caminhos públicos.
