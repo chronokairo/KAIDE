@@ -2,6 +2,9 @@
   "name": "chronokairo-desktop",
   "private": true,
   "version": "1.0.0",
+  "exports": {
+    "./froia": "./src/modules/ai/components/FroiaChat.tsx"
+  },
   "scripts": {
     "dev": "next dev --webpack -p 3010",
     "build": "cross-env TAURI_BUILD=true next build --webpack",
