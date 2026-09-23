@@ -96,3 +96,4 @@ docs/_build/
 .next/
 out/
 next-env.d.ts
+*.tsbuildinfo

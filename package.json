@@ -3,7 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "exports": {
-    "./froia": "./src/modules/ai/components/FroiaChat.tsx"
+    "./froia": "./src/modules/ai/components/FroiaChat.tsx",
+    "./data-screens": "./src/modules/ai/data-screens/index.ts"
   },
   "scripts": {
     "dev": "next dev --webpack -p 3010",
