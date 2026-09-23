@@ -34,4 +34,5 @@ export { SkillFrontmatterPanel } from './SkillFrontmatterPanel';
 export { SkillsBrowser } from './SkillsBrowser';
 export { DevLayout } from './DevLayout';
 export { GitAttributionPanel } from './GitAttributionPanel';
+export { default as FroiaChat } from './FroiaChat';
 export * from './PdfTranslatorTab';
