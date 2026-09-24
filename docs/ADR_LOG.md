@@ -9,6 +9,7 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0003](./adr/0003-centralizacao-telas-ia-data.md) | Centralização das telas de IA do app data no `ai` (subpath `./data-screens`) | 2026-09-23 | Aceito |
 | [ADR-0004](./adr/0004-rename-package-chronokairo-ai.md) | Renomear pacote `chronokairo-desktop` → `@chronokairo/ai` (escopo npm consistente com ecossistema) | 2026-09-23 | Aceito |
 | [ADR-0005](./adr/0005-debitos-tecnicos-pos-centralizacao.md) | Registro dos débitos técnicos pós-centralização (providers, RAG, UI, wiring) | 2026-09-23 | Aceito (débitos abertos) |
+| [ADR-0006](./adr/0006-rapunzel-chat-conteudo.md) | Rapunzel: variante de chat de criação de conteúdo (subpath `./rapunzel`) com `ChatPanel` compartilhado com o Froia | 2026-09-24 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.

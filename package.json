@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "exports": {
     "./froia": "./src/modules/ai/components/FroiaChat.tsx",
+    "./rapunzel": "./src/modules/ai/components/RapunzelChat.tsx",
     "./data-screens": "./src/modules/ai/data-screens/index.ts"
   },
   "scripts": {
