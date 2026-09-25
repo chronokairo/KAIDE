@@ -531,6 +531,20 @@ export function createServer(output: vscode.OutputChannel): http.Server {
                 return;
             }
 
+            // Raw models endpoint — lists all VS Code LM models with their actual properties
+            if (method === 'GET' && url === '/api/raw-models') {
+                const all = await vscode.lm.selectChatModels();
+                sendJson(res, 200, all.map((m) => ({
+                    id: m.id,
+                    name: m.name,
+                    family: m.family,
+                    vendor: m.vendor,
+                    version: m.version,
+                    maxInputTokens: m.maxInputTokens,
+                })));
+                return;
+            }
+
             // Debug endpoint — sends first 3 raw stream parts as JSON
             if (method === 'POST' && url === '/api/debug') {
                 const raw = await readBody(req);
