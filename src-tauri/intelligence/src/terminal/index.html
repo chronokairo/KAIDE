@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>anamnesic — terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #1e1e1e; }
+    #term { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="term"></div>
+  <script>
+    const term = new Terminal({
+      fontFamily: 'Consolas, Menlo, monospace',
+      fontSize: 14,
+      cursorBlink: true,
+      allowTransparency: true,
+      theme: { background: '#1e1e1e' },
+    });
+    const fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open(document.getElementById('term'));
+    fit.fit();
+
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ resize: { cols: term.cols, rows: term.rows } }));
+    };
+    ws.onmessage = (e) => {
+      if (typeof e.data === 'string') {
+        term.write(e.data);
+      } else {
+        term.write(new Uint8Array(e.data));
+      }
+    };
+    ws.onclose = () => term.write('\r\n\x1b[31m[connection closed]\x1b[0m\r\n');
+
+    term.onData((data) => ws.send(data));
+    term.onResize(({ cols, rows }) => {
+      ws.send(JSON.stringify({ resize: { cols, rows } }));
+    });
+
+    window.addEventListener('resize', () => {
+      fit.fit();
+      ws.send(JSON.stringify({ resize: { cols: term.cols, rows: term.rows } }));
+    });
+  </script>
+</body>
+</html>

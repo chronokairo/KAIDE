@@ -17,6 +17,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 # Núcleo zero-lib (fonte de verdade do código Rust): a casca apenas o consome.
 ckc = { path = "../core" }
+# Harness de OSINT e Due Diligence
+chronokairo-intelligence = { path = "../intelligence" }
 
 [features]
 default = []
