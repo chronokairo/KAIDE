@@ -1,0 +1,68 @@
+{
+  "name": "@chronokairo/sdk",
+  "version": "1.0.0",
+  "description": "Chronokairo SDK — embedded provider client and sandbox runtime",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./error": "./error.ts",
+    "./resources/*": "./resources/*.ts",
+    "./resources/index.mjs": "./resources/index.ts",
+    "./resources/messages.mjs": "./resources/messages.ts",
+    "./resources/messages.js": "./resources/messages.ts",
+    "./resources/messages": "./resources/messages.ts",
+    "./resources/beta/messages.js": "./resources/beta/messages.ts",
+    "./resources/beta/messages.mjs": "./resources/beta/messages.ts",
+    "./resources/beta/messages": "./resources/beta/messages.ts",
+    "./resources/beta/messages/messages.mjs": "./resources/beta/messages/messages.ts",
+    "./resources/beta/messages/messages.js": "./resources/beta/messages/messages.ts",
+    "./resources/beta/messages/messages": "./resources/beta/messages/messages.ts",
+    "./resources/messages/messages.mjs": "./resources/messages/messages.ts",
+    "./resources/messages/messages.js": "./resources/messages/messages.ts",
+    "./resources/messages/messages": "./resources/messages/messages.ts",
+    "./node": "./node.ts",
+    "./sandbox": "./sandbox.ts"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chronokairo/code.git",
+    "directory": "packages/chronokairo-sdk"
+  },
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
+    "docs": "typedoc src/ --out docs",
+    "check": "npm run lint && npm run test",
+    "prepublish": "npm run check"
+  },
+  "dependencies": {
+    "vm2": "^3.9.19",
+    "limiter": "^2.1.0",
+    "@chronokairo/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "tsc-alias": "^1.8.8",
+    "vitest": "^1.0.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint-plugin-security": "^1.7.1",
+    "typedoc": "^0.25.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}

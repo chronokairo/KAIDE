@@ -1,0 +1,15 @@
+{
+  "name": "@code/anthropic-provider",
+  "version": "2026.6.2",
+  "private": true,
+  "description": "code Anthropic provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "@code/plugin-sdk": "workspace:*"
+  },
+  "code": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
