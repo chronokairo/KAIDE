@@ -18,6 +18,7 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0012](./adr/0012-absorcao-athena-rag-unificado.md) | Absorção do Athena (RAG Unificado e Ecossistema Legado) | 2026-09-25 | Aceito |
 | [ADR-0013](./adr/0013-absorcao-rag-mcp-e-ranking-research.md) | Absorção dos Módulos de IA do Research (RAG/MCP e NVIDIA LLM Ranking) | 2026-09-25 | Aceito |
 | [ADR-0014](./adr/0014-absorcao-clamp-tool-calling-slm.md) | Absorção do Clamp (Scaffolding de Tool Calling e Confiabilidade para SLMs) | 2026-09-25 | Aceito |
+| [ADR-0015](./adr/0015-absorcao-anamnesic-bridges-ide.md) | Absorção do Anamnesic Bridges (Bridges de IDE: VS Code e Antigravity para Ollama API) | 2026-09-25 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.

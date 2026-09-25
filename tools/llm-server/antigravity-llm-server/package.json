@@ -1,0 +1,94 @@
+{
+    "name": "antigravity-llm-server",
+    "displayName": "Antigravity LLM Server",
+    "description": "Exposes Antigravity LLMs via an Ollama-compatible HTTP API (ip:port)",
+    "version": "0.1.0",
+    "publisher": "thinkbrew",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/chronokairo/thinkbrew.git"
+    },
+    "engines": {
+        "vscode": "^1.90.0",
+        "node": ">=18"
+    },
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "llm",
+        "ollama",
+        "api",
+        "antigravity",
+        "lm"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "antigravity-llm-server.start",
+                "title": "LLM Server: Start"
+            },
+            {
+                "command": "antigravity-llm-server.stop",
+                "title": "LLM Server: Stop"
+            },
+            {
+                "command": "antigravity-llm-server.status",
+                "title": "LLM Server: Show Status"
+            },
+            {
+                "command": "antigravity-llm-server.listModels",
+                "title": "LLM Server: List Available Models"
+            },
+            {
+                "command": "antigravity-llm-server.probeLanguageServer",
+                "title": "LLM Server: Probe Antigravity Language Server"
+            }
+        ],
+        "configuration": {
+            "title": "Antigravity LLM Server",
+            "properties": {
+                "antigravity-llm-server.host": {
+                    "type": "string",
+                    "default": "127.0.0.1",
+                    "description": "Host address to bind the server to. Use '0.0.0.0' to listen on all interfaces (not recommended)."
+                },
+                "antigravity-llm-server.port": {
+                    "type": "number",
+                    "default": 11434,
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "description": "Port number for the Ollama-compatible API server."
+                },
+                "antigravity-llm-server.autoStart": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically start the server when Antigravity opens."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "node esbuild.js",
+        "build": "node esbuild.js",
+        "compile": "tsc --noEmit",
+        "package": "pnpm exec vsce package --no-dependencies",
+        "test": "node scripts/test-all.mjs",
+        "test:smoke": "node scripts/test-smoke.mjs",
+        "test:chat": "node scripts/test-chat.mjs",
+        "test:generate": "node scripts/test-generate.mjs",
+        "test:errors": "node scripts/test-errors.mjs",
+        "test:auto": "node scripts/test-auto.mjs"
+    },
+    "devDependencies": {
+        "@types/node": "^18.0.0",
+        "@types/vscode": "^1.90.0",
+        "@vscode/vsce": "^2.24.0",
+        "esbuild": "^0.20.0",
+        "typescript": "^5.4.0"
+    }
+}
