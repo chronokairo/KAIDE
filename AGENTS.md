@@ -38,11 +38,11 @@ HTTP/SSE/MCP adapters -> application use cases -> domain -> output ports -> infr
 
 ## Organização do monorepo
 
-Este repositório consolida `cli`, `desktop` e `ai`:
+Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolvimento do `thinkcoffee`:
 
-- **`src-tauri/core`** — núcleo Rust **zero-lib** (crate `ckc`), fonte de verdade da lógica do agente. Preservar o zero-lib; não introduzir dependências pesadas nesse crate.
-- **`src-tauri/shell`** — casca Tauri fina que consome o `ckc`. Toda a lógica vive no núcleo; a casca só faz bootstrap e a ponte de comandos.
-- **`src/`** — frontend Next.js (React 19) e o subsistema RAG (`src/modules/rag`, backend em `src/server/rag`).
+- **`src-tauri/core`** — núcleo Rust **zero-lib** (crate `ckc`), fonte de verdade da lógica do agente nativo e execução de ferramentas.
+- **`src-tauri/shell`** — casca Tauri fina que consome o `ckc` para execução desktop nativa.
+- **`src/`** — frontend Next.js (React 19), subsistema RAG (`src/modules/rag`) e suíte de controle de inteligência herdada do `thinkcoffee` (`src/modules/ai/components/`: Agentes, Skills, Memória, Sessões, Prompts, Hooks, Patches).
 - Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
 ## Critérios mínimos
