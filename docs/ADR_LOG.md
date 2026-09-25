@@ -11,6 +11,12 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0005](./adr/0005-debitos-tecnicos-pos-centralizacao.md) | Registro dos débitos técnicos pós-centralização (providers, RAG, UI, wiring) | 2026-09-23 | Aceito (débitos abertos) |
 | [ADR-0006](./adr/0006-rapunzel-chat-conteudo.md) | Rapunzel: variante de chat de criação de conteúdo (subpath `./rapunzel`) com `ChatPanel` compartilhado com o Froia | 2026-09-24 | Aceito |
 | [ADR-0007](./adr/0007-absorcao-governanca-thinkcoffee.md) | Absorção dos ativos de governança e segurança do ThinkCoffee (`@chronokairo/ai/governance`) | 2026-09-24 | Aceito |
+| [ADR-0008](./adr/0008-absorcao-osint-intelligence-harness.md) | Absorção do OSINT Intelligence Harness e ferramentas de investigação | 2026-09-24 | Aceito |
+| [ADR-0009](./adr/0009-absorcao-tool-calling-kairos-harness.md) | Absorção de tool calling e harness do Kairos | 2026-09-25 | Aceito |
+| [ADR-0010](./adr/0010-absorcao-sala-e-core-capacidades-ia.md) | Absorção da Sala e core de capacidades de IA | 2026-09-25 | Aceito |
+| [ADR-0011](./adr/0011-consolidacao-kairos-dev-coding-agent.md) | Consolidação do coding agent nativo e runtime do Kairos | 2026-09-25 | Aceito |
+| [ADR-0012](./adr/0012-absorcao-athena-rag-unificado.md) | Absorção do Athena (RAG Unificado e Ecossistema Legado) | 2026-09-25 | Aceito |
+| [ADR-0013](./adr/0013-absorcao-rag-mcp-e-ranking-research.md) | Absorção dos Módulos de IA do Research (RAG/MCP e NVIDIA LLM Ranking) | 2026-09-25 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.

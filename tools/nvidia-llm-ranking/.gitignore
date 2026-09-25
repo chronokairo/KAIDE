@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (except examples)
+data/nvidia-ranking.*.json
+data/models-dev-cache.json
+data/nvidia-tool-toggle.json
+!data/.gitkeep
+
+# Misc
+*.tsbuildinfo
+.turbo/
+.vercel/
