@@ -1,0 +1,84 @@
+{
+    "name": "siged-server",
+    "displayName": "SIGED Server",
+    "description": "Servidor LLM do SIGED — expõe modelos do VS Code via API HTTP compatível com Ollama (ip:porta)",
+    "version": "1.1.0",
+    "publisher": "chronokairo",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/chronokairo/siged.git"
+    },
+    "engines": {
+        "vscode": "^1.90.0",
+        "node": ">=18"
+    },
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "llm",
+        "ollama",
+        "api",
+        "copilot",
+        "lm"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "vscode-llm-server.start",
+                "title": "SIGED Server: Iniciar"
+            },
+            {
+                "command": "vscode-llm-server.stop",
+                "title": "SIGED Server: Parar"
+            },
+            {
+                "command": "vscode-llm-server.status",
+                "title": "SIGED Server: Ver Status"
+            },
+            {
+                "command": "vscode-llm-server.listModels",
+                "title": "SIGED Server: Listar Modelos"
+            }
+        ],
+        "configuration": {
+            "title": "SIGED Server",
+            "properties": {
+                "vscode-llm-server.host": {
+                    "type": "string",
+                    "default": "127.0.0.1",
+                    "description": "Endereço de bind do servidor. Use '0.0.0.0' para escutar em todas as interfaces (não recomendado)."
+                },
+                "vscode-llm-server.port": {
+                    "type": "number",
+                    "default": 11437,
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "description": "Porta do servidor SIGED (padrão: 11437)."
+                },
+                "vscode-llm-server.autoStart": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Iniciar o servidor automaticamente ao abrir o VS Code."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "node esbuild.js",
+        "build": "node esbuild.js",
+        "compile": "tsc --noEmit",
+        "package": "pnpm exec vsce package --no-dependencies"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "@types/vscode": "^1.90.0",
+        "@vscode/vsce": "^2.24.0",
+        "esbuild": "^0.20.0",
+        "typescript": "^5.6.3"
+    }
+}
