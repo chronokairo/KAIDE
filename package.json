@@ -6,7 +6,8 @@
     "./froia": "./src/modules/ai/components/FroiaChat.tsx",
     "./rapunzel": "./src/modules/ai/components/RapunzelChat.tsx",
     "./data-screens": "./src/modules/ai/data-screens/index.ts",
-    "./governance": "./src/modules/governance/index.ts"
+    "./governance": "./src/modules/governance/index.ts",
+    "./osint": "./src/modules/osint/index.ts"
   },
   "scripts": {
     "dev": "next dev --webpack -p 3010",

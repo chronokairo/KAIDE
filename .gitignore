@@ -97,3 +97,7 @@ docs/_build/
 out/
 next-env.d.ts
 *.tsbuildinfo
+
+# Rust target
+target/
+src-tauri/target/
