@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  aegis:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      - ollama
+      - docker-dind
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspaces:/workspace
+    networks:
+      - aegis-network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - aegis-network
+
+  docker-dind:
+    image: docker:24-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - docker-certs-ca:/certs/ca
+      - docker-certs-client:/certs/client
+      - docker-data:/var/lib/docker
+    networks:
+      - aegis-network
+
+volumes:
+  ollama-data:
+  docker-certs-ca:
+  docker-certs-client:
+  docker-data:
+
+networks:
+  aegis-network:
+    driver: bridge
