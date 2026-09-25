@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApplyProcessHardening, useHardeningStatus, useShellCommandSafety, useSecretsManager, useIsTauri } from '@/modules/dev/hooks/useHarness';
 import type { SecretEntry } from '@/modules/dev/harness-client';
+import { validateCommand } from '@/modules/governance';
 
 const DEMO_SECRETS: SecretEntry[] = [
   { name: 'OPENAI_API_KEY', scope: 'global', created_at: new Date().toISOString() },
@@ -32,15 +33,11 @@ export const SecurityPanel: React.FC = () => {
   const handleAnalyze = async () => {
     if (!shellCmd.trim()) return;
     if (!isTauri) {
-      const lower = shellCmd.toLowerCase();
-      const dangerousWords = ['rm -rf', 'format', 'mkfs', 'dd ', ':(){:|:&};:', 'drop table', 'shutdown', 'reboot'];
-      const isDanger = dangerousWords.some(w => lower.includes(w));
+      const validation = validateCommand(shellCmd);
       const tokens = shellCmd.trim().split(/\s+/);
       setShellResult({
-        safety: isDanger ? 'dangerous' : 'safe',
-        reason: isDanger
-          ? 'Comando contém padrões de alto risco para o sistema de arquivos ou integridade.'
-          : 'Comando analisado e classificado como seguro para execução.',
+        safety: validation.riskLevel === 'safe' ? 'safe' : (validation.riskLevel === 'blocked' ? 'blocked' : 'dangerous'),
+        reason: validation.reason || 'Comando analisado.',
         tokens,
       });
       return;
