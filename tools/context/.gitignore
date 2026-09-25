@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+*.vsix
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Build outputs
+dist/
+build/
+*.js.map
+*.css.map
+
+# Database
+database.sqlite
+database.sqlite-shm
+database.sqlite-wal
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development
+.cache/
+.parcel-cache/
+.next/
+out/
+
+# Testing
+coverage/
+.nyc_output/
+tests/
+
+# TypeORM
+typeorm/
+migrations/

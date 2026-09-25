@@ -1,0 +1,37 @@
+{
+  "name": "anamnesic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anamnesic - AI context sync (MCP server + CLI) and editor-LLM bridges (Copilot/Antigravity as Ollama API)",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:core": "pnpm --filter @anamnesic/core build",
+    "build:mcp": "pnpm --filter @anamnesic/mcp-server build",
+    "build:cli": "pnpm --filter @anamnesic/cli build",
+    "dev:core": "pnpm --filter @anamnesic/core dev",
+    "dev:mcp": "pnpm --filter @anamnesic/mcp-server dev",
+    "dev:cli": "pnpm --filter @anamnesic/cli dev",
+    "test": "node scripts/test-integration.js",
+    "test:unit": "pnpm exec vitest run --coverage",
+    "ci:install": "pnpm install --frozen-lockfile",
+    "ci:typecheck": "pnpm --filter @anamnesic/core exec tsc --noEmit && pnpm --filter @anamnesic/cli exec tsc --noEmit && pnpm --filter @anamnesic/mcp-server exec tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "context",
+    "management",
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "developer-tools",
+    "ollama",
+    "llm-bridge",
+    "copilot"
+  ],
+  "author": "Anamnesic Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
+    "vitest": "^4.1.4"
+  }
+}

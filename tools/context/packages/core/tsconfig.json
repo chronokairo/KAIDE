@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "ignoreDeprecations": "5.0",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "composite": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/__tests__",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/agents/implementations",
+    "src/agents/tests",
+    "src/services/AITaskService.ts",
+    "src/services/TaskExecutorService.ts",
+    "src/services/WebSocketServer.ts",
+    "src/services/WorkflowExecutionEngine.ts",
+    "src/services/AdvancedSecurityAnalysisService.ts",
+    "src/services/AttackSimulationFramework.ts",
+    "src/services/AdvancedFeaturesFactory.ts",
+    "src/export/__tests__",
+    "src/providers"
+  ]
+}
