@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": false,
+    "rootDir": "src"
+  },
+  "include": [
+    "src/main.ts",
+    "src/env.ts",
+    "src/app/**/*",
+    "src/entities/**/*",
+    "src/features/**/*",
+    "src/shared/**/*"
+  ]
+}
