@@ -37,6 +37,8 @@
   ],
   "exclude": [
     "node_modules",
-    "src/server"
+    "src/server",
+    "src/modules/ai/legacy-kairos-screens",
+    "src/**/__tests__/*"
   ]
 }
