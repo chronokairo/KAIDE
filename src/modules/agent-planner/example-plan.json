@@ -1,0 +1,20 @@
+{
+  "sessionId": "s-123",
+  "title": "Matricular João Silva em 3A - Matemática",
+  "destructive": false,
+  "steps": [
+    { "kind": "say", "text": "Abrindo Matrículas…" },
+    { "kind": "navigate", "path": "/dashboard/matriculas" },
+    { "kind": "waitFor", "selector": "[data-agent-id='btn-nova-matricula']" },
+    { "kind": "click",   "selector": "[data-agent-id='btn-nova-matricula']" },
+    { "kind": "waitFor", "selector": "[data-agent-id='field-aluno']" },
+    { "kind": "type",    "selector": "[data-agent-id='field-aluno']", "text": "João Silva" },
+    { "kind": "waitFor", "selector": "[data-agent-id='option-aluno-123']" },
+    { "kind": "click",   "selector": "[data-agent-id='option-aluno-123']" },
+    { "kind": "select",  "selector": "[data-agent-id='field-turma']", "value": "3A-MAT" },
+    { "kind": "say",     "text": "Vou salvar a matrícula." },
+    { "kind": "click",   "selector": "[data-agent-id='btn-salvar']", "confirm": true },
+    { "kind": "waitFor", "selector": "[data-agent-id='toast-success']" },
+    { "kind": "say",     "text": "Matrícula concluída." }
+  ]
+}
