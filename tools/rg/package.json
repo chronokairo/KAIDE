@@ -1,0 +1,11 @@
+{
+  "name": "@chronokairo/rg",
+  "version": "1.0.0",
+  "description": "Bundled ripgrep binary for Kairos CLI",
+  "main": "index.js",
+  "scripts": {},
+  "files": [
+    "index.js",
+    "bin/"
+  ]
+}
