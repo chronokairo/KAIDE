@@ -1,0 +1,19 @@
+{
+  "name": "@code/ollama-provider",
+  "version": "2026.4.25",
+  "private": true,
+  "description": "code Ollama provider plugin",
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-ai": "0.70.6",
+    "typebox": "1.1.34"
+  },
+  "devDependencies": {
+    "@code/plugin-sdk": "workspace:*"
+  },
+  "code": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

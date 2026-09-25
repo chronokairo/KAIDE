@@ -1,0 +1,15 @@
+{
+  "name": "@code/nvidia-provider",
+  "version": "2026.4.25",
+  "private": true,
+  "description": "code NVIDIA provider plugin",
+  "type": "module",
+  "devDependencies": {
+    "@code/plugin-sdk": "workspace:*"
+  },
+  "code": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

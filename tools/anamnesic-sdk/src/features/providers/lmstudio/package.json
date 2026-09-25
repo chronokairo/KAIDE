@@ -1,0 +1,15 @@
+{
+  "name": "@code/lmstudio-provider",
+  "version": "2026.4.25",
+  "private": true,
+  "description": "code LM Studio provider plugin",
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-ai": "0.70.6"
+  },
+  "code": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
