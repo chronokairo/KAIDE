@@ -1,0 +1,41 @@
+{
+  "name": "browser-mcp-lite",
+  "version": "1.0.3",
+  "description": "Minimal, auth-secured MCP server for real browser access",
+  "type": "module",
+  "main": "server/index.js",
+  "bin": {
+    "browser-mcp-lite": "server/index.js",
+    "mcp-cli": "mcp-cli.mjs"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "setup": "node server/setup.js",
+    "tabs": "node mcp-cli.mjs list_tabs",
+    "read": "node mcp-cli.mjs read_page",
+    "shot": "node mcp-cli.mjs screenshot",
+    "nav": "node mcp-cli.mjs navigate",
+    "focus": "node mcp-cli.mjs focus",
+    "click": "node mcp-cli.mjs click",
+    "set": "node mcp-cli.mjs set",
+    "test": "node tests/server.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fastify": "^5.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "zod": "^3.25.0"
+  },
+  "keywords": [
+    "mcp",
+    "browser",
+    "chrome-extension",
+    "ai",
+    "automation",
+    "gemini",
+    "modelcontextprotocol"
+  ],
+  "author": "chronokairo",
+  "license": "MIT"
+}

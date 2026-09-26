@@ -1,0 +1,7 @@
+node_modules
+.next
+.anna-data/
+tsconfig.tsbuildinfo
+.env.local
+.env*.local
+next-env.d.ts
