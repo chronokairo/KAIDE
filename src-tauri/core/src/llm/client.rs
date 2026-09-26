@@ -1023,9 +1023,9 @@ impl OllamaClient {
                             reasoning_content.push_str(reasoning);
                         }
                         if let Some(tcs) = msg.get("tool_calls").and_then(|t| t.as_array()) {
-                            for tc in tcs {
+                            for (tc_idx, tc) in tcs.iter().enumerate() {
                                 let index =
-                                    tc.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                                    tc.get("index").and_then(|v| v.as_u64()).unwrap_or(tc_idx as u64) as usize;
                                 while tool_calls.len() <= index {
                                     tool_calls.push(ToolCall {
                                         id: String::new(),
