@@ -74,33 +74,56 @@ async fn build_router(cli: &Cli, cfg: &mut Config) -> Result<LlmRouter> {
         } else {
             let available = model_resolver::list_models(&cfg.models_dir);
             if let Some(first) = available.into_iter().next() {
-                eprintln!("No --model specified; auto-detected local model: '{first}'");
+                eprintln!("No --model specified; auto-detected local GGUF: '{first}'");
                 cfg.coder_model = first.clone();
                 cfg.planner_model = first.clone();
                 cfg.summarizer_model = first.clone();
                 first
             } else {
-                "qwen2.5-coder:3b".to_string()
+                let ollama_models = providers::catalog::fetch_ollama_models().unwrap_or_default();
+                if let Some((first, _)) = ollama_models.into_iter().next() {
+                    eprintln!("No local GGUF specified; auto-detected Ollama model: '{first}'");
+                    cfg.coder_model = first.clone();
+                    cfg.planner_model = first.clone();
+                    cfg.summarizer_model = first.clone();
+                    first
+                } else {
+                    "qwen3.5:2b".to_string()
+                }
             }
         };
-        let blob_path = model_resolver::resolve_model(&model_name, &cfg.models_dir)?;
-        eprintln!("Loading {} from {}...", model_name, blob_path.display());
-        let model = Model::load(&blob_path.to_string_lossy())?;
-        let reader = GgufReader::load(&blob_path.to_string_lossy())?;
-        let tokenizer = Tokenizer::load_from_gguf(&reader)?;
-        let mut engine = InferenceEngine::new(model, tokenizer, cfg.max_seq_len);
-        if cli.no_gpu {
-            engine.disable_gpu();
-            println!("GPU acceleration disabled by flag (--no-gpu); running on CPU.");
-        } else if engine.gpu_active() {
-            println!("GPU acceleration active (OpenCL).");
-        } else if cli.gpu {
-            #[cfg(feature = "gpu")]
-            println!("Notice: OpenCL GPU not available; running on CPU.");
-            #[cfg(not(feature = "gpu"))]
-            println!("Notice: Built without --features gpu; running on CPU.");
+
+        match model_resolver::resolve_model(&model_name, &cfg.models_dir) {
+            Ok(blob_path) => {
+                eprintln!("Loading {} from {}...", model_name, blob_path.display());
+                let model = Model::load(&blob_path.to_string_lossy())?;
+                let reader = GgufReader::load(&blob_path.to_string_lossy())?;
+                let tokenizer = Tokenizer::load_from_gguf(&reader)?;
+                let mut engine = InferenceEngine::new(model, tokenizer, cfg.max_seq_len);
+                if cli.no_gpu {
+                    engine.disable_gpu();
+                    println!("GPU acceleration disabled by flag (--no-gpu); running on CPU.");
+                } else if engine.gpu_active() {
+                    println!("GPU acceleration active (OpenCL).");
+                } else if cli.gpu {
+                    #[cfg(feature = "gpu")]
+                    println!("Notice: OpenCL GPU not available; running on CPU.");
+                    #[cfg(not(feature = "gpu"))]
+                    println!("Notice: Built without --features gpu; running on CPU.");
+                }
+                LlmClient::local(engine)
+            }
+            Err(e) => {
+                if cli.local {
+                    return Err(e);
+                }
+                eprintln!("No local GGUF found for '{model_name}'. Using Ollama at {}...", cfg.ollama_host);
+                cfg.coder_model = model_name.clone();
+                cfg.planner_model = model_name.clone();
+                cfg.summarizer_model = model_name;
+                LlmClient::ollama(&cfg.ollama_host)
+            }
         }
-        LlmClient::local(engine)
     } else {
         LlmClient::ollama(&cfg.ollama_host)
     };
@@ -216,6 +239,15 @@ async fn async_main() -> Result<()> {
     }
 
     match &cli.command {
+        Some(Commands::Check) => return hw_check().await,
+        Some(Commands::Cloud { query }) => {
+            let catalog = providers::ProviderCatalog::load();
+            catalog.print_list(query);
+            return Ok(());
+        }
+        Some(Commands::Providers { action }) => {
+            return handle_providers(action.clone()).await;
+        }
         Some(Commands::Pull { model }) => return crate::llm::pull::pull_model(model).map(|_| ()),
         Some(Commands::Rm { model }) => return crate::llm::manage::rm_model(model),
         Some(Commands::Show { model }) => return crate::llm::manage::show_model(model),
@@ -237,14 +269,9 @@ async fn async_main() -> Result<()> {
     }
 
     match cli.command {
-        Some(Commands::Check) => hw_check().await?,
-        Some(Commands::Cloud { query }) => {
-            let catalog = providers::ProviderCatalog::load();
-            catalog.print_list(&query);
-        }
-        Some(Commands::Providers { action }) => {
-            handle_providers(action).await?;
-        }
+        Some(Commands::Check) => unreachable!(),
+        Some(Commands::Cloud { .. }) => unreachable!(),
+        Some(Commands::Providers { .. }) => unreachable!(),
         Some(Commands::Bench {
             category,
             output,

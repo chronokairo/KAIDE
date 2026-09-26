@@ -28,3 +28,6 @@ ocl = { version = "0.19", optional = true }
 [package.metadata.edit]
 languages = "en,pt-BR,es,fr,de,ja,zh"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+

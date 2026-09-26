@@ -118,7 +118,7 @@ pub(crate) enum Commands {
 }
 
 /// Sub-actions for `rust-agent providers`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum ProvidersAction {
     /// List all providers from the built-in registry and their configuration status
     List,

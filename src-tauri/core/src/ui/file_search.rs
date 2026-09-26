@@ -48,12 +48,17 @@ pub fn walk_files(root: &Path) -> Vec<String> {
             let name = entry.file_name().to_string_lossy().to_string();
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
-                if IGNORED_DIRS.contains(&name.as_str()) {
+                if name.starts_with('.') || IGNORED_DIRS.contains(&name.as_str()) {
                     continue;
                 }
                 stack.push(path);
-            } else if let Ok(rel) = path.strip_prefix(root) {
-                out.push(rel.to_string_lossy().replace('\\', "/"));
+            } else if !name.starts_with('.') {
+                if let Ok(rel) = path.strip_prefix(root) {
+                    out.push(rel.to_string_lossy().replace('\\', "/"));
+                    if out.len() >= 5000 {
+                        break;
+                    }
+                }
             }
         }
     }

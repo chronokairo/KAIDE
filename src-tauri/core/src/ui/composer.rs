@@ -67,6 +67,21 @@ impl ComposerState {
         true
     }
 
+    pub fn delete(&mut self) -> bool {
+        if self.cursor_position >= self.input.chars().count() {
+            return false;
+        }
+        let byte = self
+            .input
+            .char_indices()
+            .nth(self.cursor_position)
+            .map(|(i, _)| i)
+            .unwrap_or(self.input.len());
+        self.input.remove(byte);
+        self.history_index = None;
+        true
+    }
+
     pub fn move_left(&mut self) {
         self.cursor_position = self.cursor_position.saturating_sub(1);
     }
@@ -240,10 +255,17 @@ pub(super) fn render(
     };
     frame.render_widget(composer, composer_area);
     if !loading {
+        let width = (composer_area.width as usize).saturating_sub(2).max(1);
         let cursor_row = before_cursor.matches('\n').count() as u16;
-        let cursor_col = before_cursor.rsplit('\n').next().unwrap_or("").chars().count() as u16;
-        let x = composer_area.x + 2 + cursor_col;
-        let y = composer_area.y + cursor_row;
+        let line_chars = before_cursor.rsplit('\n').next().unwrap_or("");
+        let cursor_col = crate::ui::width::display_width(line_chars) as u16;
+        let prompt_offset: u16 = 2; // "› "
+        let total_col = cursor_col + prompt_offset;
+        let soft_wrap_rows = total_col / (width as u16);
+        let soft_wrap_col = total_col % (width as u16);
+
+        let x = composer_area.x + soft_wrap_col;
+        let y = composer_area.y + cursor_row + soft_wrap_rows;
         frame.set_cursor_position((
             x.min(composer_area.x + composer_area.width.saturating_sub(1)),
             y.min(composer_area.y + composer_area.height.saturating_sub(1)),

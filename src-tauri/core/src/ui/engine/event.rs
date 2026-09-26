@@ -144,6 +144,194 @@ pub struct InputDecoder {
     events: VecDeque<Event>,
 }
 
+fn parse_sgr_mouse(bytes: &[u8]) -> Option<(Event, usize)> {
+    if !bytes.starts_with(b"\x1b[<") {
+        return None;
+    }
+    let end_idx = bytes[3..].iter().position(|&b| b == b'M' || b == b'm')? + 3;
+    let final_byte = bytes[end_idx];
+    let payload = std::str::from_utf8(&bytes[3..end_idx]).ok()?;
+    let parts: Vec<&str> = payload.split(';').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let btn: u16 = parts[0].parse().ok()?;
+    let col: u16 = parts[1].parse().ok()?;
+    let row: u16 = parts[2].parse().ok()?;
+
+    let column = col.saturating_sub(1);
+    let row = row.saturating_sub(1);
+
+    let mut modifiers = KeyModifiers::NONE;
+    if (btn & 4) != 0 {
+        modifiers = modifiers | KeyModifiers::SHIFT;
+    }
+    if (btn & 8) != 0 {
+        modifiers = modifiers | KeyModifiers::ALT;
+    }
+    if (btn & 16) != 0 {
+        modifiers = modifiers | KeyModifiers::CONTROL;
+    }
+
+    let kind = if (btn & 64) != 0 {
+        if (btn & 1) != 0 {
+            MouseEventKind::ScrollDown
+        } else {
+            MouseEventKind::ScrollUp
+        }
+    } else if final_byte == b'm' {
+        let b = match btn & 3 {
+            0 => MouseButton::Left,
+            1 => MouseButton::Middle,
+            2 => MouseButton::Right,
+            _ => MouseButton::Left,
+        };
+        MouseEventKind::Up(b)
+    } else if (btn & 32) != 0 {
+        match btn & 3 {
+            0 => MouseEventKind::Drag(MouseButton::Left),
+            1 => MouseEventKind::Drag(MouseButton::Middle),
+            2 => MouseEventKind::Drag(MouseButton::Right),
+            _ => MouseEventKind::Moved,
+        }
+    } else {
+        let b = match btn & 3 {
+            0 => MouseButton::Left,
+            1 => MouseButton::Middle,
+            2 => MouseButton::Right,
+            _ => MouseButton::Left,
+        };
+        MouseEventKind::Down(b)
+    };
+
+    Some((
+        Event::Mouse(MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers,
+        }),
+        end_idx + 1,
+    ))
+}
+
+fn parse_x10_mouse(bytes: &[u8]) -> Option<(Event, usize)> {
+    if !bytes.starts_with(b"\x1b[M") || bytes.len() < 6 {
+        return None;
+    }
+    let cb = bytes[3].saturating_sub(32);
+    let cx = (bytes[4].saturating_sub(32)).saturating_sub(1) as u16;
+    let cy = (bytes[5].saturating_sub(32)).saturating_sub(1) as u16;
+
+    let mut modifiers = KeyModifiers::NONE;
+    if (cb & 4) != 0 {
+        modifiers = modifiers | KeyModifiers::SHIFT;
+    }
+    if (cb & 8) != 0 {
+        modifiers = modifiers | KeyModifiers::ALT;
+    }
+    if (cb & 16) != 0 {
+        modifiers = modifiers | KeyModifiers::CONTROL;
+    }
+
+    let kind = if (cb & 64) != 0 {
+        if (cb & 1) != 0 {
+            MouseEventKind::ScrollDown
+        } else {
+            MouseEventKind::ScrollUp
+        }
+    } else if (cb & 3) == 3 {
+        MouseEventKind::Up(MouseButton::Left)
+    } else {
+        let b = match cb & 3 {
+            0 => MouseButton::Left,
+            1 => MouseButton::Middle,
+            2 => MouseButton::Right,
+            _ => MouseButton::Left,
+        };
+        MouseEventKind::Down(b)
+    };
+
+    Some((
+        Event::Mouse(MouseEvent {
+            kind,
+            column: cx,
+            row: cy,
+            modifiers,
+        }),
+        6,
+    ))
+}
+
+fn parse_escape_sequence(bytes: &[u8]) -> Option<(Event, usize)> {
+    if bytes.len() < 2 || bytes[0] != 27 {
+        return None;
+    }
+    match bytes[1] {
+        b'[' => {
+            if bytes.starts_with(b"\x1b[<") {
+                if let Some(res) = parse_sgr_mouse(bytes) {
+                    return Some(res);
+                }
+            }
+            if bytes.starts_with(b"\x1b[M") {
+                if let Some(res) = parse_x10_mouse(bytes) {
+                    return Some(res);
+                }
+            }
+            if bytes.len() >= 6 && &bytes[..6] == b"\x1b[1;5A" {
+                return Some((Event::Key(KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL)), 6));
+            }
+            if bytes.len() >= 6 && &bytes[..6] == b"\x1b[1;5B" {
+                return Some((Event::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL)), 6));
+            }
+            if bytes.len() >= 6 && &bytes[..6] == b"\x1b[1;5C" {
+                return Some((Event::Key(KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL)), 6));
+            }
+            if bytes.len() >= 6 && &bytes[..6] == b"\x1b[1;5D" {
+                return Some((Event::Key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL)), 6));
+            }
+            if bytes.len() >= 4 {
+                match &bytes[..4] {
+                    b"\x1b[1~" => return Some((Event::Key(KeyEvent::new(KeyCode::Home, KeyModifiers::NONE)), 4)),
+                    b"\x1b[3~" => return Some((Event::Key(KeyEvent::new(KeyCode::Delete, KeyModifiers::NONE)), 4)),
+                    b"\x1b[4~" => return Some((Event::Key(KeyEvent::new(KeyCode::End, KeyModifiers::NONE)), 4)),
+                    b"\x1b[5~" => return Some((Event::Key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE)), 4)),
+                    b"\x1b[6~" => return Some((Event::Key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::NONE)), 4)),
+                    _ => {}
+                }
+            }
+            if bytes.len() >= 3 {
+                match bytes[2] {
+                    b'A' => return Some((Event::Key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)), 3)),
+                    b'B' => return Some((Event::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)), 3)),
+                    b'C' => return Some((Event::Key(KeyEvent::new(KeyCode::Right, KeyModifiers::NONE)), 3)),
+                    b'D' => return Some((Event::Key(KeyEvent::new(KeyCode::Left, KeyModifiers::NONE)), 3)),
+                    b'H' => return Some((Event::Key(KeyEvent::new(KeyCode::Home, KeyModifiers::NONE)), 3)),
+                    b'F' => return Some((Event::Key(KeyEvent::new(KeyCode::End, KeyModifiers::NONE)), 3)),
+                    b'Z' => return Some((Event::Key(KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT)), 3)),
+                    _ => {}
+                }
+            }
+            None
+        }
+        b'O' => {
+            if bytes.len() >= 3 {
+                match bytes[2] {
+                    b'P' => return Some((Event::Key(KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE)), 3)),
+                    b'Q' => return Some((Event::Key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE)), 3)),
+                    b'R' => return Some((Event::Key(KeyEvent::new(KeyCode::F(3), KeyModifiers::NONE)), 3)),
+                    b'S' => return Some((Event::Key(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE)), 3)),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
 impl InputDecoder {
     pub fn feed(&mut self, bytes: &[u8]) {
         self.pending.extend_from_slice(bytes);
@@ -159,9 +347,60 @@ impl InputDecoder {
                 self.events.push_back(Event::Paste(text));
                 continue;
             }
-            // Hold a possible prefix of the paste marker until the next read.
-            if BRACKETED_PASTE_START.starts_with(&self.pending) {
-                break;
+            // Check for escape sequences
+            if self.pending[0] == 27 {
+                if self.pending.len() == 1 {
+                    self.pending.clear();
+                    self.events.push_back(Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)));
+                    break;
+                }
+                if let Some((event, consumed)) = parse_escape_sequence(&self.pending) {
+                    self.pending.drain(..consumed);
+                    self.events.push_back(event);
+                    continue;
+                }
+                if self.pending[1] == b'[' {
+                    // Check if final byte (0x40..=0x7E) has arrived for this CSI sequence
+                    let has_final = self.pending[2..].iter().any(|&b| b >= 0x40 && b <= 0x7E);
+                    if !has_final && self.pending.len() < 32 {
+                        // Incomplete CSI sequence, wait for remaining bytes from stdin
+                        break;
+                    }
+                    // Complete but unhandled CSI sequence. Drain the whole sequence so
+                    // raw numbers/delimiters NEVER leak into text typing.
+                    let consume_len = if let Some(pos) = self.pending[2..].iter().position(|&b| b >= 0x40 && b <= 0x7E) {
+                        2 + pos + 1
+                    } else {
+                        self.pending.len()
+                    };
+                    self.pending.drain(..consume_len);
+                    continue;
+                }
+                self.pending.remove(0);
+                self.events.push_back(Event::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)));
+                continue;
+            }
+            // Multi-byte UTF-8
+            if self.pending[0] >= 0x80 {
+                let needed = match self.pending[0] {
+                    0b1100_0000..=0b1101_1111 => 2,
+                    0b1110_0000..=0b1110_1111 => 3,
+                    0b1111_0000..=0b1111_0111 => 4,
+                    _ => 1,
+                };
+                if self.pending.len() < needed {
+                    break;
+                }
+                let slice = &self.pending[..needed];
+                if let Ok(s) = std::str::from_utf8(slice) {
+                    if let Some(ch) = s.chars().next() {
+                        self.pending.drain(..needed);
+                        self.events.push_back(Event::Key(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE)));
+                        continue;
+                    }
+                }
+                self.pending.remove(0);
+                continue;
             }
             let byte = self.pending.remove(0);
             self.events.push_back(byte_to_event(byte));
@@ -224,6 +463,87 @@ mod tests {
         assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Char('a')));
         assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Char('b')));
         assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Enter));
+    }
+
+    #[test]
+    fn incremental_decoder_handles_arrow_and_escape_sequences() {
+        let mut decoder = InputDecoder::default();
+        // Up arrow \x1b[A, Down \x1b[B, Home \x1b[H, End \x1b[F, BackTab \x1b[Z, Delete \x1b[3~
+        decoder.feed(b"\x1b[A\x1b[B\x1b[H\x1b[F\x1b[Z\x1b[3~");
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Up));
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Down));
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Home));
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::End));
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::BackTab));
+        assert!(matches!(decoder.pop(), Some(Event::Key(key)) if key.code == KeyCode::Delete));
+        assert!(decoder.pop().is_none());
+    }
+
+    #[test]
+    fn incremental_decoder_handles_multibyte_utf8() {
+        let mut decoder = InputDecoder::default();
+        // 'ç' in UTF-8 is 0xC3 0xA7; 'ã' is 0xC3 0xA3
+        decoder.feed("código: çã".as_bytes());
+        let mut chars = Vec::new();
+        while let Some(Event::Key(key)) = decoder.pop() {
+            if let KeyCode::Char(c) = key.code {
+                chars.push(c);
+            }
+        }
+        let s: String = chars.into_iter().collect();
+        assert_eq!(s, "código: çã");
+    }
+
+    #[test]
+    fn incremental_decoder_handles_sgr_mouse_click_and_scroll() {
+        let mut decoder = InputDecoder::default();
+        // Left click down at col 35, row 12 (1-based: 36, 13)
+        decoder.feed(b"\x1b[<0;36;13M");
+        let ev = decoder.pop().unwrap();
+        match ev {
+            Event::Mouse(m) => {
+                assert_eq!(m.kind, super::MouseEventKind::Down(super::MouseButton::Left));
+                assert_eq!(m.column, 35);
+                assert_eq!(m.row, 12);
+            }
+            _ => panic!("expected mouse event"),
+        }
+
+        // Left release
+        decoder.feed(b"\x1b[<0;36;13m");
+        let ev = decoder.pop().unwrap();
+        match ev {
+            Event::Mouse(m) => {
+                assert_eq!(m.kind, super::MouseEventKind::Up(super::MouseButton::Left));
+                assert_eq!(m.column, 35);
+                assert_eq!(m.row, 12);
+            }
+            _ => panic!("expected mouse event"),
+        }
+
+        // Scroll up at col 20, row 5
+        decoder.feed(b"\x1b[<64;21;6M");
+        let ev = decoder.pop().unwrap();
+        match ev {
+            Event::Mouse(m) => {
+                assert_eq!(m.kind, super::MouseEventKind::ScrollUp);
+                assert_eq!(m.column, 20);
+                assert_eq!(m.row, 5);
+            }
+            _ => panic!("expected mouse event"),
+        }
+    }
+
+    #[test]
+    fn incremental_decoder_drains_unhandled_csi_without_leaking_characters() {
+        let mut decoder = InputDecoder::default();
+        // Cursor report \x1b[12;34R followed by normal typing 'abc'
+        decoder.feed(b"\x1b[12;34Rabc");
+        // '12;34R' must NOT be leaked into characters!
+        assert!(matches!(decoder.pop(), Some(Event::Key(k)) if k.code == KeyCode::Char('a')));
+        assert!(matches!(decoder.pop(), Some(Event::Key(k)) if k.code == KeyCode::Char('b')));
+        assert!(matches!(decoder.pop(), Some(Event::Key(k)) if k.code == KeyCode::Char('c')));
+        assert!(decoder.pop().is_none());
     }
 }
 

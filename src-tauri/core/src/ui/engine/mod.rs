@@ -15,16 +15,12 @@ pub use layout::Rect;
 pub use vt::{Color, Line, Span, Style};
 pub use widgets::{Clear, Paragraph, Widget, Wrap};
 #[allow(unused_imports)]
-#[cfg(test)]
 pub use event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, poll, read};
 #[allow(unused_imports)]
-#[cfg(test)]
 pub use layout::{Alignment, Constraint, Direction, Layout, Margin};
 #[allow(unused_imports)]
-#[cfg(test)]
 pub use sys::{cursor, disable_raw_mode, enable_raw_mode, execute, size, EnterAlternateScreen, LeaveAlternateScreen};
 #[allow(unused_imports)]
-#[cfg(test)]
 pub use terminal::{Backend, CrosstermBackend, Frame, Terminal, TestBackend};
 
 pub trait Stylize: Sized {
@@ -77,7 +73,7 @@ pub mod crossterm {
 pub mod ratatui {
     pub use super::layout;
     pub use super::terminal as backend;
-    pub use super::terminal::Terminal;
+    pub use super::terminal::{Frame, Terminal};
     pub use super::widgets;
     pub mod style {
         pub use crate::ui::engine::vt::{Color, Modifier, Style};

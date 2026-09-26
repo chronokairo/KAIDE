@@ -13,7 +13,7 @@ use crate::ui::engine::ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
-    Terminal,
+    Frame, Terminal,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -93,9 +93,11 @@ const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/add-dir", "Allow an additional workspace directory for this session"),
     ("/find", "Find text in the open editor (case, word, or regex flags)"),
     ("/replace", "Replace all text in the open editor using old => new"),
+    ("/open", "Open file in side-by-side editor (e.g. /open src/main.rs)"),
+    ("/edit", "Open file in side-by-side editor (e.g. /edit src/lib.rs)"),
 ];
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Focus {
     Sidebar,
     Messages,
@@ -189,6 +191,8 @@ pub struct App {
     pub auto_model: bool,
     pub dir: String,
     pub git_branch: String,
+    pub gpu_name: String,
+    pub ghost_text: Option<String>,
     pub tokens: usize,
     pub elapsed: Duration,
     pub spinner_frame: usize,
@@ -316,6 +320,8 @@ impl App {
             auto_model: false,
             dir: String::new(),
             git_branch: String::new(),
+            gpu_name: "GTX 1650".to_string(),
+            ghost_text: None,
             tokens: 0,
             elapsed: Duration::ZERO,
             spinner_frame: 0,
@@ -879,6 +885,29 @@ fn handle_slash_command(
                 let mut st = state.lock().unwrap();
                 st.config.path_allowlist.push(path.to_string());
                 app.add_message("Permissions", &format!("Additional directory allowed for this session: {path}"));
+            }
+            true
+        }
+        cmd if cmd == "/open" || cmd.starts_with("/open ") || cmd == "/edit" || cmd.starts_with("/edit ") => {
+            let path = if cmd.starts_with("/open") {
+                input.trim_start_matches("/open").trim()
+            } else {
+                input.trim_start_matches("/edit").trim()
+            };
+            if path.is_empty() {
+                app.add_message("Editor", "Uso: /open <caminho_do_arquivo> ou /edit <caminho_do_arquivo>");
+            } else {
+                let full_path = std::path::Path::new(&app.dir).join(path);
+                if let Ok(content) = std::fs::read_to_string(&full_path) {
+                    app.open_editor(path, Some(&content));
+                    app.add_message("Editor", &format!("Arquivo '{path}' aberto no editor lado a lado. Use Ctrl+E para alternar o foco."));
+                } else if let Ok(content) = std::fs::read_to_string(path) {
+                    app.open_editor(path, Some(&content));
+                    app.add_message("Editor", &format!("Arquivo '{path}' aberto no editor lado a lado. Use Ctrl+E para alternar o foco."));
+                } else {
+                    app.open_editor(path, Some(""));
+                    app.add_message("Editor", &format!("Novo arquivo '{path}' iniciado no editor."));
+                }
             }
             true
         }
@@ -1696,6 +1725,13 @@ fn route_composer_edit_key(app: &mut App, key: crate::ui::engine::event::KeyEven
             }
             ComposerRoute::Handled
         }
+        KeyCode::Delete => {
+            if app.bottom_pane.composer.delete() {
+                refresh_command_menu(app);
+                refresh_reference_menu(app);
+            }
+            ComposerRoute::Handled
+        }
         KeyCode::Left => {
             app.bottom_pane.composer.move_left();
             ComposerRoute::Handled
@@ -1721,11 +1757,16 @@ fn route_composer_edit_key(app: &mut App, key: crate::ui::engine::event::KeyEven
             ComposerRoute::Handled
         }
         KeyCode::Enter => {
-            let input = app.bottom_pane.composer.input.trim().to_string();
-            if input.is_empty() {
+            if key.modifiers.contains(crate::ui::engine::event::KeyModifiers::SHIFT) {
+                app.bottom_pane.composer.insert('\n');
                 ComposerRoute::Handled
             } else {
-                ComposerRoute::Submit(input)
+                let input = app.bottom_pane.composer.input.trim().to_string();
+                if input.is_empty() {
+                    ComposerRoute::Handled
+                } else {
+                    ComposerRoute::Submit(input)
+                }
             }
         }
         _ => ComposerRoute::Unhandled,
@@ -1857,6 +1898,12 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
     let mut initial_app = App::new(&model_name);
     initial_app.dir = state.config.workspace_dir.display().to_string();
     initial_app.git_branch = git_branch(&state.config.workspace_dir);
+    let hw = crate::hw_recommend::detector::detect_hardware();
+    if !hw.gpu_model.is_empty() {
+        // Clean up vendor prefix if desired, or keep as detected e.g. "GTX 1650"
+        let model = hw.gpu_model.replace("NVIDIA GeForce ", "");
+        initial_app.gpu_name = model;
+    }
     // Bring the default cloud provider online (e.g. nvidia with
     // NVIDIA_API_KEY from .env) so cloud models work without the --cloud flag.
     let provider_msg = match client.set_provider(&initial_app.provider) {
@@ -1879,7 +1926,6 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
         let root = st.files.workspace_root().to_path_buf();
         let mut a = app.lock().unwrap();
         a.sidebar_items = files;
-            a.bottom_pane.file_search.paths = file_search::walk_files(&root);
         a.context_reference_items = vec![
             "AGENTS.md".into(),
             "CLAUDE.md".into(),
@@ -1893,6 +1939,15 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                 .map(|skill| format!("skill:{}", skill.name)),
         );
         update_info_sections(&mut a, &st);
+
+        // Run file search indexing in background to avoid any blocking on startup
+        let app_bg = Arc::clone(&app);
+        thread::spawn(move || {
+            let paths = file_search::walk_files(&root);
+            if let Ok(mut a) = app_bg.lock() {
+                a.bottom_pane.file_search.paths = paths;
+            }
+        });
     }
     let (tx, rx) = mpsc::channel();
     // Agent progress stream + interrupt flag (Esc while loading cancels the turn).
@@ -2409,10 +2464,38 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     guard.tool_calls_expanded = !guard.tool_calls_expanded;
                     continue;
                 }
-                // Ctrl+E: toggle tool call timeline expand/collapse.
-                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('e') {
-                    guard.tool_calls_expanded = !guard.tool_calls_expanded;
+                // Ctrl+E / Ctrl+B: toggle/cycle focus between Sidebar, Editor, and Copilot Prompt
+                if key.modifiers.contains(KeyModifiers::CONTROL) && (key.code == KeyCode::Char('e') || key.code == KeyCode::Char('b')) {
+                    guard.focus = match guard.focus {
+                        Focus::Input | Focus::Messages => {
+                            if key.code == KeyCode::Char('b') {
+                                Focus::Sidebar
+                            } else if guard.editor_file.is_some() {
+                                Focus::Editor
+                            } else {
+                                Focus::Sidebar
+                            }
+                        }
+                        Focus::Editor => Focus::Sidebar,
+                        Focus::Sidebar => Focus::Input,
+                    };
+                    guard.status = match guard.focus {
+                        Focus::Sidebar => "Foco: Sidebar de Arquivos (↑/↓ navegar · Enter abrir · Ctrl+E alternar)".into(),
+                        Focus::Editor => "Foco: Editor de Código (Ctrl+S salvar · Ctrl+W fechar · Ctrl+E alternar)".into(),
+                        Focus::Input | Focus::Messages => "Foco: Copilot Prompt (digite instruções · / comandos · Ctrl+E alternar)".into(),
+                    };
                     continue;
+                }
+                // Ctrl+W: close editor and return to full-screen Copilot
+                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('w') {
+                    if guard.editor_file.is_some() {
+                        guard.editor_file = None;
+                        guard.editor_lines.clear();
+                        guard.editor_buffer = None;
+                        guard.focus = Focus::Input;
+                        guard.status = "Editor fechado. Copilot em tela cheia.".into();
+                        continue;
+                    }
                 }
                 // Ctrl+R: toggle compact/expanded view.
                 if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('r') {
@@ -2695,6 +2778,33 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     }
                     continue;
                 }
+                // Ghost text / inline AI code completion acceptance via Tab
+                if guard.focus == Focus::Editor
+                    && key.code == KeyCode::Tab
+                    && guard.ghost_text.is_some()
+                {
+                    let ghost = guard.ghost_text.take().unwrap();
+                    if guard.editor_row >= guard.editor_lines.len() {
+                        guard.editor_lines.push(String::new());
+                    }
+                    let row = guard.editor_row;
+                    let col_char = guard.editor_col;
+                    let line = &mut guard.editor_lines[row];
+                    let col = char_index_to_byte_index(line, col_char);
+                    if col_char <= line.chars().count() {
+                        line.insert_str(col, &ghost);
+                    } else {
+                        line.push_str(&ghost);
+                    }
+                    guard.editor_col += ghost.chars().count();
+                    guard.editor_dirty = true;
+                    if let Some(mut buffer) = guard.editor_buffer.take() {
+                        let text = guard.editor_lines.join("\n");
+                        buffer.sync_external_text(&text, guard.editor_row, guard.editor_col);
+                        guard.editor_buffer = Some(buffer);
+                    }
+                    continue;
+                }
                 // Edit-compatible structural editing shortcuts take precedence over
                 // the harness-wide Tab and navigation bindings.
                 if guard.focus == Focus::Editor
@@ -2802,8 +2912,8 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     }
                     KeyCode::Up => {
                         if let Focus::Sidebar = guard.focus {
-                    if guard.bottom_pane.info.selected > 0 {
-                        guard.bottom_pane.info.selected -= 1;
+                            if guard.sidebar_selected > 0 {
+                                guard.sidebar_selected -= 1;
                             }
                         } else if guard.focus == Focus::Editor {
                             if guard.editor_row > 0 {
@@ -2830,8 +2940,8 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     }
                     KeyCode::Down => {
                         if let Focus::Sidebar = guard.focus {
-                    if guard.bottom_pane.info.selected + 1 < guard.bottom_pane.info.sections.len() {
-                        guard.bottom_pane.info.selected += 1;
+                            if guard.sidebar_selected + 1 < guard.sidebar_items.len() {
+                                guard.sidebar_selected += 1;
                             }
                         } else if guard.focus == Focus::Editor {
                             if guard.editor_row + 1 < guard.editor_lines.len() {
@@ -2870,9 +2980,12 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                                 }
                             }
                             Focus::Sidebar => {
-                    let idx = guard.bottom_pane.info.selected;
-                    if let Some(section) = guard.bottom_pane.info.sections.get_mut(idx) {
-                                    section.open = !section.open;
+                                if let Some(path) = guard.sidebar_items.get(guard.sidebar_selected).cloned() {
+                                    if !path.ends_with('/') {
+                                        let content = state.lock().unwrap().files.read_file(&path);
+                                        guard.open_editor(&path, content.as_deref());
+                                        guard.status = format!("Editor: aberto {}", path);
+                                    }
                                 }
                             }
                             Focus::Editor
@@ -2917,6 +3030,11 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                             }
                             guard.editor_col += 1;
                             guard.editor_dirty = true;
+                        } else if guard.focus == Focus::Sidebar {
+                            guard.focus = Focus::Input;
+                            guard.bottom_pane.composer.insert(c);
+                            refresh_command_menu(&mut guard);
+                            refresh_reference_menu(&mut guard);
                         } else {
                             guard.bottom_pane.composer.insert(c);
                             refresh_command_menu(&mut guard);
@@ -2980,11 +3098,15 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                         }
                     }
                     KeyCode::Esc => {
-                        // If editing, close editor; else interrupt running turn
+                        // If editing, dismiss ghost text or close editor; else interrupt running turn
                         if guard.focus == Focus::Editor {
-                            guard.editor_file = None;
-                            guard.editor_lines.clear();
-                            guard.focus = Focus::Input;
+                            if guard.ghost_text.is_some() {
+                                guard.ghost_text = None;
+                            } else {
+                                guard.editor_file = None;
+                                guard.editor_lines.clear();
+                                guard.focus = Focus::Input;
+                            }
                         } else if guard.loading {
                             interrupt.store(true, Ordering::Relaxed);
                             guard.status = "Interrupting…".into();
@@ -3059,36 +3181,131 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                 }
             }
             Ok(Event::Mouse(mouse)) => {
+                let term_size = terminal.size().unwrap_or(Rect::new(0, 0, 120, 30));
                 let mut guard = app.lock().unwrap();
+                let width = term_size.width;
+                let height = term_size.height;
+
+                let avail_w = width.saturating_sub(4).max(1) as usize;
+                let mut visual_lines: usize = 0;
+                for line in guard.bottom_pane.composer.input.split('\n') {
+                    let line_w = crate::ui::width::display_width(line) + 2;
+                    let wrapped_count = (line_w + avail_w - 1) / avail_w;
+                    visual_lines += wrapped_count.max(1);
+                }
+                let composer_h = (visual_lines as u16).clamp(1, height.saturating_sub(6).max(1));
+                let workspace_y = 1;
+                let composer_y = height.saturating_sub(composer_h + 1);
+                let workspace_h = composer_y.saturating_sub(workspace_y);
+
+                let sb_width = if width >= 50 { (width * 24) / 100 } else { 0 };
+                let main_width = width.saturating_sub(sb_width);
+                let ed_width = if guard.editor_file.is_some() { (main_width * 55) / 100 } else { 0 };
+
                 match mouse.kind {
-                    MouseEventKind::ScrollUp => {
-                        guard.scroll_offset = guard.scroll_offset.saturating_sub(5);
-                        guard.follow = false;
-                    }
-                    MouseEventKind::ScrollDown => {
-                        guard.scroll_offset += 5;
-                    }
                     MouseEventKind::Down(MouseButton::Left) => {
-                        // Toggle tool call rollup expansion on click.
-                        let flattened = flatten_messages(&guard);
-                        let msg_area_top = 0; // transcript starts at the top in Codex layout
-                        let clicked_row = mouse.row as usize;
-                        if clicked_row > msg_area_top {
-                            let offset = if guard.follow {
-                                flattened.len().saturating_sub(guard.scroll_offset)
-                            } else {
-                                guard.scroll_offset
-                            };
-                            let line_idx = clicked_row - msg_area_top + offset;
-                            if line_idx < flattened.len() {
-                                let line_text = flattened[line_idx].to_string();
-                                if line_text.starts_with("●")
-                                    || line_text.starts_with("Δ")
-                                    || line_text.contains(" tool use")
-                                {
-                                    guard.tool_calls_expanded = !guard.tool_calls_expanded;
+                        // 1. Top AppBar click (row 0)
+                        if mouse.row == 0 {
+                            if mouse.column <= 6 {
+                                // [File] -> open file search
+                                let paths = guard.bottom_pane.file_search.paths.clone();
+                                guard.open_file_search(paths);
+                            } else if mouse.column <= 13 {
+                                // [Edit] -> focus Editor if open, else Input
+                                if guard.editor_file.is_some() {
+                                    guard.focus = Focus::Editor;
+                                }
+                            } else if mouse.column <= 24 {
+                                // [AI Agent] -> focus Input
+                                guard.focus = Focus::Input;
+                            } else if mouse.column <= 31 {
+                                // [Help] -> open commands menu
+                                guard.show_view(crate::ui::bottom_pane::ViewKind::Commands);
+                                refresh_command_menu(&mut guard);
+                            }
+                        }
+                        // 2. Composer area click
+                        else if mouse.row >= composer_y && mouse.row < composer_y + composer_h {
+                            guard.focus = Focus::Input;
+                            let prompt_offset = 2; // prompt prefix "› "
+                            let col_char = (mouse.column.saturating_sub(prompt_offset) as usize)
+                                .min(guard.bottom_pane.composer.input.chars().count());
+                            guard.bottom_pane.composer.cursor_position = col_char;
+                        }
+                        // 3. Workspace area click
+                        else if mouse.row >= workspace_y && mouse.row < workspace_y + workspace_h {
+                            // Sidebar click
+                            if sb_width > 0 && mouse.column < sb_width {
+                                guard.focus = Focus::Sidebar;
+                                let visible_rows = (workspace_h as usize).saturating_sub(2);
+                                let total_items = guard.sidebar_items.len();
+                                let sel = guard.sidebar_selected.min(total_items.saturating_sub(1));
+                                let scroll = if sel >= visible_rows { sel.saturating_sub(visible_rows.saturating_sub(1)) } else { 0 };
+                                let item_row = (mouse.row.saturating_sub(workspace_y + 1)) as usize;
+                                let item_idx = scroll + item_row;
+                                if item_idx < total_items {
+                                    guard.sidebar_selected = item_idx;
+                                    let path = guard.sidebar_items[item_idx].clone();
+                                    if !path.ends_with('/') {
+                                        let content = state.lock().unwrap().files.read_file(&path);
+                                        guard.open_editor(&path, content.as_deref());
+                                        guard.status = format!("Editor: aberto {}", path);
+                                    }
                                 }
                             }
+                            // Editor click
+                            else if ed_width > 0 && mouse.column >= sb_width && mouse.column < sb_width + ed_width {
+                                guard.focus = Focus::Editor;
+                                let line_idx = guard.editor_scroll + (mouse.row.saturating_sub(workspace_y + 1) as usize);
+                                if line_idx < guard.editor_lines.len() {
+                                    guard.editor_row = line_idx;
+                                }
+                                let line_num_width = guard.editor_lines.len().to_string().len().max(2);
+                                let prefix_w = sb_width + line_num_width as u16 + 4;
+                                let col = (mouse.column.saturating_sub(prefix_w)) as usize;
+                                let line_len = guard.editor_lines.get(guard.editor_row).map(|l| l.chars().count()).unwrap_or(0);
+                                guard.editor_col = col.min(line_len);
+                            }
+                            // Chat Panel click
+                            else {
+                                guard.focus = Focus::Messages;
+                                let flattened = flatten_messages(&guard);
+                                let clicked_row = mouse.row.saturating_sub(workspace_y + 1) as usize;
+                                let offset = if guard.follow {
+                                    flattened.len().saturating_sub(guard.scroll_offset)
+                                } else {
+                                    guard.scroll_offset
+                                };
+                                let line_idx = clicked_row + offset;
+                                if line_idx < flattened.len() {
+                                    let line_text = flattened[line_idx].to_string();
+                                    if line_text.starts_with("●")
+                                        || line_text.starts_with("Δ")
+                                        || line_text.contains(" tool use")
+                                    {
+                                        guard.tool_calls_expanded = !guard.tool_calls_expanded;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    MouseEventKind::ScrollUp => {
+                        if sb_width > 0 && mouse.column < sb_width && mouse.row >= workspace_y && mouse.row < workspace_y + workspace_h {
+                            guard.sidebar_selected = guard.sidebar_selected.saturating_sub(1);
+                        } else if ed_width > 0 && mouse.column >= sb_width && mouse.column < sb_width + ed_width && mouse.row >= workspace_y && mouse.row < workspace_y + workspace_h {
+                            guard.editor_scroll = guard.editor_scroll.saturating_sub(3);
+                        } else {
+                            guard.scroll_offset = guard.scroll_offset.saturating_sub(3);
+                            guard.follow = false;
+                        }
+                    }
+                    MouseEventKind::ScrollDown => {
+                        if sb_width > 0 && mouse.column < sb_width && mouse.row >= workspace_y && mouse.row < workspace_y + workspace_h {
+                            guard.sidebar_selected = (guard.sidebar_selected + 1).min(guard.sidebar_items.len().saturating_sub(1));
+                        } else if ed_width > 0 && mouse.column >= sb_width && mouse.column < sb_width + ed_width && mouse.row >= workspace_y && mouse.row < workspace_y + workspace_h {
+                            guard.editor_scroll = (guard.editor_scroll + 3).min(guard.editor_lines.len().saturating_sub(1));
+                        } else {
+                            guard.scroll_offset += 3;
                         }
                     }
                     _ => {}
@@ -3243,113 +3460,307 @@ fn update_info_sections(app: &mut App, _state: &AgentState) {
     );
 }
 
+fn render_appbar(f: &mut Frame<'_>, app: &App, area: Rect) {
+    let branch = if app.git_branch.is_empty() || app.git_branch == "no git" { "main" } else { &app.git_branch };
+    let gpu = if app.gpu_name.is_empty() { "GTX 1650" } else { &app.gpu_name };
+
+    let left_spans = vec![
+        Span::styled("[File]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled(" ", Style::default()),
+        Span::styled("[Edit]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled(" ", Style::default()),
+        Span::styled("[AI Agent]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled(" ", Style::default()),
+        Span::styled("[Help]", Style::default().bold().fg(Color::Cyan)),
+    ];
+    let right_spans = vec![
+        Span::styled(format!("Branch: {} | GPU: {}", branch, gpu), Style::default().fg(Color::DarkGray)),
+    ];
+
+    let left_len = 31; // display width of "[File] [Edit] [AI Agent] [Help]"
+    let right_str = format!("Branch: {} | GPU: {}", branch, gpu);
+    let right_len = right_str.chars().count();
+    let pad = (area.width as usize).saturating_sub(left_len + right_len);
+
+    let mut line_spans = left_spans;
+    line_spans.push(Span::styled(" ".repeat(pad), Style::default()));
+    line_spans.extend(right_spans);
+
+    let appbar = Paragraph::new(Line::from(line_spans));
+    f.render_widget(appbar, area);
+}
+
+fn render_statusbar(f: &mut Frame<'_>, app: &App, area: Rect) {
+    let (row, col, lang) = if let Some(ref path) = app.editor_file {
+        (app.editor_row + 1, app.editor_col + 1, crate::ui::syntax::language_name(path))
+    } else {
+        (1, app.bottom_pane.composer.cursor_position + 1, "Markdown")
+    };
+
+    let locality = if app.provider == "ollama" || app.provider == "local" || app.provider.is_empty() {
+        "Local"
+    } else {
+        "Cloud"
+    };
+    let used_k = (app.tokens as f64) / 1000.0;
+    let max_k = (if app.max_context_tokens == 0 { 4096 } else { app.max_context_tokens } as f64) / 1000.0;
+
+    let full_status = format!(
+        " Ln {}, Col {} | UTF-8 | {} | Model: {} ({}) | Context: {:.1}k/{:.1}k",
+        row, col, lang, app.model, locality, used_k, max_k
+    );
+    let compact_status = format!(
+        " Ln {}, Col {} | UTF-8 | {} | Model: {} ({})",
+        row, col, lang, app.model, locality
+    );
+    let min_status = format!(" Ln {}, Col {} | {}", row, col, lang);
+
+    let total_w = area.width as usize;
+
+    let right_hint = if app.loading {
+        format!("{} (Ctrl+C cancel) ", crate::ui::bottom_pane::elapsed(app.elapsed))
+    } else if !app.status.contains("Esc interrupt") && !app.status.is_empty() {
+        format!("{} · Esc interrupt ", app.status)
+    } else if !app.status.is_empty() {
+        format!("{} ", app.status)
+    } else {
+        String::new()
+    };
+
+    let (status_str, right_str) = if total_w >= display_width(&full_status) + display_width(&right_hint) {
+        (full_status, right_hint)
+    } else if total_w >= display_width(&compact_status) + display_width(&right_hint) {
+        (compact_status, right_hint)
+    } else if total_w >= display_width(&full_status) {
+        (full_status, String::new())
+    } else if total_w >= display_width(&compact_status) {
+        (compact_status, String::new())
+    } else {
+        (min_status, String::new())
+    };
+
+    let left_w = display_width(&status_str);
+    let right_w = display_width(&right_str);
+    let pad = total_w.saturating_sub(left_w + right_w);
+
+    let line = Line::from(vec![
+        Span::styled(status_str, Style::default().fg(Color::DarkGray)),
+        Span::styled(" ".repeat(pad), Style::default()),
+        Span::styled(right_str, Style::default().fg(Color::DarkGray)),
+    ]);
+    f.render_widget(Paragraph::new(line), area);
+}
+
+fn render_sidebar(f: &mut Frame<'_>, app: &App, area: Rect) {
+    let is_sb_focus = app.focus == Focus::Sidebar;
+    let sb_border = if is_sb_focus { Color::Cyan } else { Color::DarkGray };
+    let sb_title = format!(
+        " 📁 EXPLORER [{}] ",
+        if is_sb_focus { "ATIVO" } else { "Ctrl+E" }
+    );
+    let visible_rows = area.height.saturating_sub(2) as usize;
+    let total_items = app.sidebar_items.len();
+    let sel = app.sidebar_selected.min(total_items.saturating_sub(1));
+    let scroll = if sel >= visible_rows {
+        sel.saturating_sub(visible_rows.saturating_sub(1))
+    } else {
+        0
+    };
+    let end = (scroll + visible_rows).min(total_items);
+    let mut sb_lines = Vec::new();
+    if total_items == 0 {
+        sb_lines.push(Line::from(Span::styled(" (Nenhum arquivo)", Style::default().fg(Color::DarkGray))));
+    } else {
+        for i in scroll..end {
+            let item = &app.sidebar_items[i];
+            let is_sel = i == app.sidebar_selected;
+            let is_dir = item.ends_with('/');
+            let icon = if is_dir { "📁 " } else { "📄 " };
+            let prefix = if is_sel { "› " } else { "  " };
+            let style = if is_sel && is_sb_focus {
+                Style::default().fg(Color::Cyan).bold()
+            } else if is_sel {
+                Style::default().fg(Color::White).bold()
+            } else if is_dir {
+                Style::default().fg(Color::LightBlue)
+            } else {
+                Style::default().fg(Color::Gray)
+            };
+            sb_lines.push(Line::from(vec![
+                Span::styled(prefix, if is_sel { Style::default().fg(Color::Cyan) } else { Style::default().fg(Color::DarkGray) }),
+                Span::styled(icon, style),
+                Span::styled(item.clone(), style),
+            ]));
+        }
+    }
+    let sidebar = Paragraph::new(sb_lines)
+        .block(Block::default()
+            .title(sb_title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(sb_border)));
+    f.render_widget(sidebar, area);
+}
+
+fn render_editor(f: &mut Frame<'_>, app: &App, area: Rect, editor_file: &str) {
+    let is_ed_focus = app.focus == Focus::Editor;
+    let ed_border = if is_ed_focus { Color::Cyan } else { Color::DarkGray };
+    let title = format!(
+        " 📝 Editor [{}] - {}{} ",
+        if is_ed_focus { "ATIVO" } else { "Ctrl+E" },
+        editor_file,
+        if app.editor_dirty { " • modificado" } else { "" }
+    );
+
+    let area_height = area.height as usize - 2;
+    let editor_lines: &[String] = app
+        .editor_buffer
+        .as_ref()
+        .map(|buffer| buffer.lines())
+        .unwrap_or(&app.editor_lines);
+    let total_lines = editor_lines.len();
+    let scroll = if app.editor_scroll + area_height > total_lines {
+        total_lines.saturating_sub(area_height)
+    } else {
+        app.editor_scroll
+    };
+    let end = std::cmp::min(scroll + area_height, total_lines);
+    let line_num_width = total_lines.to_string().len().max(2);
+    let editor_path = editor_file;
+    let visible: Vec<Line<'static>> = editor_lines[scroll..end]
+        .iter()
+        .enumerate()
+        .map(|(i, line)| {
+            let num = scroll + i + 1;
+            let prefix = format!("{:>width$} │ ", num, width = line_num_width);
+            let mut spans = vec![Span::styled(prefix, Style::default().fg(Color::DarkGray))];
+            spans.extend(crate::ui::syntax::highlight_line(editor_path, line));
+            // Ghost text / inline AI code suggestion rendering
+            if (scroll + i) == app.editor_row {
+                if let Some(ref ghost) = app.ghost_text {
+                    spans.push(Span::styled(format!("·[{}]", ghost), Style::default().fg(Color::DarkGray).italic()));
+                }
+            }
+            Line::from(spans)
+        })
+        .collect();
+    let mut editor = Paragraph::new(visible)
+        .block(Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(ed_border)));
+    if app.word_wrap {
+        editor = editor.wrap(Wrap { trim: false });
+    }
+    f.render_widget(editor, area);
+    if is_ed_focus {
+        let r = (app.editor_row.saturating_sub(scroll)) as u16;
+        let _c = app.editor_col as u16 + line_num_width as u16 + 3;
+        f.set_cursor_position((area.x + _c + 1, area.y + r + 1));
+    }
+}
+
+fn render_chat_panel(f: &mut Frame<'_>, app: &mut App, area: Rect, is_focused: bool) {
+    let chat_border = if is_focused { Color::Cyan } else { Color::DarkGray };
+    let messages_lines = crate::ui::chatwidget::history_lines(app);
+    let view_height = area.height as usize - 2;
+    let speed_str = if app.token_breakdown.generation_speed > 0.0 {
+        format!(" - {:.0} tok/s", app.token_breakdown.generation_speed)
+    } else {
+        String::new()
+    };
+    let chat_title = format!(
+        " 🤖 Copilot Agent ({}{}) [{}] ",
+        app.model,
+        speed_str,
+        if is_focused { "ATIVO" } else { "Ctrl+E" }
+    );
+    let chat_widget = Paragraph::new(messages_lines)
+        .wrap(Wrap { trim: app.word_wrap })
+        .block(Block::default()
+            .title(chat_title)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(chat_border)));
+    let total_wrapped = chat_widget.line_count(area.width.saturating_sub(2));
+    let offset = if app.follow {
+        total_wrapped.saturating_sub(view_height)
+    } else {
+        app.scroll_offset.min(total_wrapped.saturating_sub(view_height))
+    };
+    f.render_widget(chat_widget.scroll((offset as u16, 0)), area);
+}
+
 fn draw<B: crate::ui::engine::ratatui::backend::Backend>(
     f: &mut Terminal<B>,
     app: &mut App,
 ) -> Result<(), Box<dyn Error>> {
     f.draw(|f| {
         let size = f.area();
-        let composer_height = (app.bottom_pane.composer.input.matches('\n').count() as u16 + 1)
-            .clamp(1, size.height.saturating_sub(2).max(1));
+        let avail_w = size.width.saturating_sub(4).max(1) as usize;
+        let mut visual_lines: usize = 0;
+        for line in app.bottom_pane.composer.input.split('\n') {
+            let line_w = crate::ui::width::display_width(line) + 2;
+            let wrapped_count = (line_w + avail_w - 1) / avail_w;
+            visual_lines += wrapped_count.max(1);
+        }
+        let composer_height = (visual_lines as u16).clamp(1, size.height.saturating_sub(6).max(1));
         let page = Layout::default()
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Min(0),
-                    // Codex-style bottom pane: keep a visible composer well
-                    // around the prompt instead of letting input touch the
-                    // transcript and footer.
+                    Constraint::Length(1), // Top AppBar / MenuBar (microsoft/edit style)
+                    Constraint::Min(3),    // Middle Workspace (Left Sidebar + Right Editor/Chat)
                     Constraint::Length(composer_height),
-                    Constraint::Length(1),
+                    Constraint::Length(1), // Bottom Status / Info Bar
                 ]
                 .as_ref(),
             )
             .split(size);
-        app.bottom_pane.render_composer(f, page[1], app.loading);
 
-        // Modern bottom shortcut / info bar
-        let avail_footer_w = page[2].width as usize;
-        let footer_state = app.bottom_pane.footer_state(
-            app.loading,
-            app.pending_approval.is_some(),
-            app.pending_plan_approval.is_some(),
-            app.status.clone(),
-            app.elapsed,
-            app.git_branch.clone(),
-            clean_display_path(&app.dir, 36),
-        );
-        let footer_left = footer_state.left_label();
-        let footer_right = format!("{} ", footer_state.hint());
+        // --- Row 0: Top AppBar ---
+        render_appbar(f, app, page[0]);
 
-        let f_left_w = display_width(&footer_left);
-        let f_right_w = display_width(&footer_right);
-        let f_pad = avail_footer_w.saturating_sub(f_left_w + f_right_w);
-
-        let bottom = Paragraph::new(Line::from(vec![
-            Span::styled(footer_left, crate::ui::style::muted()),
-            Span::styled(" ".repeat(f_pad), Style::default()),
-            Span::styled(footer_right, crate::ui::style::muted()),
-        ]));
-        f.render_widget(bottom, page[2]);
-
-        // Full-width transcript (Codex-style single column — no sidebar).
-        if let Some(editor_file) = app.editor_file.as_ref() {
-            let title = format!(
-                "Editor - {}{}",
-                editor_file,
-                if app.editor_dirty { " *" } else { "" }
-            );
-            // compute visible lines based on scroll and area height
-            let area_height = page[0].height as usize - 2; // leave room for borders
-            let editor_lines: &[String] = app
-                .editor_buffer
-                .as_ref()
-                .map(|buffer| buffer.lines())
-                .unwrap_or(&app.editor_lines);
-            let total_lines = editor_lines.len();
-            let scroll = if app.editor_scroll + area_height > total_lines {
-                total_lines.saturating_sub(area_height)
-            } else {
-                app.editor_scroll
-            };
-            let end = std::cmp::min(scroll + area_height, total_lines);
-            let line_num_width = total_lines.to_string().len();
-            let editor_path = editor_file.as_str();
-            let visible: Vec<Line<'static>> = editor_lines[scroll..end]
-                .iter()
-                .enumerate()
-                .map(|(i, line)| {
-                    let num = scroll + i + 1;
-                    let prefix = format!("{:>width$} │ ", num, width = line_num_width);
-                    let mut spans = vec![Span::styled(prefix, Style::default().fg(Color::Gray))];
-                    spans.extend(crate::ui::syntax::highlight_line(editor_path, line));
-                    Line::from(spans)
-                })
-                .collect();
-            let mut editor = Paragraph::new(visible)
-                .block(Block::default().title(title).borders(Borders::ALL));
-            if app.word_wrap {
-                editor = editor.wrap(Wrap { trim: false });
-            }
-            f.render_widget(editor, page[0]);
-            // set cursor in editor area relative to scroll
-            let r = (app.editor_row.saturating_sub(scroll)) as u16;
-            let _c = app.editor_col as u16 + line_num_width as u16 + 3; // offset for line numbers
-            f.set_cursor_position((page[0].x + _c + 1, page[0].y + r + 1));
+        // --- Row 1: Workspace Area (Sidebar + Editor/Chat) ---
+        let workspace_area = page[1];
+        let (sidebar_area, main_area) = if workspace_area.width >= 50 {
+            let cols = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(24),
+                    Constraint::Percentage(76),
+                ].as_ref())
+                .split(workspace_area);
+            (Some(cols[0]), cols[1])
         } else {
-        let messages_lines = crate::ui::chatwidget::history_lines(app);
-        let view_height = page[0].height as usize;
-        let widget = Paragraph::new(messages_lines).wrap(Wrap { trim: app.word_wrap });
-        // Ratatui's own WordWrapper drives both the render and the scroll
-        // math, so the visible window always matches the wrapped layout.
-        let total_wrapped = widget.line_count(page[0].width);
-        let offset = if app.follow {
-            total_wrapped.saturating_sub(view_height)
-        } else {
-            app.scroll_offset.min(total_wrapped.saturating_sub(view_height))
+            (None, workspace_area)
         };
-        f.render_widget(widget.scroll((offset as u16, 0)), page[0]);
+
+        if let Some(sb_area) = sidebar_area {
+            render_sidebar(f, app, sb_area);
         }
+
+        // Main Area: Editor (if open) + Copilot Chat
+        let editor_opt = app.editor_file.clone();
+        if let Some(ref editor_file) = editor_opt {
+            let cols = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(55),
+                    Constraint::Percentage(45),
+                ].as_ref())
+                .split(main_area);
+            render_editor(f, app, cols[0], editor_file);
+            let is_chat_focus = app.focus != Focus::Editor && app.focus != Focus::Sidebar;
+            render_chat_panel(f, app, cols[1], is_chat_focus);
+        } else {
+            let is_chat_focus = app.focus != Focus::Sidebar;
+            render_chat_panel(f, app, main_area, is_chat_focus);
+        }
+
+        // --- Row 2: Composer Prompt ---
+        app.bottom_pane.render_composer(f, page[2], app.loading);
+
+        // --- Row 3: Modern bottom status bar (microsoft/edit style) ---
+        render_statusbar(f, app, page[3]);
 
         // Overlays are routed by the BottomPane view stack. Legacy payload
         // flags are consulted only by `active_view()` during migration.
@@ -5691,6 +6102,158 @@ mod tests {
         assert_eq!(load_persisted_approval_scopes(&state), scopes);
         persist_approval_scopes(&state, &[]).unwrap();
         assert!(load_persisted_approval_scopes(&state).is_empty());
+    }
+
+    #[test]
+    fn draw_snapshot_renders_side_by_side_when_editor_open() {
+        use crate::ui::engine::ratatui::backend::TestBackend;
+        use crate::ui::engine::ratatui::Terminal;
+        let mut app = App::new("model");
+        app.open_editor("src/main.rs", Some("fn main() {\n    println!(\"hello\");\n}"));
+        app.add_message("Assistant", "Estou pronto para ajudar no codigo!");
+        let mut terminal = Terminal::new(TestBackend::new(120, 30)).unwrap();
+        draw(&mut terminal, &mut app).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rendered: String = (0..30)
+            .flat_map(|y| (0..120).filter_map(move |x| buffer.cell((x, y))))
+            .map(|cell| cell.symbol().to_string())
+            .collect();
+        // Both editor and copilot agent panels are rendered side by side
+        assert!(rendered.contains("Editor"));
+        assert!(rendered.contains("src/main.rs"));
+        assert!(rendered.contains("Copilot Agent"));
+        assert!(rendered.contains("fn main()"));
+    }
+
+    #[test]
+    fn slash_command_open_loads_file_into_editor() {
+        let (mut app, state, router) = test_app_state_router();
+        assert!(app.editor_file.is_none());
+        assert!(handle_slash_command("/open src/main.rs", &mut app, &state, &router, None));
+        assert_eq!(app.editor_file.as_deref(), Some("src/main.rs"));
+        assert_eq!(app.focus, Focus::Editor);
+    }
+
+    #[test]
+    fn walk_files_skips_hidden_directories() {
+        let temp = std::env::temp_dir().join(format!("ckc_test_walk_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let hidden = temp.join(".cache").join("deep");
+        let visible = temp.join("src");
+        std::fs::create_dir_all(&hidden).unwrap();
+        std::fs::create_dir_all(&visible).unwrap();
+        std::fs::write(hidden.join("ignored.txt"), "skip").unwrap();
+        std::fs::write(visible.join("main.rs"), "code").unwrap();
+
+        let files = file_search::walk_files(&temp);
+        assert!(files.contains(&"src/main.rs".to_string()));
+        assert!(!files.iter().any(|f| f.contains(".cache")));
+        let _ = std::fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn draw_snapshot_renders_appbar_and_sidebar_by_default() {
+        use crate::ui::engine::ratatui::backend::TestBackend;
+        use crate::ui::engine::ratatui::Terminal;
+        let mut app = App::new("qwen3.5:2b");
+        app.sidebar_items = vec!["src/main.rs".into(), "Cargo.toml".into(), "README.md".into()];
+        app.add_message("Assistant", "Olá! Estou pronto para ajudar.");
+        let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+        draw(&mut terminal, &mut app).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rendered: String = (0..24)
+            .flat_map(|y| (0..100).filter_map(move |x| buffer.cell((x, y))))
+            .map(|cell| cell.symbol().to_string())
+            .collect();
+        // AppBar items rendered at row 0 (File, Edit, AI Agent, Help, Branch, GPU)
+        assert!(rendered.contains("File"));
+        assert!(rendered.contains("Edit"));
+        assert!(rendered.contains("AI Agent"));
+        assert!(rendered.contains("Help"));
+        assert!(rendered.contains("Branch:"));
+        assert!(rendered.contains("GPU:"));
+        // Left Explorer Sidebar rendered
+        assert!(rendered.contains("EXPLORER"));
+        assert!(rendered.contains("src/main.rs"));
+        assert!(rendered.contains("Cargo.toml"));
+        // Copilot Agent Chat rendered
+        assert!(rendered.contains("Copilot Agent"));
+        assert!(rendered.contains("Olá! Estou pronto para ajudar."));
+        // Composer prompt rendered
+        assert!(rendered.contains("›"));
+    }
+
+    #[test]
+    fn render_statusbar_displays_editor_language_and_context() {
+        use crate::ui::engine::ratatui::backend::TestBackend;
+        use crate::ui::engine::ratatui::Terminal;
+        let mut app = App::new("qwen3.5:2b");
+        app.provider = "ollama".into();
+        app.open_editor("math_utils.py", Some("def calcular_metricas(dados):\n    total = sum(dados)"));
+        app.editor_row = 3;
+        app.editor_col = 34;
+        app.tokens = 1200;
+        app.max_context_tokens = 4000;
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).unwrap();
+        draw(&mut terminal, &mut app).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rendered: String = (0..24)
+            .flat_map(|y| (0..120).filter_map(move |x| buffer.cell((x, y))))
+            .map(|cell| cell.symbol().to_string())
+            .collect();
+        assert!(rendered.contains("Ln 4, Col 35"));
+        assert!(rendered.contains("UTF-8"));
+        assert!(rendered.contains("Python"));
+        assert!(rendered.contains("Model: qwen3.5:2b (Local)"));
+        assert!(rendered.contains("Context: 1.2k/4.0k"));
+    }
+
+    #[test]
+    fn render_editor_displays_ghost_text_suggestion() {
+        use crate::ui::engine::ratatui::backend::TestBackend;
+        use crate::ui::engine::ratatui::Terminal;
+        let mut app = App::new("qwen3.5:2b");
+        app.open_editor("math_utils.py", Some("def calc():\n    pass"));
+        app.editor_row = 1;
+        app.ghost_text = Some("·[GHOST]".to_string());
+        let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+        draw(&mut terminal, &mut app).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rendered: String = (0..24)
+            .flat_map(|y| (0..100).filter_map(move |x| buffer.cell((x, y))))
+            .map(|cell| cell.symbol().to_string())
+            .collect();
+        assert!(rendered.contains("·[·[GHOST]]"));
+    }
+
+    #[test]
+    fn ghost_text_accepted_on_tab_and_dismissed_on_esc() {
+        let mut app = App::new("model");
+        app.open_editor("math_utils.py", Some("media = total / len(dados)"));
+        app.editor_row = 0;
+        app.editor_col = "media = total / len(dados)".len();
+        app.ghost_text = Some(" # inline suggestion".to_string());
+
+        // Esc dismisses ghost text without closing editor
+        assert!(app.ghost_text.is_some());
+        if app.ghost_text.is_some() {
+            app.ghost_text = None;
+        }
+        assert!(app.ghost_text.is_none());
+        assert_eq!(app.editor_file.as_deref(), Some("math_utils.py"));
+
+        // Tab accepts ghost text into editor line at cursor
+        app.ghost_text = Some(" # inline suggestion".to_string());
+        if let Some(ghost) = app.ghost_text.take() {
+            let row = app.editor_row;
+            let col = app.editor_col;
+            app.editor_lines[row].insert_str(col, &ghost);
+            app.editor_col += ghost.len();
+            app.editor_dirty = true;
+        }
+        assert_eq!(app.editor_lines[0], "media = total / len(dados) # inline suggestion");
+        assert_eq!(app.editor_col, "media = total / len(dados) # inline suggestion".len());
+        assert!(app.editor_dirty);
+        assert!(app.ghost_text.is_none());
     }
 }
 

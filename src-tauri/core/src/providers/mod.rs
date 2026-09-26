@@ -1,4 +1,4 @@
-mod catalog;
+pub(crate) mod catalog;
 mod store;
 pub mod types;
 mod verify;
