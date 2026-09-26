@@ -3,7 +3,7 @@
  * @description Cliente REST para TOTVS
  */
 
-import { fetchWithTimeout } from '../../../shared/lib/http.js';
+import { fetchWithTimeout } from '../../../shared/lib/http-core.js';
 import { logger } from '../../../shared/lib/logger.js';
 import { buildTotvsRestUrl, getTotvsAuthHeaders, TOTVS_CONFIG } from './config.js';
 

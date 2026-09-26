@@ -19,8 +19,10 @@ Registrar e priorizar os débitos técnicos:
    `_sdk/`); providers pesados (google, github-copilot, ollama, deepinfra)
    exigem reimplementar runtime de image/video/speech/oauth/embeddings atrás de
    portas.
-2. **Backend RAG**: `src/server/rag` (Express) portar para Next API routes e
-   incluir no typecheck.
+2. **Backend RAG**: ✅ concluído em 2026-09-26 — `src/server/rag` roda via Next
+   API routes (`src/app/api/*`, 47 rotas) com adaptadores `_lib` (rag, http,
+   rate-limit, auth, sse, totvs-proxy); Express fora do import graph das rotas
+   (clients SOAP/REST usam `http-core`).
 3. **UI**: shell/navegação e tokens herdados migrar para
    `@chronokairo/platform/ui`; não duplicar componentes locais (porta visual +
    promoção ao platform quando genérico).
