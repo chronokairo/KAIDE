@@ -22,7 +22,7 @@ Consolidação dos antigos `cli`, `desktop` e `ai` — histórico preservado nas
 - SafetyNet: `validateCommand`, guardrails, dry-run, snapshots e roteamento de custos.
 
 ### RAG (Retrieval Augmented Generation)
-- UI em `/rag` + backend Express (`src/server/rag`): engine RAG, vector store persistente, chat com fontes, conversas, documentos, auth, admin, health e MCP server.
+- UI em `/rag` + backend em Next API routes (`src/app/api/*`) sobre o núcleo `src/server/rag`: engine RAG, vector store persistente, chat com fontes, conversas, documentos, auth, admin, health e MCP server.
 - Integração **TOTVS** (proxy SOAP/REST com cache) e geração local via **Ollama**.
 
 ### Orquestração & Tool Calling
@@ -50,14 +50,14 @@ Consolidação dos antigos `cli`, `desktop` e `ai` — histórico preservado nas
 ```
 chronokairo-ai/
 ├── src/                      # Frontend Next.js (React 19)
-│   ├── app/                  # App Router — /, /rag, /ia/* e API routes (/api/ai/*, /api/froia, /api/rapunzel)
+│   ├── app/                  # App Router — /, /rag, /ia/* e API routes (/api/ai/*, /api/chat/*, /api/totvs/*, /api/auth/*, /api/froia, /api/rapunzel)
 │   ├── domain/               # Entidades e regras de domínio (hexagonal)
 │   ├── application/          # Casos de uso e portas (hexagonal)
 │   ├── infrastructure/       # Adapters de infraestrutura (LLM, credenciais)
 │   ├── features/             # Composição de features (ai-chat, ai-credentials)
 │   ├── modules/              # Módulos de negócio (ai, rag, governance, harness, orchestration, osint, github-notifications, dev, ocr, mcp-catalog, agent-planner, bi, crm, financeiro, projetos)
 │   │   └── rag/              # UI do subsistema RAG (RagApp) — rota /rag
-│   ├── server/               # Backend do RAG (Express) — débito: portar p/ API routes
+│   ├── server/               # Núcleo do RAG (features, entities, shared) — consumido pelas API routes
 │   ├── providers/            # Providers React (layout, harness, tauri runtime)
 │   └── shared/               # Componentes/config compartilhados
 │
@@ -104,13 +104,13 @@ npm install
 | `npm test` | Testes (Vitest) |
 | `npm run typecheck` | Verificação de tipos (`tsc --noEmit`) |
 
-O subsistema **RAG** (Ollama/TOTVS) tem backend Express em `src/server/rag`, executado à parte; a migração para Next API routes é um débito registrado em `docs/adr/0005`.
+O subsistema **RAG** (Ollama/TOTVS) roda como Next API routes (`src/app/api/chat|search|conversations|totvs|auth|admin|health`) sobre o núcleo `src/server/rag` — migração concluída (ADR-0005, débito #2).
 
 ## 📦 Stack
 
 - **Núcleo:** Rust (zero-lib, crate `ckc`) + **Tauri 2** (desktop).
 - **Frontend:** Next.js 16 (React 19) + Tailwind + `@chronokairo/platform/ui`.
-- **RAG:** React + `react-markdown`/`chart.js`, backend Express + Ollama + integração TOTVS.
+- **RAG:** React + `react-markdown`/`chart.js`, Next API routes + Ollama + integração TOTVS.
 - **Gerenciador de pacotes:** **npm**.
 
 ## 📚 Documentação

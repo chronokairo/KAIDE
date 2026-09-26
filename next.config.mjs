@@ -15,6 +15,11 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': path.join(projectDirectory, 'src'),
     };
+    // O backend RAG legado usa imports ESM Node com extensão .js (resolvidos para .ts).
+    config.resolve.extensionAlias = {
+      ...config.resolve.extensionAlias,
+      '.js': ['.ts', '.tsx', '.js'],
+    };
     return config;
   },
 };

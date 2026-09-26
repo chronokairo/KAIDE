@@ -8,10 +8,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### 2026-09-26
 
 #### Adicionado
+- Migração do backend RAG para Next API routes (ADR-0005, débito #2): 47 rotas em `src/app/api/*` (chat, search, conversas, mensagens, TOTVS, auth, admin, health, proxy catch-all) com adaptadores `_lib` (rag, http, rate-limit, auth, sse, totvs-proxy); clients SOAP/REST migrados de `shared/lib/http` (Express) para `http-core`; `resolve.extensionAlias` no webpack para imports ESM `.js`→`.ts` do legado.
 - Migração hexagonal Fase 0/1 sem deleção de código (ADR-0022): `src/domain`, `src/application` (portas e caso de uso `send-message`), `src/infrastructure` (adapters), composição em `src/features/ai-chat` e rota `/api/ai/chat` reescrita como adapter HTTP fino; suíte de testes com Vitest (11 testes).
 - Absorção e centralização das capacidades de IA satélites de projects, crm, bi, marketing, legal, nimbus, security, mastery, educacional e ecommerce (ADR-0021).
 
 #### Corrigido
+- Build do client quebrado pelo barrel `@/modules/governance` puxando `fs`/`fs-promises` (services server-only) para o client bundle via `SecurityPanel`; o painel agora importa `validateCommand` direto de `command-validator`.
 - 67 erros de typecheck do legado thinkcoffee em `src/modules`:
   - imports dos 16 views do dashboard de governança apontados para `./types`;
   - imports do function-calling apontados para `../../harness/contracts` e `../../harness/shared`;

@@ -42,7 +42,7 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 
 - **`src-tauri/core`** — núcleo Rust **zero-lib** (crate `ckc`), fonte de verdade da lógica do agente nativo e execução de ferramentas.
 - **`src-tauri/shell`** — casca Tauri fina que consome o `ckc` para execução desktop nativa.
-- **`src/`** — frontend Next.js (React 19), subsistema RAG (`src/modules/rag`) e suíte de controle de inteligência herdada do `thinkcoffee` (`src/modules/ai/components/`: Agentes, Skills, Memória, Sessões, Prompts, Hooks, Patches).
+- **`src/`** — frontend Next.js (React 19), subsistema RAG (UI em `src/modules/rag`; backend em Next API routes `src/app/api/*` sobre o núcleo `src/server/rag`) e suíte de controle de inteligência herdada do `thinkcoffee` (`src/modules/ai/components/`: Agentes, Skills, Memória, Sessões, Prompts, Hooks, Patches).
 - Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
 ## Critérios mínimos
@@ -55,8 +55,7 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 
 ## Débitos técnicos abertos (ver docs/adr/0005)
 
-- Portar o backend Express do RAG (`src/server/rag`) para Next API routes (hoje excluído do typecheck).
-- Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais).
+- Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais; `RagApp` ainda é UI legada).
 - Conectar os comandos Tauri ao núcleo `ckc` (wiring incremental).
 
 ## Índice de documentação

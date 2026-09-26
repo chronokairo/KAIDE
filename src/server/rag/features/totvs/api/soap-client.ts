@@ -3,7 +3,7 @@
  * @description Cliente SOAP para TOTVS RM
  */
 
-import { fetchWithTimeout, JSON_HEADERS } from '../../../shared/lib/http.js';
+import { fetchWithTimeout, JSON_HEADERS } from '../../../shared/lib/http-core.js';
 import { TOTVS_BASE_URL, TOTVS_AUTH } from '../../../shared/config/environment.js';
 import { logger } from '../../../shared/lib/logger.js';
 

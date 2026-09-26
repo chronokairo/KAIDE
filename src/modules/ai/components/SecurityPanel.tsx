@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useApplyProcessHardening, useHardeningStatus, useShellCommandSafety, useSecretsManager, useIsTauri } from '@/modules/dev/hooks/useHarness';
 import type { SecretEntry } from '@/modules/dev/harness-client';
-import { validateCommand } from '@/modules/governance';
+import { validateCommand } from '@/modules/governance/command-validator';
 
 const DEMO_SECRETS: SecretEntry[] = [
   { name: 'OPENAI_API_KEY', scope: 'global', created_at: new Date().toISOString() },
