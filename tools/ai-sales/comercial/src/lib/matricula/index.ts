@@ -1,0 +1,37 @@
+export {
+  EMPTY_MATRICULA_DRAFT,
+  MATRICULA_DISCOVERY_FIELDS,
+  MATRICULA_IDENTITY_FIELDS,
+  MATRICULA_OFFER_FIELDS,
+  MATRICULA_REVIEW_FIELDS,
+  type MatriculaCursoNivel,
+  type MatriculaDraft,
+  type MatriculaDraftAnalysis,
+  type MatriculaDraftField,
+  type MatriculaModalidade,
+  type MatriculaRequiredDocument,
+  type MatriculaTipoIngresso,
+  type MatriculaTurno,
+} from './types';
+export {
+  analyzeMatriculaText,
+  buildMatriculaAssistantReply,
+  extractMatriculaDraftFromText,
+  isMatriculaIntent,
+} from './extract';
+export {
+  analyzeMatriculaDraft,
+  cleanCPF,
+  cleanPhone,
+  getRequiredDocuments,
+  inferCursoNivel,
+  normalizeMatriculaDraft,
+  normalizeModalidade,
+  normalizeSemestreLetivo,
+  normalizeTipoIngresso,
+  normalizeTurno,
+  validateBirthDate,
+  validateCPF,
+  validateEmail,
+  validatePhone,
+} from './validation';

@@ -1,0 +1,28 @@
+{
+  "name": "browser-mcp-lite",
+  "version": "1.0.3",
+  "description": "Minimal, auth-secured MCP server for real browser access",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "browser-mcp-lite": "index.js"
+  },
+  "files": [
+    "index.js",
+    "token.js",
+    "setup.js",
+    "tools.js",
+    "bridge.js"
+  ],
+  "scripts": {
+    "start": "node index.js",
+    "setup": "node setup.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fastify": "^5.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "zod": "^3.25.0"
+  },
+  "license": "MIT"
+}

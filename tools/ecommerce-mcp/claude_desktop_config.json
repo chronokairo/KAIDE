@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "saas-distribuidora": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\Jordan\\Documents\\GitHub\\saas_distribuidora\\mcp\\server.js"
+      ],
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}

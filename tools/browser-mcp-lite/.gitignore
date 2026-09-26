@@ -1,0 +1,20 @@
+node_modules/
+.DS_Store
+.env
+*.log
+
+# Secrets (never commit)
+.browser-mcp-secrets.json
+.mcp.json
+
+# Downloaded files
+downloads/
+
+# Spectra
+openspec/
+
+# Spectra / Claude Code (local dev config, not part of the project)
+.spectra/
+openspec/
+.claude/
+CLAUDE.md

@@ -23,6 +23,8 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0017](./adr/0017-absorcao-anamnesic-context-memory-mcp.md) | Absorção do Anamnesic Context (Memória de Agentes, Context Engine e MCP Server) | 2026-09-25 | Aceito |
 | [ADR-0018](./adr/0018-absorcao-agent-dashboard-governance.md) | Absorção do Agent Control Center / Dashboard (Governância & Runtime) | 2026-09-25 | Aceito |
 | [ADR-0019](./adr/0019-absorcao-cki-lite-terminal-agent-e-winforms.md) | Absorção do CKI-Lite (Terminal Agent NVIDIA NIM Python & Client WinForms) | 2026-09-25 | Aceito |
+| [ADR-0020](./adr/0020-remocao-por-traineddata-vestigial.md) | Remoção do `por.traineddata` vestigial e saneamento do módulo OCR | 2026-09-25 | Aceito |
+| [ADR-0021](./adr/0021-absorcao-ia-projetos-crm-e-satelites.md) | Absorção e Centralização das Capacidades de IA Satélites no `ai` | 2026-09-26 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.
