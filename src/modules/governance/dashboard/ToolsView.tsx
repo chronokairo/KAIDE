@@ -15,7 +15,7 @@ import {
   ExternalLink,
   ChevronDown
 } from 'lucide-react';
-import { ToolDefinition, RiskLevel } from '../types';
+import { ToolDefinition, RiskLevel } from './types';
 
 interface ToolsViewProps {
   tools: ToolDefinition[];
@@ -49,6 +49,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({
       case 'L2': return { label: 'L2 - External Mutation', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' };
       case 'L3': return { label: 'L3 - Privileged', color: 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
       case 'L4': return { label: 'L4 - Destructive', color: 'bg-purple-500/10 text-purple-400 border-purple-500/30' };
+      default: return { label: risk, color: 'bg-zinc-800 text-zinc-400 border-zinc-700' };
     }
   };
 

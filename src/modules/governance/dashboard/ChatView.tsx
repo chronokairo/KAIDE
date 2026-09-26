@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Minimize2
 } from 'lucide-react';
-import { Session, Agent, ChatMessage, ToolCall } from '../types';
+import { Session, Agent, ChatMessage, ToolCall } from './types';
 
 interface ChatViewProps {
   session: Session;

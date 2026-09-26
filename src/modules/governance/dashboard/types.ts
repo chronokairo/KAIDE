@@ -128,6 +128,7 @@ export interface ToolDefinition {
     required: boolean;
     description: string;
   }[];
+  riskLevel: string;
 }
 
 export interface PolicyRule {
@@ -212,6 +213,10 @@ export interface Agent {
   assignedTools: string[];
   permissions: string[];
   isolationBackend: 'local_sandbox' | 'docker_isolated' | 'host_restricted';
+  model: string;
+  permissionMode: string;
+  tools: string[];
+  temperature: number;
 }
 
 export interface Session {
@@ -222,6 +227,9 @@ export interface Session {
   createdAt: string;
   activeRunId?: string;
   runs: AgentRun[];
+  messages: ChatMessage[];
+  tokenUsage: number;
+  maxTokens: number;
 }
 
 export interface ControlPlaneHealth {
@@ -234,4 +242,82 @@ export interface ControlPlaneHealth {
   memoryUsageMb: number;
   uptimeSeconds: number;
   invariantStatus: 'ALL_PASS' | 'VIOLATION_DETECTED';
+}
+
+// ─── Multi-Channel Gateway & Device Pairing (ChannelsView) ──────────────────
+
+export interface Channel {
+  id: string;
+  name: string;
+  type: string;
+  status: 'connected' | 'disconnected' | 'error';
+  targetAgent: string;
+  messagesHandled: number;
+  lastActive: string;
+}
+
+export interface DevicePairing {
+  requestId: string;
+  deviceName: string;
+  clientIp: string;
+  requestedRole: string;
+  requestedScopes: string[];
+  status: 'pending' | 'approved' | 'denied';
+}
+
+// ─── Operator Chat (ChatView) ────────────────────────────────────────────────
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  durationMs?: number;
+  result?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'agent';
+  agentName?: string;
+  content: string;
+  timestamp: string;
+  tokenCount?: { total: number };
+  toolCalls?: ToolCall[];
+}
+
+// ─── Autonomous Cron Jobs (CronView) ─────────────────────────────────────────
+
+export interface CronJob {
+  id: string;
+  name: string;
+  schedule: string;
+  agentId: string;
+  prompt: string;
+  deliveryMode: 'announce' | 'webhook' | 'none';
+  enabled: boolean;
+  nextRun: string;
+  runCount: number;
+}
+
+// ─── Gateway Log Stream (LogsView) ───────────────────────────────────────────
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+  source: string;
+  message: string;
+}
+
+// ─── Memory Engine & Dream Diary (MemoryView) ────────────────────────────────
+
+export interface DreamEntry {
+  id: string;
+  title: string;
+  summary: string;
+  insights: string[];
+  distilledKnowledge: string[];
+  prunedSessionsCount: number;
+  timestamp: string;
 }

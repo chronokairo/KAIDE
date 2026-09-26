@@ -9,7 +9,7 @@ import {
   Filter,
   CheckCircle2
 } from 'lucide-react';
-import { LogEntry } from '../types';
+import { LogEntry } from './types';
 
 interface LogsViewProps {
   logs: LogEntry[];

@@ -13,7 +13,7 @@ import {
   Sparkles,
   Terminal
 } from 'lucide-react';
-import { Agent, ToolDefinition } from '../types';
+import { Agent, ToolDefinition } from './types';
 
 interface AgentsViewProps {
   agents: Agent[];

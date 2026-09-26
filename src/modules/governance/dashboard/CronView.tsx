@@ -11,7 +11,7 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react';
-import { CronJob, Agent } from '../types';
+import { CronJob, Agent } from './types';
 
 interface CronViewProps {
   cronJobs: CronJob[];

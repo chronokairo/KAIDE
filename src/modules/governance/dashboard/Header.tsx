@@ -8,7 +8,7 @@ import {
   ExternalLink,
   Terminal
 } from 'lucide-react';
-import { ControlPlaneHealth } from '../types';
+import { ControlPlaneHealth } from './types';
 
 interface HeaderProps {
   health: ControlPlaneHealth;

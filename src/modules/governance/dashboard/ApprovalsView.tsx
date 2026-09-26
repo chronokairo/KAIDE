@@ -9,7 +9,7 @@ import {
   ExternalLink,
   AlertTriangle
 } from 'lucide-react';
-import { ApprovalRequest } from '../types';
+import { ApprovalRequest } from './types';
 
 interface ApprovalsViewProps {
   approvals: ApprovalRequest[];

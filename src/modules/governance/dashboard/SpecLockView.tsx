@@ -13,7 +13,7 @@ import {
   RotateCcw,
   Sparkles
 } from 'lucide-react';
-import { SpecLock, MutationTransaction } from '../types';
+import { SpecLock, MutationTransaction } from './types';
 
 interface SpecLockViewProps {
   specLocks: SpecLock[];
