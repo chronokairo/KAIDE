@@ -23,9 +23,13 @@ Registrar e priorizar os débitos técnicos:
    API routes (`src/app/api/*`, 47 rotas) com adaptadores `_lib` (rag, http,
    rate-limit, auth, sse, totvs-proxy); Express fora do import graph das rotas
    (clients SOAP/REST usam `http-core`).
-3. **UI**: shell/navegação e tokens herdados migrar para
-   `@chronokairo/platform/ui`; não duplicar componentes locais (porta visual +
-   promoção ao platform quando genérico).
+3. **UI**: 🟡 parcial em 2026-09-26 — `RagApp` (`/rag`) migrado para
+   `@chronokairo/platform/ui` (`ThemeProvider`, `ThemeToggle`, `Button`) com
+   tokens ChronoKairo themáveis (dark/light) em `globals.css` e `RagApp.css`
+   (cores hardcoded → vars semânticas); branding Athena removido. Pendente:
+   shell/navegação do app e demais telas; componentes ausentes no barrel do
+   platform (Input, Card, Dialog, EmptyState, StatusBadge, ProgressBar) seguem
+   como porta visual local até serem promovidos ao pacote.
 4. **Wiring Tauri**: `src-tauri/shell` conectar comandos ao núcleo `ckc`
    (zero-lib), incremental.
 5. **Rotas de IA recém-recebidas** (`src/app/api/ai/*`, credenciais NVIDIA):

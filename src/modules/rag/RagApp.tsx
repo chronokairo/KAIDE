@@ -51,6 +51,7 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { ThemeProvider, ThemeToggle, Button } from '@chronokairo/platform/ui';
 
 // Register Chart.js components
 ChartJS.register(
@@ -117,6 +118,12 @@ interface SystemInfo {
 
 // Utility functions
 const generateId = () => Math.random().toString(36).substring(2, 15);
+
+// Resolve a design token CSS variable at render time (theme-aware)
+const cssVar = (name: string) =>
+    typeof window !== 'undefined'
+        ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888888'
+        : '#888888';
 
 const formatTime = (date: Date) => {
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -270,13 +277,13 @@ function CopyButton({ text }: { text: string }) {
     return (
         <button
             onClick={handleCopy}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors"
             title="Copiar"
         >
             {copied ? (
                 <Check className="w-4 h-4 text-green-400" />
             ) : (
-                <Copy className="w-4 h-4 text-gray-400" />
+                <Copy className="w-4 h-4 text-on-surface-variant" />
             )}
         </button>
     );
@@ -293,9 +300,9 @@ function SourceBadge({ source }: { source: Source }) {
         <div className="inline-block">
             <button
                 onClick={() => setExpanded(!expanded)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 
-                           hover:from-indigo-500/30 hover:to-purple-500/30 border border-indigo-500/30 rounded-full 
-                           text-xs font-medium text-indigo-300 transition-all"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high 
+                           hover:bg-surface-container-highest border border-outline rounded-full 
+                           text-xs font-medium text-on-surface transition-all"
             >
                 <FileText className="w-3 h-3" />
                 <span className="max-w-[120px] truncate">{sourceName}</span>
@@ -307,7 +314,7 @@ function SourceBadge({ source }: { source: Source }) {
             </button>
 
             {expanded && sourceDetail && (
-                <div className="mt-2 p-3 bg-gray-800/80 border border-gray-700 rounded-lg text-xs text-gray-300 max-w-md">
+                <div className="mt-2 p-3 bg-surface-container/80 border border-outline rounded-lg text-xs text-on-surface-variant max-w-md">
                     <p className="line-clamp-4">{sourceDetail}</p>
                 </div>
             )}
@@ -325,14 +332,14 @@ function MessageBubble({ message }: { message: Message }) {
             <div
                 className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center
                            ${isUser
-                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600'
-                        : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                        ? 'bg-primary'
+                        : 'bg-surface-container-highest'
                     }`}
             >
                 {isUser ? (
-                    <User className="w-5 h-5 text-white" />
+                    <User className="w-5 h-5 text-on-primary" />
                 ) : (
-                    <Bot className="w-5 h-5 text-white" />
+                    <Bot className="w-5 h-5 text-on-surface" />
                 )}
             </div>
 
@@ -340,16 +347,16 @@ function MessageBubble({ message }: { message: Message }) {
             <div className={`flex-1 max-w-[80%] ${isUser ? 'flex flex-col items-end' : ''}`}>
                 <div
                     className={`relative px-4 py-3 rounded-2xl ${isUser
-                        ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-md'
-                        : 'bg-gray-800/80 backdrop-blur border border-gray-700/50 text-gray-100 rounded-tl-md'
+                        ? 'bg-primary text-on-primary rounded-tr-md'
+                        : 'bg-surface-container/80 backdrop-blur border border-outline/50 text-on-surface rounded-tl-md'
                         }`}
                 >
                     {/* Streaming indicator */}
                     {message.isStreaming && (
                         <div className="absolute -top-2 -right-2">
                             <span className="flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                             </span>
                         </div>
                     )}
@@ -374,7 +381,7 @@ function MessageBubble({ message }: { message: Message }) {
                             <SourceBadge key={i} source={source} />
                         ))}
                         {message.sources.length > 4 && (
-                            <span className="text-xs text-gray-500 self-center">
+                            <span className="text-xs text-on-surface-variant self-center">
                                 +{message.sources.length - 4} mais
                             </span>
                         )}
@@ -385,8 +392,8 @@ function MessageBubble({ message }: { message: Message }) {
                 {isAssistant && message.charts && message.charts.length > 0 && (
                     <div className="mt-4 space-y-4">
                         {message.charts.map((chart, i) => (
-                            <div key={i} className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
-                                <h4 className="font-medium text-white mb-4">{chart.title}</h4>
+                            <div key={i} data-chart-container className="p-4 bg-surface-container/50 border border-outline rounded-xl">
+                                <h4 className="font-medium text-on-surface mb-4">{chart.title}</h4>
                                 <div className="h-64">
                                     {chart.type === 'bar' && (
                                         <Bar
@@ -411,18 +418,18 @@ function MessageBubble({ message }: { message: Message }) {
                                                     y: {
                                                         beginAtZero: true,
                                                         ticks: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         },
                                                         grid: {
-                                                            color: '#374151'
+                                                            color: cssVar('--outline')
                                                         }
                                                     },
                                                     x: {
                                                         ticks: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         },
                                                         grid: {
-                                                            color: '#374151'
+                                                            color: cssVar('--outline')
                                                         }
                                                     }
                                                 }
@@ -447,7 +454,7 @@ function MessageBubble({ message }: { message: Message }) {
                                                     legend: {
                                                         position: 'bottom' as const,
                                                         labels: {
-                                                            color: '#9CA3AF',
+                                                            color: cssVar('--on-surface-variant'),
                                                             boxWidth: 12,
                                                             padding: 10
                                                         }
@@ -457,18 +464,18 @@ function MessageBubble({ message }: { message: Message }) {
                                                     y: {
                                                         beginAtZero: true,
                                                         ticks: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         },
                                                         grid: {
-                                                            color: '#374151'
+                                                            color: cssVar('--outline')
                                                         }
                                                     },
                                                     x: {
                                                         ticks: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         },
                                                         grid: {
-                                                            color: '#374151'
+                                                            color: cssVar('--outline')
                                                         }
                                                     }
                                                 }
@@ -499,7 +506,7 @@ function MessageBubble({ message }: { message: Message }) {
                                                     legend: {
                                                         position: 'bottom' as const,
                                                         labels: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         }
                                                     }
                                                 }
@@ -530,7 +537,7 @@ function MessageBubble({ message }: { message: Message }) {
                                                     legend: {
                                                         position: 'bottom' as const,
                                                         labels: {
-                                                            color: '#9CA3AF'
+                                                            color: cssVar('--on-surface-variant')
                                                         }
                                                     }
                                                 }
@@ -544,7 +551,7 @@ function MessageBubble({ message }: { message: Message }) {
                 )}
 
                 {/* Timestamp */}
-                <div className={`mt-1.5 text-[10px] text-gray-500 ${isUser ? 'text-right' : ''}`}>
+                <div className={`mt-1.5 text-[10px] text-on-surface-variant ${isUser ? 'text-right' : ''}`}>
                     {formatTime(message.timestamp)}
                 </div>
             </div>
@@ -580,18 +587,18 @@ function WelcomeScreen({ onSuggestionClick }: { onSuggestionClick: (text: string
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             {/* Logo */}
             <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-indigo-500/25">
-                    <Sparkles className="w-10 h-10 text-white" />
+                <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center shadow-2xl">
+                    <Sparkles className="w-10 h-10 text-on-primary" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-gray-900 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-background flex items-center justify-center">
+                    <Check className="w-3 h-3 text-on-surface" />
                 </div>
             </div>
 
-            <h1 className="text-2xl font-bold text-white mb-2">
-                Assistente Acadêmico RAG
+            <h1 className="text-2xl font-bold text-on-surface mb-2">
+                ChronoKairo AI
             </h1>
-            <p className="text-gray-400 mb-8 max-w-md">
+            <p className="text-on-surface-variant mb-8 max-w-md">
                 Consultas inteligentes sobre matrículas, cursos, atendentes e estatísticas acadêmicas.
                 Dados em tempo real das APIs institucionais com análise avançada.
             </p>
@@ -602,15 +609,15 @@ function WelcomeScreen({ onSuggestionClick }: { onSuggestionClick: (text: string
                     <button
                         key={i}
                         onClick={() => onSuggestionClick(suggestion.text)}
-                        className="flex items-center gap-3 p-4 bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 
-                                   hover:border-indigo-500/50 rounded-xl text-left transition-all group"
+                        className="flex items-center gap-3 p-4 bg-surface-container/50 hover:bg-surface-container border border-outline/50 
+                                   hover:border-secondary rounded-xl text-left transition-all group"
                     >
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 
-                                      group-hover:from-indigo-500/30 group-hover:to-purple-500/30 
+                        <div className="w-8 h-8 rounded-lg bg-surface-container-high 
+                                      group-hover:bg-surface-container-highest 
                                       flex items-center justify-center">
-                            <suggestion.icon className="w-4 h-4 text-indigo-400" />
+                            <suggestion.icon className="w-4 h-4 text-on-surface" />
                         </div>
-                        <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                        <span className="text-sm text-on-surface group-hover:text-on-surface transition-colors">
                             {suggestion.text}
                         </span>
                     </button>
@@ -618,7 +625,7 @@ function WelcomeScreen({ onSuggestionClick }: { onSuggestionClick: (text: string
             </div>
 
             {/* Features */}
-            <div className="mt-12 flex flex-wrap justify-center gap-6 text-xs text-gray-500">
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-xs text-on-surface-variant">
                 <div className="flex items-center gap-1.5">
                     <Shield className="w-4 h-4" />
                     <span>100% Local & Seguro</span>
@@ -673,19 +680,18 @@ function ChatInput({
     }, [value]);
 
     return (
-        <div className="border-t border-gray-800 bg-gray-900/80 backdrop-blur-xl p-4">
+        <div className="border-t border-outline-variant bg-surface-container-low/80 backdrop-blur-xl p-4">
             <div className="max-w-4xl mx-auto">
                 <div className="relative flex items-end gap-2">
                     {/* Clear button */}
                     {hasMessages && (
-                        <button
+                        <Button
                             onClick={onClear}
-                            className="flex-shrink-0 p-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 
-                                       hover:text-white transition-colors"
+                            variant="ghost"
                             title="Limpar conversa"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
+                            aria-label="Limpar conversa"
+                            icon={<Trash2 className="w-5 h-5" />}
+                        />
                     )}
 
                     {/* Input container */}
@@ -698,38 +704,31 @@ function ChatInput({
                             placeholder="Pergunte algo sobre seus documentos..."
                             disabled={isLoading}
                             rows={1}
-                            className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-700 rounded-xl 
-                                       text-white placeholder-gray-500 resize-none focus:outline-none 
-                                       focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 
+                            className="w-full px-4 py-3 pr-12 bg-surface-container border border-outline rounded-xl 
+                                       text-on-surface placeholder:text-on-surface-variant resize-none focus:outline-none 
+                                       focus:ring-2 focus:ring-primary/50 focus:border-primary 
                                        disabled:opacity-50 transition-all"
                         />
 
                         {/* Character count */}
                         {value.length > 100 && (
-                            <span className="absolute right-14 bottom-3 text-xs text-gray-500">
+                            <span className="absolute right-14 bottom-3 text-xs text-on-surface-variant">
                                 {value.length}/2000
                             </span>
                         )}
                     </div>
 
                     {/* Submit button */}
-                    <button
+                    <Button
                         onClick={onSubmit}
                         disabled={isLoading || !value.trim()}
-                        className="flex-shrink-0 p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 
-                                   hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-700 disabled:to-gray-700 
-                                   disabled:cursor-not-allowed text-white shadow-lg shadow-indigo-500/25 
-                                   disabled:shadow-none transition-all"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Send className="w-5 h-5" />
-                        )}
-                    </button>
+                        title="Enviar"
+                        aria-label="Enviar mensagem"
+                        icon={isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                    />
                 </div>
 
-                <p className="mt-2 text-center text-xs text-gray-600">
+                <p className="mt-2 text-center text-xs text-on-surface-variant">
                     Pressione Enter para enviar • Shift+Enter para nova linha
                 </p>
             </div>
@@ -739,12 +738,12 @@ function ChatInput({
 
 function SystemInfoBar({ systemInfo }: { systemInfo: SystemInfo }) {
     return (
-        <div className="flex items-center gap-4 text-xs bg-gray-800/30 px-3 py-1 rounded-lg border border-gray-700/50">
+        <div className="flex items-center gap-4 text-xs bg-surface-container/30 px-3 py-1 rounded-lg border border-outline/50">
             {/* CPU */}
             <div className="flex items-center gap-1.5">
                 <Monitor className="w-3 h-3 text-blue-400" />
-                <span className="text-gray-300">CPU</span>
-                <span className={`font-medium ${systemInfo.cpu > 80 ? 'text-red-400' : systemInfo.cpu > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
+                <span className="text-on-surface">CPU</span>
+                <span className={`font-medium ${systemInfo.cpu > 80 ? 'text-error' : systemInfo.cpu > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
                     {systemInfo.cpu}%
                 </span>
             </div>
@@ -752,8 +751,8 @@ function SystemInfoBar({ systemInfo }: { systemInfo: SystemInfo }) {
             {/* GPU */}
             <div className="flex items-center gap-1.5">
                 <Monitor className="w-3 h-3 text-cyan-400" />
-                <span className="text-gray-300">GPU</span>
-                <span className={`font-medium ${systemInfo.gpu > 80 ? 'text-red-400' : systemInfo.gpu > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
+                <span className="text-on-surface">GPU</span>
+                <span className={`font-medium ${systemInfo.gpu > 80 ? 'text-error' : systemInfo.gpu > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
                     {systemInfo.gpu}%
                 </span>
             </div>
@@ -761,8 +760,8 @@ function SystemInfoBar({ systemInfo }: { systemInfo: SystemInfo }) {
             {/* Memory */}
             <div className="flex items-center gap-1.5">
                 <Zap className="w-3 h-3 text-purple-400" />
-                <span className="text-gray-300">RAM</span>
-                <span className={`font-medium ${systemInfo.memory > 80 ? 'text-red-400' : systemInfo.memory > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
+                <span className="text-on-surface">RAM</span>
+                <span className={`font-medium ${systemInfo.memory > 80 ? 'text-error' : systemInfo.memory > 60 ? 'text-yellow-400' : 'text-green-400'}`}>
                     {systemInfo.memory}%
                 </span>
             </div>
@@ -770,8 +769,8 @@ function SystemInfoBar({ systemInfo }: { systemInfo: SystemInfo }) {
             {/* Disk */}
             <div className="flex items-center gap-1.5">
                 <HardDrive className="w-3 h-3 text-orange-400" />
-                <span className="text-gray-300">Disco</span>
-                <span className={`font-medium ${systemInfo.disk > 90 ? 'text-red-400' : systemInfo.disk > 75 ? 'text-yellow-400' : 'text-green-400'}`}>
+                <span className="text-on-surface">Disco</span>
+                <span className={`font-medium ${systemInfo.disk > 90 ? 'text-error' : systemInfo.disk > 75 ? 'text-yellow-400' : 'text-green-400'}`}>
                     {systemInfo.disk}%
                 </span>
             </div>
@@ -779,8 +778,8 @@ function SystemInfoBar({ systemInfo }: { systemInfo: SystemInfo }) {
             {/* Network */}
             <div className="flex items-center gap-1.5">
                 <Wifi className="w-3 h-3 text-green-400" />
-                <span className="text-gray-300">Rede</span>
-                <span className={`font-medium ${systemInfo.network === 'online' ? 'text-green-400' : 'text-red-400'}`}>
+                <span className="text-on-surface">Rede</span>
+                <span className={`font-medium ${systemInfo.network === 'online' ? 'text-green-400' : 'text-error'}`}>
                     {systemInfo.network === 'online' ? 'Online' : 'Offline'}
                 </span>
             </div>
@@ -797,18 +796,18 @@ function StatusBar({ status }: { status: ChatStatus | null }) {
                     className={`w-2 h-2 rounded-full ${status?.status === 'online'
                         ? 'bg-green-500 shadow-lg shadow-green-500/50'
                         : status?.status === 'error'
-                            ? 'bg-red-500'
-                            : 'bg-gray-500'
+                            ? 'bg-error'
+                            : 'bg-surface-container-highest'
                         }`}
                 />
-                <span className="text-gray-400">
+                <span className="text-on-surface-variant">
                     {status?.status === 'online' ? 'Online' : status?.status === 'error' ? 'Erro' : 'Offline'}
                 </span>
             </div>
 
             {/* Documents count */}
             {status?.indexed_documents !== undefined && (
-                <div className="flex items-center gap-1.5 text-gray-500">
+                <div className="flex items-center gap-1.5 text-on-surface-variant">
                     <Database className="w-3.5 h-3.5" />
                     <span>{status.indexed_documents} docs</span>
                 </div>
@@ -816,7 +815,7 @@ function StatusBar({ status }: { status: ChatStatus | null }) {
 
             {/* Model info */}
             {status?.models?.llm && (
-                <div className="hidden sm:flex items-center gap-1.5 text-gray-500">
+                <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant">
                     <Bot className="w-3.5 h-3.5" />
                     <span>{status.models.llm}</span>
                 </div>
@@ -858,26 +857,26 @@ function Sidebar({
 
             {/* Sidebar */}
             <aside
-                className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800 
+                className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-surface-container-low border-r border-outline-variant 
                            transform transition-transform duration-300 lg:transform-none
                            ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
                 <div className="flex flex-col h-full">
                     {/* Header */}
-                    <div className="p-4 border-b border-gray-800">
+                    <div className="p-4 border-b border-outline-variant">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-on-primary" />
                                 </div>
                                 <div>
-                                    <h1 className="font-bold text-white">Athena</h1>
-                                    <p className="text-xs text-gray-500">Deusa da Sabedoria</p>
+                                    <h1 className="font-bold text-on-surface">ChronoKairo AI</h1>
+                                    <p className="text-xs text-on-surface-variant">Assistente de IA</p>
                                 </div>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="lg:hidden p-2 hover:bg-gray-800 rounded-lg"
+                                className="lg:hidden p-2 hover:bg-surface-container rounded-lg"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -888,13 +887,13 @@ function Sidebar({
                     <nav className="flex-1 p-3">
                         <div className="space-y-2">
                             {conversations.map((conv, index) => (
-                                <div key={conv.id} className={`p-3 rounded-lg cursor-pointer transition-colors ${index === activeConversationIndex ? 'bg-indigo-600' : 'hover:bg-gray-800'}`} onClick={() => { onConversationSelect(index); onClose(); }}>
+                                <div key={conv.id} className={`p-3 rounded-lg cursor-pointer transition-colors ${index === activeConversationIndex ? 'bg-primary text-on-primary' : 'hover:bg-surface-container text-on-surface'}`} onClick={() => { onConversationSelect(index); onClose(); }}>
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium text-white truncate">{conv.title}</h3>
-                                            <p className="text-xs text-gray-400">{conv.createdAt.toLocaleDateString()} • {conv.messages.length} mensagens</p>
+                                            <h3 className="font-medium text-on-surface truncate">{conv.title}</h3>
+                                            <p className="text-xs text-on-surface-variant">{conv.createdAt.toLocaleDateString()} • {conv.messages.length} mensagens</p>
                                         </div>
-                                        <button onClick={(e) => { e.stopPropagation(); onDeleteConversation(index); }} className="p-1 hover:bg-red-600 rounded">
+                                        <button onClick={(e) => { e.stopPropagation(); onDeleteConversation(index); }} className="p-1 hover:bg-error rounded">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -904,8 +903,8 @@ function Sidebar({
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-gray-800">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="p-4 border-t border-outline-variant">
+                        <div className="flex items-center justify-between text-xs text-on-surface-variant">
                             <span>v1.0.0</span>
                             <div className="flex items-center gap-1">
                                 <Shield className="w-3.5 h-3.5" />
@@ -952,11 +951,11 @@ function SearchTab() {
         <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-4">
-                        <Search className="w-8 h-8 text-white" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
+                        <Search className="w-8 h-8 text-on-primary" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Busca Semântica</h2>
-                    <p className="text-gray-400">
+                    <h2 className="text-2xl font-bold text-on-surface mb-2">Busca Semântica</h2>
+                    <p className="text-on-surface-variant">
                         Encontre documentos relevantes usando busca por similaridade
                     </p>
                 </div>
@@ -968,15 +967,15 @@ function SearchTab() {
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Digite termos de busca..."
-                            className="w-full px-5 py-4 pr-14 bg-gray-800 border border-gray-700 rounded-xl 
-                                       text-white placeholder-gray-500 focus:outline-none focus:ring-2 
-                                       focus:ring-amber-500/50 focus:border-amber-500"
+                            className="w-full px-5 py-4 pr-14 bg-surface-container border border-outline rounded-xl 
+                                       text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 
+                                       focus:ring-primary/50 focus:border-primary"
                         />
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-amber-600 
-                                       hover:bg-amber-500 rounded-lg transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-primary text-on-primary 
+                                       hover:opacity-90 rounded-lg transition-colors"
                         >
                             {isLoading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -989,9 +988,9 @@ function SearchTab() {
 
                 {/* Error Display */}
                 {error && (
-                    <div className="p-4 bg-red-900/20 border border-red-700 rounded-xl">
+                    <div className="p-4 bg-error/10 border border-error/50 rounded-xl">
                         <div className="flex items-center justify-between">
-                            <p className="text-red-400">{error}</p>
+                            <p className="text-error">{error}</p>
                             <CopyButton text={error} />
                         </div>
                     </div>
@@ -1002,25 +1001,25 @@ function SearchTab() {
                     {results.map((result, i) => (
                         <div
                             key={i}
-                            className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-amber-500/50 transition-colors"
+                            className="p-4 bg-surface-container/50 border border-outline rounded-xl hover:border-secondary transition-colors"
                         >
                             <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold text-white">{result.title || result.file}</h3>
+                                <h3 className="font-semibold text-on-surface">{result.title || result.file}</h3>
                                 {result.relevance && (
                                     <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
                                         {Math.round(result.relevance * 100)}% match
                                     </span>
                                 )}
                             </div>
-                            <p className="text-sm text-gray-500 mb-2">{result.file}</p>
+                            <p className="text-sm text-on-surface-variant mb-2">{result.file}</p>
                             {result.content && (
-                                <p className="text-sm text-gray-300 line-clamp-3">{result.content}</p>
+                                <p className="text-sm text-on-surface line-clamp-3">{result.content}</p>
                             )}
                         </div>
                     ))}
 
                     {results.length === 0 && query && !isLoading && (
-                        <div className="text-center py-12 text-gray-500">
+                        <div className="text-center py-12 text-on-surface-variant">
                             <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
                             <p>Nenhum resultado encontrado</p>
                         </div>
@@ -1115,35 +1114,34 @@ function SettingsTab() {
         <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-600 to-gray-700 mb-4">
-                        <Settings className="w-8 h-8 text-white" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-container-highest mb-4">
+                        <Settings className="w-8 h-8 text-on-surface" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Configurações</h2>
-                    <p className="text-gray-400">Gerencie o índice e configure o sistema</p>
+                    <h2 className="text-2xl font-bold text-on-surface mb-2">Configurações</h2>
+                    <p className="text-on-surface-variant">Gerencie o índice e configure o sistema</p>
                 </div>
 
                 {/* System Monitoring */}
                 {stats?.system && (
                     <div className="mb-8">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
                                 <Zap className="w-5 h-5 text-yellow-400" />
                                 Monitoramento do Sistema
                             </h3>
-                            <button
+                            <Button
                                 onClick={fetchStats}
-                                className="p-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg 
-                                           text-gray-400 hover:text-white transition-colors"
+                                variant="ghost"
+                                size="sm"
                                 title="Atualizar dados do sistema"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                            </button>
+                                icon={<RefreshCw className="w-4 h-4" />}
+                            />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* CPU */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-medium text-white flex items-center gap-2">
+                                    <h4 className="font-medium text-on-surface flex items-center gap-2">
                                         <Zap className="w-4 h-4 text-blue-400" />
                                         CPU
                                     </h4>
@@ -1151,29 +1149,29 @@ function SettingsTab() {
                                         <div className="text-lg font-bold text-blue-400">
                                             {stats.system.cpu?.usagePercent || 0}%
                                         </div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-on-surface-variant">
                                             {stats.system.cpu?.cores || 0} cores
                                         </div>
                                     </div>
                                 </div>
-                                <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div className="w-full bg-surface-container-highest rounded-full h-2 mb-2">
                                     <div
                                         className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
                                         style={{ width: `${Math.min(stats.system.cpu?.usagePercent || 0, 100)}%` }}
                                     />
                                 </div>
-                                <div className="text-xs text-gray-400 truncate">
+                                <div className="text-xs text-on-surface-variant truncate">
                                     {stats.system.cpu?.model || 'Unknown CPU'}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-on-surface-variant mt-1">
                                     {(stats.system.cpu?.speed || 0).toFixed(1)} GHz
                                 </div>
                             </div>
 
                             {/* Memory */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-medium text-white flex items-center gap-2">
+                                    <h4 className="font-medium text-on-surface flex items-center gap-2">
                                         <Database className="w-4 h-4 text-green-400" />
                                         Memória RAM
                                     </h4>
@@ -1181,29 +1179,29 @@ function SettingsTab() {
                                         <div className="text-lg font-bold text-green-400">
                                             {stats.system.memory?.usagePercent || 0}%
                                         </div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-on-surface-variant">
                                             {(stats.system.memory?.used / 1024 / 1024 / 1024)?.toFixed(1) || 0}GB usado
                                         </div>
                                     </div>
                                 </div>
-                                <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div className="w-full bg-surface-container-highest rounded-full h-2 mb-2">
                                     <div
                                         className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
                                         style={{ width: `${Math.min(stats.system.memory?.usagePercent || 0, 100)}%` }}
                                     />
                                 </div>
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-on-surface-variant">
                                     Total: {(stats.system.memory?.total / 1024 / 1024 / 1024)?.toFixed(1) || 0}GB
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-on-surface-variant mt-1">
                                     Livre: {(stats.system.memory?.free / 1024 / 1024 / 1024)?.toFixed(1) || 0}GB
                                 </div>
                             </div>
 
                             {/* Disk */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-medium text-white flex items-center gap-2">
+                                    <h4 className="font-medium text-on-surface flex items-center gap-2">
                                         <HardDrive className="w-4 h-4 text-orange-400" />
                                         Disco
                                     </h4>
@@ -1213,39 +1211,39 @@ function SettingsTab() {
                                                 <div className="text-lg font-bold text-orange-400">
                                                     {Math.round((stats.system.disk[0].used / stats.system.disk[0].size) * 100) || 0}%
                                                 </div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-on-surface-variant">
                                                     {(stats.system.disk[0].used / 1024 / 1024 / 1024)?.toFixed(1) || 0}GB usado
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="text-lg font-bold text-gray-500">N/A</div>
+                                            <div className="text-lg font-bold text-on-surface-variant">N/A</div>
                                         )}
                                     </div>
                                 </div>
                                 {stats.system.disk && stats.system.disk.length > 0 ? (
                                     <>
-                                        <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                        <div className="w-full bg-surface-container-highest rounded-full h-2 mb-2">
                                             <div
                                                 className="bg-gradient-to-r from-orange-500 to-orange-600 h-2 rounded-full transition-all duration-300"
                                                 style={{ width: `${Math.min((stats.system.disk[0].used / stats.system.disk[0].size) * 100, 100)}%` }}
                                             />
                                         </div>
-                                        <div className="text-xs text-gray-400 truncate">
+                                        <div className="text-xs text-on-surface-variant truncate">
                                             {stats.system.disk[0].mount || 'C:'}
                                         </div>
-                                        <div className="text-xs text-gray-500 mt-1">
+                                        <div className="text-xs text-on-surface-variant mt-1">
                                             Total: {(stats.system.disk[0].size / 1024 / 1024 / 1024)?.toFixed(1) || 0}GB
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="text-xs text-gray-500">Disco não detectado</div>
+                                    <div className="text-xs text-on-surface-variant">Disco não detectado</div>
                                 )}
                             </div>
 
                             {/* Network/Wi-Fi */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-medium text-white flex items-center gap-2">
+                                    <h4 className="font-medium text-on-surface flex items-center gap-2">
                                         <Wifi className="w-4 h-4 text-cyan-400" />
                                         Rede
                                     </h4>
@@ -1255,23 +1253,23 @@ function SettingsTab() {
                                                 <div className="text-lg font-bold text-cyan-400">
                                                     {stats.system.network[0].speed || 0} Mbps
                                                 </div>
-                                                <div className="text-xs text-gray-500">
+                                                <div className="text-xs text-on-surface-variant">
                                                     {stats.system.network[0].state || 'Desconhecido'}
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="text-lg font-bold text-gray-500">N/A</div>
+                                            <div className="text-lg font-bold text-on-surface-variant">N/A</div>
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-xs text-gray-400 truncate">
+                                <div className="text-xs text-on-surface-variant truncate">
                                     {stats.system.network?.[0]?.iface || 'Interface não detectada'}
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-on-surface-variant mt-1">
                                     Tipo: {stats.system.network?.[0]?.type || 'Desconhecido'}
                                 </div>
                                 {stats.system.network?.[0]?.ip4 && (
-                                    <div className="text-xs text-gray-500 mt-1 truncate">
+                                    <div className="text-xs text-on-surface-variant mt-1 truncate">
                                         IP: {stats.system.network[0].ip4}
                                     </div>
                                 )}
@@ -1281,34 +1279,34 @@ function SettingsTab() {
                         {/* GPU Section */}
                         {stats.system.gpu && stats.system.gpu.length > 0 && (
                             <div className="mt-6">
-                                <h4 className="font-medium text-white mb-4 flex items-center gap-2">
+                                <h4 className="font-medium text-on-surface mb-4 flex items-center gap-2">
                                     <Monitor className="w-5 h-5 text-purple-400" />
                                     GPUs Detectadas ({stats.system.gpu.length})
                                 </h4>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     {stats.system.gpu.map((gpu: any, index: number) => (
-                                        <div key={index} className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
+                                        <div key={index} className="p-4 bg-surface-container/50 border border-outline rounded-xl">
                                             <div className="flex items-center justify-between mb-3">
-                                                <h5 className="font-medium text-white">GPU {index}</h5>
+                                                <h5 className="font-medium text-on-surface">GPU {index}</h5>
                                                 <div className="text-right">
                                                     <div className="text-lg font-bold text-purple-400">
                                                         {gpu.utilization || 0}%
                                                     </div>
-                                                    <div className="text-xs text-gray-500">
+                                                    <div className="text-xs text-on-surface-variant">
                                                         {gpu.temperature ? `${gpu.temperature}°C` : 'N/A'}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                            <div className="w-full bg-surface-container-highest rounded-full h-2 mb-2">
                                                 <div
                                                     className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-300"
                                                     style={{ width: `${Math.min(gpu.utilization || 0, 100)}%` }}
                                                 />
                                             </div>
-                                            <div className="text-xs text-gray-400 truncate">
+                                            <div className="text-xs text-on-surface-variant truncate">
                                                 {gpu.vendor} {gpu.model}
                                             </div>
-                                            <div className="text-xs text-gray-500 mt-1">
+                                            <div className="text-xs text-on-surface-variant mt-1">
                                                 Memória: {gpu.memoryUsed ? `${gpu.memoryUsed}MB` : 'N/A'} / {gpu.memoryTotal ? `${gpu.memoryTotal}MB` : 'N/A'}
                                             </div>
                                         </div>
@@ -1320,8 +1318,8 @@ function SettingsTab() {
                         {/* System Charts */}
                         <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* CPU/Memory Usage Chart */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
-                                <h4 className="font-medium text-white mb-4">Uso de Recursos do Sistema</h4>
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
+                                <h4 className="font-medium text-on-surface mb-4">Uso de Recursos do Sistema</h4>
                                 <div className="h-64">
                                     <Bar
                                         data={{
@@ -1359,18 +1357,18 @@ function SettingsTab() {
                                                     beginAtZero: true,
                                                     max: 100,
                                                     ticks: {
-                                                        color: '#9CA3AF'
+                                                        color: cssVar('--on-surface-variant')
                                                     },
                                                     grid: {
-                                                        color: '#374151'
+                                                        color: cssVar('--outline')
                                                     }
                                                 },
                                                 x: {
                                                     ticks: {
-                                                        color: '#9CA3AF'
+                                                        color: cssVar('--on-surface-variant')
                                                     },
                                                     grid: {
-                                                        color: '#374151'
+                                                        color: cssVar('--outline')
                                                     }
                                                 }
                                             }
@@ -1380,8 +1378,8 @@ function SettingsTab() {
                             </div>
 
                             {/* System Usage History */}
-                            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
-                                <h4 className="font-medium text-white mb-4">Histórico de Uso (Últimas 10 Leituras)</h4>
+                            <div className="p-4 bg-surface-container/50 border border-outline rounded-xl">
+                                <h4 className="font-medium text-on-surface mb-4">Histórico de Uso (Últimas 10 Leituras)</h4>
                                 <div className="h-64">
                                     <Line
                                         data={{
@@ -1417,7 +1415,7 @@ function SettingsTab() {
                                                 legend: {
                                                     position: 'bottom' as const,
                                                     labels: {
-                                                        color: '#9CA3AF',
+                                                        color: cssVar('--on-surface-variant'),
                                                         boxWidth: 12,
                                                         padding: 10
                                                     }
@@ -1428,18 +1426,18 @@ function SettingsTab() {
                                                     beginAtZero: true,
                                                     max: 100,
                                                     ticks: {
-                                                        color: '#9CA3AF'
+                                                        color: cssVar('--on-surface-variant')
                                                     },
                                                     grid: {
-                                                        color: '#374151'
+                                                        color: cssVar('--outline')
                                                     }
                                                 },
                                                 x: {
                                                     ticks: {
-                                                        color: '#9CA3AF'
+                                                        color: cssVar('--on-surface-variant')
                                                     },
                                                     grid: {
-                                                        color: '#374151'
+                                                        color: cssVar('--outline')
                                                     }
                                                 }
                                             },
@@ -1454,8 +1452,8 @@ function SettingsTab() {
                         </div>
 
                         {/* Memory Distribution Chart */}
-                        <div className="mt-6 p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
-                            <h4 className="font-medium text-white mb-4">Distribuição de Memória</h4>
+                        <div className="mt-6 p-4 bg-surface-container/50 border border-outline rounded-xl">
+                            <h4 className="font-medium text-on-surface mb-4">Distribuição de Memória</h4>
                             <div className="h-64 flex items-center justify-center">
                                 <Doughnut
                                     data={{
@@ -1483,7 +1481,7 @@ function SettingsTab() {
                                             legend: {
                                                 position: 'bottom' as const,
                                                 labels: {
-                                                    color: '#9CA3AF'
+                                                    color: cssVar('--on-surface-variant')
                                                 }
                                             }
                                         }
@@ -1495,47 +1493,40 @@ function SettingsTab() {
                 )}
 
                 {/* Rebuild Index */}
-                <div className="p-6 bg-gray-800/50 border border-gray-700 rounded-xl mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Reconstruir Índice</h3>
-                    <p className="text-sm text-gray-400 mb-4">
+                <div className="p-6 bg-surface-container/50 border border-outline rounded-xl mb-6">
+                    <h3 className="text-lg font-semibold text-on-surface mb-4">Reconstruir Índice</h3>
+                    <p className="text-sm text-on-surface-variant mb-4">
                         Reindexe seus documentos quando adicionar ou modificar arquivos.
                     </p>
 
                     <div className="flex gap-3 mb-4">
-                        <button
+                        <Button
                             onClick={rebuildIndex}
                             disabled={isIndexing}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 
-                                       disabled:bg-gray-700 rounded-lg font-medium transition-colors"
+                            icon={isIndexing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         >
-                            {isIndexing ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <RefreshCw className="w-4 h-4" />
-                            )}
                             {isIndexing ? 'Indexando...' : 'Reconstruir'}
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onClick={fetchStats}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 
-                                       rounded-lg font-medium transition-colors"
+                            variant="secondary"
+                            icon={<Database className="w-4 h-4" />}
                         >
-                            <Database className="w-4 h-4" />
                             Atualizar Stats
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Progress */}
                     {isIndexing && (
                         <div className="mb-4">
                             <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-400">Progresso</span>
-                                <span className="text-white">{progress}%</span>
+                                <span className="text-on-surface-variant">Progresso</span>
+                                <span className="text-on-surface">{progress}%</span>
                             </div>
-                            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-2 bg-surface-container-highest rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-300"
+                                    className="h-full bg-primary transition-all duration-300"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
@@ -1544,9 +1535,9 @@ function SettingsTab() {
 
                     {/* Logs */}
                     {logs.length > 0 && (
-                        <div className="p-3 bg-gray-900 rounded-lg max-h-48 overflow-y-auto font-mono text-xs">
+                        <div className="p-3 bg-surface rounded-lg max-h-48 overflow-y-auto font-mono text-xs">
                             {logs.map((log, i) => (
-                                <div key={i} className="text-gray-400 py-0.5">
+                                <div key={i} className="text-on-surface-variant py-0.5">
                                     {log}
                                 </div>
                             ))}
@@ -1559,7 +1550,7 @@ function SettingsTab() {
 }
 
 // Main App
-export default function App() {
+function RagApp() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -1730,7 +1721,7 @@ export default function App() {
         // Header
         pdf.setFontSize(18);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Relatório do Chat - Athena', 20, yPosition);
+        pdf.text('Relatório do Chat - ChronoKairo AI', 20, yPosition);
         yPosition += 10;
 
         pdf.setFontSize(10);
@@ -1753,7 +1744,7 @@ export default function App() {
             // Message header (using text labels instead of emojis)
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
-            const role = message.role === 'user' ? 'Você:' : 'Athena:';
+            const role = message.role === 'user' ? 'Você:' : 'IA:';
             pdf.text(role, 20, yPosition);
             yPosition += 8;
 
@@ -1819,7 +1810,7 @@ export default function App() {
                 // Get all chart containers
                 const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
                 if (messageElement) {
-                    const chartContainers = messageElement.querySelectorAll('.p-4.bg-gray-800\\/50.border.border-gray-700.rounded-xl');
+                    const chartContainers = messageElement.querySelectorAll('[data-chart-container]');
                     
                     for (let chartIndex = 0; chartIndex < chartContainers.length && chartIndex < message.charts.length; chartIndex++) {
                         const chartContainer = chartContainers[chartIndex] as HTMLElement;
@@ -1834,7 +1825,7 @@ export default function App() {
                         try {
                             // Capture chart as image
                             const canvas = await html2canvas(chartContainer, {
-                                backgroundColor: '#1f2937',
+                                backgroundColor: cssVar('--surface-container'),
                                 scale: 2,
                                 logging: false
                             });
@@ -1910,10 +1901,10 @@ export default function App() {
             pdf.setFont('helvetica', 'italic');
             pdf.setTextColor(150, 150, 150);
             pdf.text(`Página ${i} de ${pageCount}`, 20, 285);
-            pdf.text('Gerado por Athena - Assistente Acadêmico RAG', 105, 285, { align: 'center' });
+            pdf.text('Gerado por ChronoKairo AI', 105, 285, { align: 'center' });
         }
 
-        pdf.save(`chat-athena-${new Date().toISOString().split('T')[0]}.pdf`);
+        pdf.save(`chat-chronokairo-${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
     // Fetch status
@@ -2075,7 +2066,7 @@ export default function App() {
     };
 
     return (
-        <div className="h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100">
+        <div className="h-screen flex bg-background text-on-background">
             {/* Sidebar */}
             <Sidebar
                 isOpen={sidebarOpen}
@@ -2089,15 +2080,15 @@ export default function App() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
-                <header className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900/50 backdrop-blur-xl">
+                <header className="flex items-center justify-between px-4 py-3 border-b border-outline-variant bg-surface-container-low/50 backdrop-blur-xl">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setSidebarOpen(true)}
-                            className="lg:hidden p-2 hover:bg-gray-800 rounded-lg"
+                            className="lg:hidden p-2 hover:bg-surface-container rounded-lg"
                         >
                             <Menu className="w-5 h-5" />
                         </button>
-                        <h2 className="font-semibold text-white">
+                        <h2 className="font-semibold text-on-surface">
                             {activeTab === 'chat' && 'Chat'}
                             {activeTab === 'turmas' && 'Turmas & Matrículas'}
                             {activeTab === 'search' && 'Busca Semântica'}
@@ -2106,30 +2097,32 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <button onClick={handleNewChat} className="p-2 hover:bg-gray-800 rounded-lg" title="Nova Conversa">
+                        <button onClick={handleNewChat} className="p-2 hover:bg-surface-container rounded-lg" title="Nova Conversa">
                             <Plus className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setActiveTab('chat')} className={`p-2 rounded-lg ${activeTab === 'chat' ? 'bg-indigo-600' : 'hover:bg-gray-800'}`} title="Chat">
+                        <button onClick={() => setActiveTab('chat')} className={`p-2 rounded-lg ${activeTab === 'chat' ? 'bg-primary text-on-primary' : 'hover:bg-surface-container text-on-surface'}`} title="Chat">
                             <MessageSquare className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setActiveTab('search')} className={`p-2 rounded-lg ${activeTab === 'search' ? 'bg-indigo-600' : 'hover:bg-gray-800'}`} title="Buscar">
+                        <button onClick={() => setActiveTab('search')} className={`p-2 rounded-lg ${activeTab === 'search' ? 'bg-primary text-on-primary' : 'hover:bg-surface-container text-on-surface'}`} title="Buscar">
                             <Search className="w-5 h-5" />
                         </button>
-                        <button onClick={() => setActiveTab('settings')} className={`p-2 rounded-lg ${activeTab === 'settings' ? 'bg-indigo-600' : 'hover:bg-gray-800'}`} title="Configurações">
+                        <button onClick={() => setActiveTab('settings')} className={`p-2 rounded-lg ${activeTab === 'settings' ? 'bg-primary text-on-primary' : 'hover:bg-surface-container text-on-surface'}`} title="Configurações">
                             <Settings className="w-5 h-5" />
                         </button>
                     </div>
 
                     <SystemInfoBar systemInfo={systemInfo} />
                     <StatusBar status={status} />
+                    <ThemeToggle />
                     {activeTab === 'chat' && currentMessages.length > 0 && (
-                        <button
+                        <Button
                             onClick={exportToPDF}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
+                            variant="secondary"
+                            size="sm"
+                            icon={<FileText className="w-4 h-4" />}
                         >
-                            <FileText className="w-4 h-4" />
                             Export PDF
-                        </button>
+                        </Button>
                     )}
                 </header>
 
@@ -2167,5 +2160,13 @@ export default function App() {
                 {activeTab === 'settings' && <SettingsTab />}
             </div>
         </div>
+    );
+}
+
+export default function App() {
+    return (
+        <ThemeProvider>
+            <RagApp />
+        </ThemeProvider>
     );
 }
