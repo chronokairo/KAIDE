@@ -3,44 +3,114 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0d0f12;
-  --color-surface: #111318;
-  --color-surface-container-low: #16181d;
-  --color-surface-container: #1b1e24;
-  --color-surface-container-high: #242830;
-  --color-surface-container-highest: #2d323c;
-  
-  --color-primary: #f2f2f2;
-  --color-on-primary: #0d0f12;
-  --color-on-background: #f2f2f2;
-  --color-on-surface: #e6e8eb;
-  --color-on-surface-variant: #9ba1ad;
-  
-  --color-outline: #2d323c;
-  --color-outline-variant: #262a33;
-  
-  --color-secondary: #2dd4bf;
-  --color-on-secondary: #042f2c;
-  --color-secondary-fixed: #99f6e4;
-  
-  --color-tertiary: #38bdf8;
-  --color-tertiary-container: rgba(56, 189, 248, 0.15);
-  --color-on-tertiary-container: #7dd3fc;
-  
-  --color-error: #f87171;
-  --color-on-error: #450a0a;
-  --color-error-container: rgba(239, 68, 68, 0.15);
-  --color-on-error-container: #fca5a5;
-  
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-on-background: var(--on-background);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-fixed: var(--secondary-fixed);
+
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Design tokens ChronoKairo — dark (padrão) e light, alternados via .dark/.light no <html> */
+:root,
+.dark {
+  --background: #0d0f12;
+  --surface: #111318;
+  --surface-container-low: #16181d;
+  --surface-container: #1b1e24;
+  --surface-container-high: #242830;
+  --surface-container-highest: #2d323c;
+
+  --primary: #f2f2f2;
+  --on-primary: #0d0f12;
+  --on-background: #f2f2f2;
+  --on-surface: #e6e8eb;
+  --on-surface-variant: #9ba1ad;
+
+  --outline: #2d323c;
+  --outline-variant: #262a33;
+  --border: #2d323c;
+
+  --secondary: #2dd4bf;
+  --on-secondary: #042f2c;
+  --secondary-fixed: #99f6e4;
+
+  --tertiary: #38bdf8;
+  --tertiary-container: rgba(56, 189, 248, 0.15);
+  --on-tertiary-container: #7dd3fc;
+
+  --error: #f87171;
+  --on-error: #450a0a;
+  --error-container: rgba(239, 68, 68, 0.15);
+  --on-error-container: #fca5a5;
+}
+
+.light {
+  --background: #ffffff;
+  --surface: #fafafa;
+  --surface-container-low: #f8f8f9;
+  --surface-container: #f4f4f5;
+  --surface-container-high: #e4e4e7;
+  --surface-container-highest: #d4d4d8;
+
+  --primary: #18181b;
+  --on-primary: #ffffff;
+  --on-background: #09090b;
+  --on-surface: #18181b;
+  --on-surface-variant: #71717a;
+
+  --outline: #d4d4d8;
+  --outline-variant: #e4e4e7;
+  --border: #e4e4e7;
+
+  --secondary: #0d9488;
+  --on-secondary: #ffffff;
+  --secondary-fixed: #5eead4;
+
+  --tertiary: #0284c7;
+  --tertiary-container: rgba(2, 132, 199, 0.12);
+  --on-tertiary-container: #0369a1;
+
+  --error: #dc2626;
+  --on-error: #ffffff;
+  --error-container: rgba(220, 38, 38, 0.1);
+  --on-error-container: #b91c1c;
 }
 
 :root {
   color-scheme: dark;
   font-family: var(--font-sans);
-  background: #0d0f12;
-  color: #f2f2f2;
+  background: var(--background);
+  color: var(--on-background);
+}
+
+.light {
+  color-scheme: light;
 }
 
 * {
@@ -50,8 +120,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #0d0f12;
-  color: #f2f2f2;
+  background: var(--background);
+  color: var(--on-background);
   overflow: hidden;
   user-select: none;
 }
@@ -77,12 +147,12 @@ button, input, textarea, select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--outline);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--surface-container-highest);
 }
 
 .no-scrollbar::-webkit-scrollbar {

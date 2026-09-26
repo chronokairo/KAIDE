@@ -8,6 +8,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### 2026-09-26
 
 #### Adicionado
+- Migração da UI do chat RAG (`/rag`) para o design system ChronoKairo (ADR-0005, débito #3 parcial): `RagApp` consome `ThemeProvider`, `ThemeToggle` e `Button` de `@chronokairo/platform/ui`; tema claro/escuro alternável no header (persistido em `localStorage`).
+- Sistema de tokens themáveis em `src/app/globals.css`: `@theme` Tailwind v4 apontando para CSS vars com paletas `.dark` (padrão, valores inalterados) e `.light`; `RagApp.css` reescrito com as mesmas vars (prose, scrollbar, focus, typing cursor) e sem diretivas `@tailwind` v3 vestigiais.
 - Migração do backend RAG para Next API routes (ADR-0005, débito #2): 47 rotas em `src/app/api/*` (chat, search, conversas, mensagens, TOTVS, auth, admin, health, proxy catch-all) com adaptadores `_lib` (rag, http, rate-limit, auth, sse, totvs-proxy); clients SOAP/REST migrados de `shared/lib/http` (Express) para `http-core`; `resolve.extensionAlias` no webpack para imports ESM `.js`→`.ts` do legado.
 - Migração hexagonal Fase 0/1 sem deleção de código (ADR-0022): `src/domain`, `src/application` (portas e caso de uso `send-message`), `src/infrastructure` (adapters), composição em `src/features/ai-chat` e rota `/api/ai/chat` reescrita como adapter HTTP fino; suíte de testes com Vitest (11 testes).
 - Absorção e centralização das capacidades de IA satélites de projects, crm, bi, marketing, legal, nimbus, security, mastery, educacional e ecommerce (ADR-0021).
@@ -23,6 +25,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   - dependências de markdown instaladas (`remark-math`, `remark-gfm`, `rehype-katex`, `rehype-raw`).
 
 #### Alterado
+- `RagApp.tsx`: ~80 classes de cor hardcoded (`gray`, `indigo`, `amber`) substituídas por tokens semânticos (`surface-container`, `on-surface-variant`, `outline`, `primary`, `secondary`); branding Athena → ChronoKairo AI (header, welcome, export PDF, IDs de chat); cores de status semânticas (verde/vermelho/azul etc.) preservadas; export PDF e gráficos Chart.js leem cores via `cssVar()` para acompanhar o tema.
 - `.npmrc` com `allow-git=root` — npm >= 12 bloqueia dependências git por padrão (EALLOWGIT).
 
 ### 2026-09-25

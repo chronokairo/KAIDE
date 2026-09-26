@@ -55,7 +55,7 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 
 ## Débitos técnicos abertos (ver docs/adr/0005)
 
-- Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais; `RagApp` ainda é UI legada).
+- Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais; `/rag` já migrado com `ThemeProvider`/`ThemeToggle`/`Button` e tokens themáveis dark/light).
 - Conectar os comandos Tauri ao núcleo `ckc` (wiring incremental).
 
 ## Índice de documentação
