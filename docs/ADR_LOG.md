@@ -33,3 +33,9 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 - **UI shell/navegação para `@chronokairo/platform/ui`** (ADR-0005): AppBar, navegação e tokens ainda locais; não duplicar componentes compartilhados.
 - **Wiring dos comandos Tauri ao núcleo `ckc`** (ADR-0005): casca `src-tauri/shell` deve chamar comandos do crate `ckc` (zero-lib) incrementalmente.
 - **Rotas de IA vindas do platform** (ADR-0005): `src/app/api/ai/*` e `ai-credentials` recém-recebidos aguardam cobertura de testes de integração e validação de CORS/auth nos caminhos públicos.
+- **Roadmap de features a partir dos changelogs do mercado** (2026-09-26): objetivo é reimplementar do zero (fundação → avançado) as features dos coding agents CLI/desktop do mercado.
+  - ✅ Changelogs baixados em `docs/market/changelogs/`. Histórico completo de releases estáveis (GitHub API, paginado): codex, gemini-cli, opencode, qwen-code, goose, crush, continue, zed, openhands, plandex, void, kilo-code. CHANGELOG do repo: claude-code, copilot-cli, cline, roo-code, aider. Páginas web convertidas (só a página mais recente): cursor, windsurf, factory-droid, amp, kiro, augment.
+  - 🟡 Histórico completo: faltam as páginas antigas do Cursor (`cursor.com/changelog/page/N`, baixadas só em `/tmp`, não persistidas), changelog web do Codex (`developers.openai.com/codex/changelog`) e histórico antigo de Windsurf/Factory/Amp/Kiro/Augment. Kilo-code só tem releases desde 2026-02 (repo novo). Continue, plandex e void estão sem releases recentes (baixa prioridade).
+  - ⏳ Extrair catálogo de features desde a v0 por produto (agrupar por área: loop do agente, tools, permissões/sandbox, contexto/compactação, MCP, subagentes, sessões/checkpoints, TUI, desktop/IDE, providers).
+  - ⏳ Cruzar com o estado atual (`src-tauri/core` `ckc`, `src-tauri/shell`, `src/`) e com `docs/desktop-gap-analysis-2026.md`.
+  - ⏳ Montar TODO roadmap do zero (fundação → avançado) e referenciar no `AGENTS.md`.
