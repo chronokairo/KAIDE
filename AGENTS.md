@@ -58,3 +58,38 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 - Portar o backend Express do RAG (`src/server/rag`) para Next API routes (hoje excluído do typecheck).
 - Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais).
 - Conectar os comandos Tauri ao núcleo `ckc` (wiring incremental).
+
+## Índice de documentação
+
+### ADRs — `docs/adr/`
+
+| ADR | Decisão |
+| --- | --- |
+| [0001](docs/adr/0001-unificacao-monorepo-ai.md) | Unificação do monorepo `ai` (núcleo zero-lib `ckc` + casca Tauri + Next) |
+| [0002](docs/adr/0002-centralizacao-ia-no-ai.md) | Centralização da IA do ecossistema no `chronokairo/ai` |
+| [0003](docs/adr/0003-centralizacao-telas-ia-data.md) | Centralização das telas de IA do app data no `chronokairo/ai` |
+| [0004](docs/adr/0004-rename-package-chronokairo-ai.md) | Renomear pacote `chronokairo-desktop` → `@chronokairo/ai` |
+| [0005](docs/adr/0005-debitos-tecnicos-pos-centralizacao.md) | Débitos técnicos pós-centralização |
+| [0006](docs/adr/0006-rapunzel-chat-conteudo.md) | Rapunzel — chat de criação de conteúdo (subpath `./rapunzel`) |
+| [0007](docs/adr/0007-absorcao-governanca-thinkcoffee.md) | Absorção dos ativos de governança e segurança do ThinkCoffee |
+| [0008](docs/adr/0008-absorcao-osint-intelligence-harness.md) | Absorção do harness de OSINT, due diligence e web search |
+| [0009](docs/adr/0009-absorcao-tool-calling-kairos-harness.md) | Absorção do ToolSectorHarness e motor de agentes Kairos |
+| [0010](docs/adr/0010-absorcao-sala-e-core-capacidades-ia.md) | Absorção dos módulos Sala e Core (multiagente, MCP, agent planner) |
+| [0011](docs/adr/0011-consolidacao-kairos-dev-coding-agent.md) | Consolidação do Kairos-Dev (coding agent & prompts) |
+| [0012](docs/adr/0012-absorcao-athena-rag-unificado.md) | Absorção do Athena (RAG unificado e ecossistema legado) |
+| [0013](docs/adr/0013-absorcao-rag-mcp-e-ranking-research.md) | Absorção dos módulos de IA do Research (RAG/MCP, NVIDIA LLM Ranking) |
+| [0014](docs/adr/0014-absorcao-clamp-tool-calling-slm.md) | Absorção do Clamp (tool calling e confiabilidade para SLMs) |
+| [0015](docs/adr/0015-absorcao-anamnesic-bridges-ide.md) | Absorção do Anamnesic Bridges (VS Code/Antigravity → Ollama API) |
+| [0016](docs/adr/0016-absorcao-sandbox-aegisos.md) | Absorção do AegisOS/Sandbox (execução segura em containers) |
+| [0017](docs/adr/0017-absorcao-anamnesic-context-memory-mcp.md) | Absorção do Anamnesic Context (memória de agentes e MCP server) |
+| [0018](docs/adr/0018-absorcao-agent-dashboard-governance.md) | Absorção do Agent Control Center/Dashboard (governança & runtime) |
+| [0019](docs/adr/0019-absorcao-cki-lite-terminal-agent-e-winforms.md) | Absorção do CKI-Lite (terminal agent NVIDIA NIM + client WinForms) |
+| [0020](docs/adr/0020-remocao-por-traineddata-vestigial.md) | Remoção do `por.traineddata` vestigial em `src/modules/ocr` |
+| [0021](docs/adr/0021-absorcao-ia-projetos-crm-e-satelites.md) | Absorção das capacidades de IA satélites (projects, crm, bi, marketing, legal, ...) |
+| [0022](docs/adr/0022-migracao-hexagonal-sem-delecao.md) | Migração para arquitetura hexagonal sem deleção de código |
+
+### TODOs
+
+- [`TODO.md`](TODO.md) — débitos técnicos e melhorias do backend RAG (segurança, performance, arquitetura, testes, DevOps).
+- [`src-tauri/core/TODO.md`](src-tauri/core/TODO.md) — pendências do núcleo Rust `ckc`.
+- [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).
