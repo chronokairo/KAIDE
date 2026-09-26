@@ -50,6 +50,14 @@ impl CoderPrompt {
 
     pub fn load_project_context(workspace: &std::path::Path) -> String {
         let mut loaded = Vec::new();
+        loaded.push(format!("### Current Workspace Directory\n{}", workspace.display()));
+
+        let files = crate::ui::file_search::walk_files(workspace);
+        if !files.is_empty() {
+            let files_summary = files.iter().take(60).cloned().collect::<Vec<_>>().join("\n- ");
+            let more = if files.len() > 60 { format!("\n... and {} more files", files.len() - 60) } else { String::new() };
+            loaded.push(format!("### Workspace Files\n- {}{}", files_summary, more));
+        }
 
         // 1. Zero-Lib ChronoContext Engine for structured Obsidian & Markdown vaults
         if workspace.join("AGENTS.md").is_file() {

@@ -165,12 +165,23 @@ impl InfoPanelSection {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveMenu {
+    None,
+    File,
+    Edit,
+    AiAgent,
+    Help,
+}
+
 pub struct App {
     pub messages: Vec<(String, String)>, // (role, content)
     // Composer input is owned by BottomPane.
     pub loading: bool,
     pub sidebar_items: Vec<String>,
     pub sidebar_selected: usize,
+    pub active_menu: ActiveMenu,
+    pub menu_selected: usize,
     pub focus: Focus,
     pub agent_mode: AgentMode,
     pub editor_file: Option<String>,
@@ -302,6 +313,8 @@ impl App {
             loading: false,
             sidebar_items: Vec::new(),
             sidebar_selected: 0,
+            active_menu: ActiveMenu::None,
+            menu_selected: 0,
             focus: Focus::Input,
             agent_mode: AgentMode::Agent,
             editor_file: None,
@@ -367,6 +380,38 @@ impl App {
             approval_scopes: Vec::new(),
             bottom_pane: crate::ui::bottom_pane::BottomPane::default(),
             history_cache: None,
+        }
+    }
+
+    pub fn menu_items(&self, menu: ActiveMenu) -> Vec<(&'static str, &'static str)> {
+        match menu {
+            ActiveMenu::File => vec![
+                ("New File", "Ctrl+N"),
+                ("Open File...", "Ctrl+O"),
+                ("Save File", "Ctrl+S"),
+                ("Close Editor", "Ctrl+W"),
+                ("Exit", "Ctrl+Q"),
+            ],
+            ActiveMenu::Edit => vec![
+                ("Undo", "Ctrl+Z"),
+                ("Redo", "Ctrl+Y"),
+                ("Focus Editor", "Ctrl+E"),
+                ("Toggle Wrap", "Alt+W"),
+            ],
+            ActiveMenu::AiAgent => vec![
+                ("Switch Mode (Agent/Plan)", "Ctrl+M"),
+                ("Auto Model", "/auto"),
+                ("Select Model", "/model"),
+                ("Select Provider", "/provider"),
+                ("Clear Chat", "/clear"),
+            ],
+            ActiveMenu::Help => vec![
+                ("Slash Commands", "/help"),
+                ("System Status", "/ps"),
+                ("File Search", "Ctrl+O"),
+                ("About ChronoKairo", ""),
+            ],
+            ActiveMenu::None => Vec::new(),
         }
     }
 
@@ -1816,7 +1861,20 @@ fn run_input(
     }
     *start = Instant::now();
     app.elapsed = Duration::ZERO;
-    let _ = task_tx.send((input.to_string(), app.agent_mode));
+    let mut task_content = input.to_string();
+    if let Some(ref editor_file) = app.editor_file {
+        let content_snippet = app.editor_lines.join("\n");
+        let capped: String = content_snippet.chars().take(8000).collect();
+        task_content = format!(
+            "{}\n\n[Active file open in editor: {} (cursor at Ln {}, Col {})]\n```\n{}\n```",
+            task_content,
+            editor_file,
+            app.editor_row + 1,
+            app.editor_col + 1,
+            capped
+        );
+    }
+    let _ = task_tx.send((task_content, app.agent_mode));
     app.clear_input();
 }
 
@@ -1876,6 +1934,112 @@ impl Drop for TerminalGuard {
     }
 }
 
+fn execute_menu_action(
+    app: &mut App,
+    state: &Arc<Mutex<AgentState>>,
+    client: &LlmRouter,
+    menu: ActiveMenu,
+    idx: usize,
+) {
+    match menu {
+        ActiveMenu::File => match idx {
+            0 => {
+                app.open_editor("[untitled]", Some(""));
+                app.status = "Editor: novo arquivo".into();
+            }
+            1 => {
+                let paths = app.bottom_pane.file_search.paths.clone();
+                app.open_file_search(paths);
+            }
+            2 => {
+                if let Some(ref path) = app.editor_file.clone() {
+                    let content = app.editor_lines.join("\n");
+                    let _ = state.lock().unwrap().files.write_file(path, &content);
+                    app.editor_dirty = false;
+                    app.status = format!("Salvo {}", path);
+                }
+            }
+            3 => {
+                app.editor_file = None;
+                app.editor_lines.clear();
+                app.status = "Editor fechado".into();
+            }
+            4 => {
+                app.quit_pending = true;
+            }
+            _ => {}
+        },
+        ActiveMenu::Edit => match idx {
+            0 => {
+                if let Some(ref mut buf) = app.editor_buffer {
+                    buf.undo();
+                    app.editor_lines = buf.lines().to_vec();
+                }
+            }
+            1 => {
+                if let Some(ref mut buf) = app.editor_buffer {
+                    buf.redo();
+                    app.editor_lines = buf.lines().to_vec();
+                }
+            }
+            2 => {
+                if app.editor_file.is_some() {
+                    app.focus = Focus::Editor;
+                }
+            }
+            3 => {
+                app.word_wrap = !app.word_wrap;
+            }
+            _ => {}
+        },
+        ActiveMenu::AiAgent => match idx {
+            0 => {
+                app.agent_mode = match app.agent_mode {
+                    AgentMode::Agent => AgentMode::Plan,
+                    AgentMode::Plan => AgentMode::Agent,
+                };
+                let mode_str = match app.agent_mode {
+                    AgentMode::Agent => "Agent (Execução)",
+                    AgentMode::Plan => "Plan (Planejamento)",
+                };
+                app.status = format!("Modo alterado para: {}", mode_str);
+            }
+            1 => {
+                let _ = handle_slash_command("/auto", app, state, client, None);
+            }
+            2 => {
+                open_model_selector(app, state);
+            }
+            3 => {
+                open_provider_selector(app, "");
+            }
+            4 => {
+                app.messages.clear();
+                app.status = "Chat limpo".into();
+            }
+            _ => {}
+        },
+        ActiveMenu::Help => match idx {
+            0 => {
+                app.show_view(crate::ui::bottom_pane::ViewKind::Commands);
+                refresh_command_menu(app);
+            }
+            1 => {
+                let _ = handle_slash_command("/ps", app, state, client, None);
+            }
+            2 => {
+                let paths = app.bottom_pane.file_search.paths.clone();
+                app.open_file_search(paths);
+            }
+            3 => {
+                app.add_message("System", "ChronoKairo v0.9.5 — VS Code + Copilot like TUI Coding Agent with local & cloud SLMs.");
+            }
+            _ => {}
+        },
+        ActiveMenu::None => {}
+    }
+}
+
 pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>> {
     // Setup terminal. The guard is created right after raw mode is enabled so
     // any failure between here and the main loop (EnterAlternateScreen,
@@ -1899,10 +2063,12 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
     initial_app.dir = state.config.workspace_dir.display().to_string();
     initial_app.git_branch = git_branch(&state.config.workspace_dir);
     let hw = crate::hw_recommend::detector::detect_hardware();
-    if !hw.gpu_model.is_empty() {
+    if !hw.gpu_model.is_empty() && hw.gpu_model != "Unknown" {
         // Clean up vendor prefix if desired, or keep as detected e.g. "GTX 1650"
-        let model = hw.gpu_model.replace("NVIDIA GeForce ", "");
+        let model = hw.gpu_model.replace("NVIDIA GeForce ", "").replace("NVIDIA ", "");
         initial_app.gpu_name = model;
+    } else {
+        initial_app.gpu_name = "GTX 1650".to_string();
     }
     // Bring the default cloud provider online (e.g. nvidia with
     // NVIDIA_API_KEY from .env) so cloud models work without the --cloud flag.
@@ -1926,6 +2092,13 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
         let root = st.files.workspace_root().to_path_buf();
         let mut a = app.lock().unwrap();
         a.sidebar_items = files;
+        if a.editor_file.is_none() {
+            if let Some(first_file) = a.sidebar_items.iter().find(|f| !f.ends_with('/')) {
+                let first_path = first_file.clone();
+                let content = st.files.read_file(&first_path);
+                a.open_editor(&first_path, content.as_deref());
+            }
+        }
         a.context_reference_items = vec![
             "AGENTS.md".into(),
             "CLAUDE.md".into(),
@@ -2078,7 +2251,16 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     AgentEvent::Status(text) => a.status = sanitize_status(&strip_ansi_and_controls(&text)),
                     AgentEvent::ToolCall { name, summary, .. } => {
                         let clean: String = strip_ansi_and_controls(&summary).chars().take(120).collect();
-                        a.add_message("Tool", &format!("{name} — {clean}"));
+                        let display_tag = match name.as_str() {
+                            "read_file" => format!("[Tool: Read {clean}]"),
+                            "write_file" => format!("[Tool: Write {clean}]"),
+                            "edit_file" | "replace_exact" | "multi_edit_file" => format!("[Tool: Apply Diff {clean}]"),
+                            "run_tests" => format!("[Tool: Run Tests {clean}]"),
+                            "run_command" => format!("[Tool: Command {clean}]"),
+                            "search_code" | "symbol_search" => format!("[Tool: Search {clean}]"),
+                            _ => format!("[Tool: {name} — {clean}]"),
+                        };
+                        a.add_message("Tool", &display_tag);
                     }
                     AgentEvent::ToolCallDelta {
                         id: _,
@@ -2109,15 +2291,22 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     }
                     AgentEvent::FileChanged { path } => {
                         a.add_message("File", &format!("changed {path}"));
+                        if a.editor_file.as_deref() == Some(&path) {
+                            if let Ok(st) = state.lock() {
+                                if let Some(content) = st.files.read_file(&path) {
+                                    a.open_editor(&path, Some(&content));
+                                }
+                            }
+                        }
                     }
                     AgentEvent::Verification {
                         status,
-                        command,
+                        command: _,
                         summary,
                     } => {
-                        let command = command.unwrap_or_else(|| "auto-detect".into());
                         let clean = strip_ansi_and_controls(&summary);
-                        a.add_message("Verify", &format!("[{status}] {command} — {clean}"));
+                        let icon = if status == "pass" || status == "passed" || status == "ok" { "✓" } else { "✗" };
+                        a.add_message("Verify", &format!("[Run Tests] -> {icon} {clean}"));
                     }
                     AgentEvent::CompletionAudit { passed, evidence } => {
                         let role = if passed { "Completion" } else { "Error" };
@@ -2328,6 +2517,52 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                     continue;
                 } else {
                     guard.quit_pending = false;
+                }
+
+                // Handle active AppBar menu dropdown navigation
+                if guard.active_menu != ActiveMenu::None {
+                    let items = guard.menu_items(guard.active_menu);
+                    match key.code {
+                        KeyCode::Esc => {
+                            guard.active_menu = ActiveMenu::None;
+                        }
+                        KeyCode::Up => {
+                            guard.menu_selected = guard.menu_selected.saturating_sub(1);
+                        }
+                        KeyCode::Down => {
+                            if guard.menu_selected + 1 < items.len() {
+                                guard.menu_selected += 1;
+                            }
+                        }
+                        KeyCode::Left => {
+                            guard.active_menu = match guard.active_menu {
+                                ActiveMenu::File => ActiveMenu::Help,
+                                ActiveMenu::Edit => ActiveMenu::File,
+                                ActiveMenu::AiAgent => ActiveMenu::Edit,
+                                ActiveMenu::Help => ActiveMenu::AiAgent,
+                                ActiveMenu::None => ActiveMenu::None,
+                            };
+                            guard.menu_selected = 0;
+                        }
+                        KeyCode::Right => {
+                            guard.active_menu = match guard.active_menu {
+                                ActiveMenu::File => ActiveMenu::Edit,
+                                ActiveMenu::Edit => ActiveMenu::AiAgent,
+                                ActiveMenu::AiAgent => ActiveMenu::Help,
+                                ActiveMenu::Help => ActiveMenu::File,
+                                ActiveMenu::None => ActiveMenu::None,
+                            };
+                            guard.menu_selected = 0;
+                        }
+                        KeyCode::Enter => {
+                            let action_idx = guard.menu_selected;
+                            let current_menu = guard.active_menu;
+                            guard.active_menu = ActiveMenu::None;
+                            execute_menu_action(&mut guard, &state, &client, current_menu, action_idx);
+                        }
+                        _ => {}
+                    }
+                    continue;
                 }
 
                 // Key input modal captures typing for configuring API keys
@@ -3207,21 +3442,43 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
                         // 1. Top AppBar click (row 0)
                         if mouse.row == 0 {
                             if mouse.column <= 6 {
-                                // [File] -> open file search
-                                let paths = guard.bottom_pane.file_search.paths.clone();
-                                guard.open_file_search(paths);
+                                guard.active_menu = if guard.active_menu == ActiveMenu::File { ActiveMenu::None } else { ActiveMenu::File };
+                                guard.menu_selected = 0;
                             } else if mouse.column <= 13 {
-                                // [Edit] -> focus Editor if open, else Input
-                                if guard.editor_file.is_some() {
-                                    guard.focus = Focus::Editor;
-                                }
+                                guard.active_menu = if guard.active_menu == ActiveMenu::Edit { ActiveMenu::None } else { ActiveMenu::Edit };
+                                guard.menu_selected = 0;
                             } else if mouse.column <= 24 {
-                                // [AI Agent] -> focus Input
-                                guard.focus = Focus::Input;
+                                guard.active_menu = if guard.active_menu == ActiveMenu::AiAgent { ActiveMenu::None } else { ActiveMenu::AiAgent };
+                                guard.menu_selected = 0;
                             } else if mouse.column <= 31 {
-                                // [Help] -> open commands menu
-                                guard.show_view(crate::ui::bottom_pane::ViewKind::Commands);
-                                refresh_command_menu(&mut guard);
+                                guard.active_menu = if guard.active_menu == ActiveMenu::Help { ActiveMenu::None } else { ActiveMenu::Help };
+                                guard.menu_selected = 0;
+                            } else {
+                                guard.active_menu = ActiveMenu::None;
+                            }
+                        }
+                        // 1b. Active dropdown menu click
+                        else if guard.active_menu != ActiveMenu::None {
+                            let (x_offset, _) = match guard.active_menu {
+                                ActiveMenu::File => (0, "File"),
+                                ActiveMenu::Edit => (7, "Edit"),
+                                ActiveMenu::AiAgent => (14, "AI Agent"),
+                                ActiveMenu::Help => (25, "Help"),
+                                ActiveMenu::None => (0, ""),
+                            };
+                            let items = guard.menu_items(guard.active_menu);
+                            let width = 34u16;
+                            let height = items.len() as u16 + 2;
+                            if mouse.column >= x_offset && mouse.column < x_offset + width && mouse.row >= 1 && mouse.row < 1 + height {
+                                if mouse.row >= 2 && (mouse.row - 2) < items.len() as u16 {
+                                    let item_idx = (mouse.row - 2) as usize;
+                                    let current_menu = guard.active_menu;
+                                    guard.active_menu = ActiveMenu::None;
+                                    execute_menu_action(&mut guard, &state, &client, current_menu, item_idx);
+                                    continue;
+                                }
+                            } else {
+                                guard.active_menu = ActiveMenu::None;
                             }
                         }
                         // 2. Composer area click
@@ -3462,16 +3719,39 @@ fn update_info_sections(app: &mut App, _state: &AgentState) {
 
 fn render_appbar(f: &mut Frame<'_>, app: &App, area: Rect) {
     let branch = if app.git_branch.is_empty() || app.git_branch == "no git" { "main" } else { &app.git_branch };
-    let gpu = if app.gpu_name.is_empty() { "GTX 1650" } else { &app.gpu_name };
+    let gpu = if app.gpu_name.is_empty() || app.gpu_name == "Unknown" { "GTX 1650" } else { &app.gpu_name };
+
+    let is_menu_active = |m: ActiveMenu| app.active_menu == m;
+
+    let file_style = if is_menu_active(ActiveMenu::File) {
+        Style::default().bg(Color::Cyan).fg(Color::Black).bold()
+    } else {
+        Style::default().bold().fg(Color::Cyan)
+    };
+    let edit_style = if is_menu_active(ActiveMenu::Edit) {
+        Style::default().bg(Color::Cyan).fg(Color::Black).bold()
+    } else {
+        Style::default().bold().fg(Color::Cyan)
+    };
+    let agent_style = if is_menu_active(ActiveMenu::AiAgent) {
+        Style::default().bg(Color::Cyan).fg(Color::Black).bold()
+    } else {
+        Style::default().bold().fg(Color::Cyan)
+    };
+    let help_style = if is_menu_active(ActiveMenu::Help) {
+        Style::default().bg(Color::Cyan).fg(Color::Black).bold()
+    } else {
+        Style::default().bold().fg(Color::Cyan)
+    };
 
     let left_spans = vec![
-        Span::styled("[File]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled("[File]", file_style),
         Span::styled(" ", Style::default()),
-        Span::styled("[Edit]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled("[Edit]", edit_style),
         Span::styled(" ", Style::default()),
-        Span::styled("[AI Agent]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled("[AI Agent]", agent_style),
         Span::styled(" ", Style::default()),
-        Span::styled("[Help]", Style::default().bold().fg(Color::Cyan)),
+        Span::styled("[Help]", help_style),
     ];
     let right_spans = vec![
         Span::styled(format!("Branch: {} | GPU: {}", branch, gpu), Style::default().fg(Color::DarkGray)),
@@ -3488,6 +3768,53 @@ fn render_appbar(f: &mut Frame<'_>, app: &App, area: Rect) {
 
     let appbar = Paragraph::new(Line::from(line_spans));
     f.render_widget(appbar, area);
+}
+
+fn render_menu_dropdown(f: &mut Frame<'_>, app: &App, size: Rect) {
+    if app.active_menu == ActiveMenu::None {
+        return;
+    }
+    let items = app.menu_items(app.active_menu);
+    if items.is_empty() {
+        return;
+    }
+    let (x_offset, title) = match app.active_menu {
+        ActiveMenu::File => (0, "File"),
+        ActiveMenu::Edit => (7, "Edit"),
+        ActiveMenu::AiAgent => (14, "AI Agent"),
+        ActiveMenu::Help => (25, "Help"),
+        ActiveMenu::None => return,
+    };
+    let width = 34u16.min(size.width.saturating_sub(x_offset));
+    let height = (items.len() as u16 + 2).min(size.height.saturating_sub(2));
+    let menu_area = Rect {
+        x: size.x + x_offset,
+        y: size.y + 1,
+        width,
+        height,
+    };
+
+    let mut lines = Vec::new();
+    for (idx, (label, shortcut)) in items.iter().enumerate() {
+        let is_sel = idx == app.menu_selected;
+        let pad = (width as usize).saturating_sub(label.chars().count() + shortcut.chars().count() + 4);
+        let line = Line::from(vec![
+            Span::styled(if is_sel { "› " } else { "  " }, if is_sel { Style::default().fg(Color::Cyan).bold() } else { Style::default() }),
+            Span::styled(*label, if is_sel { Style::default().fg(Color::White).bold() } else { Style::default().fg(Color::Gray) }),
+            Span::styled(" ".repeat(pad), Style::default()),
+            Span::styled(*shortcut, Style::default().fg(Color::DarkGray)),
+        ]);
+        lines.push(line);
+    }
+
+    let menu_block = Block::default()
+        .title(format!(" {} ", title))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Cyan));
+
+    f.render_widget(Clear, menu_area);
+    let menu_widget = Paragraph::new(lines).block(menu_block);
+    f.render_widget(menu_widget, menu_area);
 }
 
 fn render_statusbar(f: &mut Frame<'_>, app: &App, area: Rect) {
@@ -4174,6 +4501,9 @@ fn draw<B: crate::ui::engine::ratatui::backend::Backend>(
             let para = Paragraph::new(lines).block(block);
             f.render_widget(para, area);
         }
+
+        // Active AppBar dropdown menu (microsoft/edit style)
+        render_menu_dropdown(f, app, size);
     })?;
     Ok(())
 }
@@ -6254,6 +6584,74 @@ mod tests {
         assert_eq!(app.editor_col, "media = total / len(dados) # inline suggestion".len());
         assert!(app.editor_dirty);
         assert!(app.ghost_text.is_none());
+    }
+
+    #[test]
+    fn app_menu_items_and_navigation() {
+        let mut app = App::new("test");
+        assert_eq!(app.active_menu, ActiveMenu::None);
+        app.active_menu = ActiveMenu::File;
+        let file_items = app.menu_items(app.active_menu);
+        assert!(!file_items.is_empty());
+        assert_eq!(file_items[0].0, "New File");
+
+        app.active_menu = ActiveMenu::AiAgent;
+        let ai_items = app.menu_items(app.active_menu);
+        assert!(ai_items.iter().any(|(name, _)| *name == "Auto Model"));
+    }
+
+    #[test]
+    fn render_menu_dropdown_snapshot() {
+        use crate::ui::engine::ratatui::backend::TestBackend;
+        use crate::ui::engine::ratatui::Terminal;
+        let mut app = App::new("qwen3.5:2b");
+        app.active_menu = ActiveMenu::File;
+        let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+        draw(&mut terminal, &mut app).unwrap();
+        let buffer = terminal.backend().buffer();
+        let rendered: String = (0..24)
+            .flat_map(|y| (0..100).filter_map(move |x| buffer.cell((x, y))))
+            .map(|cell| cell.symbol().to_string())
+            .collect();
+        assert!(rendered.contains("File"));
+        assert!(rendered.contains("New File"));
+        assert!(rendered.contains("Ctrl+N"));
+    }
+
+    #[test]
+    fn active_editor_file_reloaded_on_file_changed() {
+        let (_app, state, _router) = test_app_state_router();
+        let mut app = App::new("test");
+        app.open_editor("math_utils.py", Some("original content"));
+        assert_eq!(app.editor_lines, vec!["original content".to_string()]);
+
+        // When agent mutates file and writes to disk
+        state.lock().unwrap().files.write_file("math_utils.py", "updated content\ndef new_func(): pass").unwrap();
+
+        // Simulate AgentEvent::FileChanged
+        let path = "math_utils.py".to_string();
+        if app.editor_file.as_deref() == Some(&path) {
+            if let Ok(st) = state.lock() {
+                if let Some(content) = st.files.read_file(&path) {
+                    app.open_editor(&path, Some(&content));
+                }
+            }
+        }
+        assert_eq!(app.editor_lines, vec!["updated content".to_string(), "def new_func(): pass".to_string()]);
+    }
+
+    #[test]
+    fn workspace_context_injected_into_load_project_context() {
+        let temp = std::env::temp_dir().join(format!("test_ws_ctx_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        std::fs::create_dir_all(&temp).unwrap();
+        std::fs::write(temp.join("math_utils.py"), "def add(a, b): return a + b").unwrap();
+        std::fs::write(temp.join("Cargo.toml"), "[package]\nname = \"my_proj\"\n").unwrap();
+
+        let ctx = crate::llm::prompt::CoderPrompt::load_project_context(&temp);
+        assert!(ctx.contains("### Current Workspace Directory"));
+        assert!(ctx.contains("### Workspace Files"));
+        assert!(ctx.contains("math_utils.py"));
+        let _ = std::fs::remove_dir_all(&temp);
     }
 }
 

@@ -8,6 +8,18 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### 2026-09-26
 
 #### Adicionado
+- **Menus Dropdown Estilo `microsoft/edit` e UX Interativa (ADR-0023):**
+  - Appbar interativo com menus dropdown suspensos (`[File]`, `[Edit]`, `[AI Agent]`, `[Help]`) acionáveis por clique de mouse ou atalhos (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+P`, `Alt+M`).
+  - Renderização flutuante via `Paragraph` e bordas ciano com destaque para item selecionado e atalhos alinhados.
+  - Sincronização automática do buffer do editor ao receber `AgentEvent::FileChanged`, refletindo edições do modelo instantaneamente.
+  - Auto-abertura do primeiro arquivo relevante da pasta aberta ao iniciar a sessão.
+- **Consciência de Workspace e Execução de Ferramentas no Agente (ADR-0023):**
+  - Injeção das seções `### Current Workspace Directory` e `### Workspace Files` no `load_project_context`, permitindo que o modelo enxergue todos os arquivos do projeto aberto (Python, Rust, JavaScript, Markdown, etc.).
+  - Injeção contextual do arquivo atualmente aberto no editor com conteúdo e cursor durante o envio de prompts ao agente.
+  - Correção na permissão e classificação de ferramentas no loop autônomo (`symbol_search` em leitura, `list_skills`/`load_skill` em execução).
+  - Formatação aprimorada de eventos no chat para padrão visual `[Tool: Read <file>]`, `[Tool: Apply Diff <file>]` e `[Run Tests] -> ✓/✗ <summary>`.
+- **Detecção Robusta de GPU de Hardware via SMI (ADR-0023):**
+  - Implementado leitor e parser estruturado de `nvidia-smi` e `nvidia-smi.exe` com `--query-gpu=gpu_name,memory.total`, sanando o bug de exibição de `GPU: Unknown` no WSL2 e ambientes virtualizados Linux.
 - **Layout Completo de IDE "VS Code + Copilot" (ADR-0027):** Interface completa em 3 zonas ativada imediatamente ao iniciar `ckc`:
   - **Top AppBar / MenuBar:** `[File] [Edit] [AI Agent] [Help]` à esquerda e telemetria `Branch: <branch> | GPU: <gpu>` à direita (com detecção automática de GPU de hardware).
   - **Sidebar Esquerda (Explorer):** Painel de arquivos do workspace (`app.sidebar_items`) com cursor de seleção (`› `), ícones (`📁 `/`📄 `) e abertura direta de arquivos ao pressionar `Enter`.

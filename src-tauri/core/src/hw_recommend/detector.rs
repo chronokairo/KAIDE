@@ -143,6 +143,7 @@ struct GpuInfo {
 
 fn detect_gpu() -> GpuInfo {
     let (model, vendor, vram_mb) = detect_gpu_nvidia()
+        .or_else(detect_gpu_smi)
         .or_else(detect_gpu_amd)
         .or_else(detect_gpu_intel)
         .or_else(detect_gpu_lspci)
@@ -153,6 +154,44 @@ fn detect_gpu() -> GpuInfo {
         vendor,
         model,
     }
+}
+
+pub fn parse_smi_output(stdout: &str) -> Option<(String, String, u32)> {
+    let line = stdout.lines().next()?;
+    let mut parts = line.split(',');
+    let model = parts.next()?.trim().to_string();
+    let vram_mb = parts
+        .next()
+        .and_then(|mem| {
+            mem.trim()
+                .split_whitespace()
+                .next()?
+                .parse::<u32>()
+                .ok()
+        })
+        .unwrap_or(0);
+    if !model.is_empty() {
+        Some((model, "NVIDIA".into(), vram_mb))
+    } else {
+        None
+    }
+}
+
+fn detect_gpu_smi() -> Option<(String, String, u32)> {
+    let output = std::process::Command::new("nvidia-smi")
+        .args(["--query-gpu=name,memory.total", "--format=csv,noheader"])
+        .output()
+        .or_else(|_| {
+            std::process::Command::new("nvidia-smi.exe")
+                .args(["--query-gpu=name,memory.total", "--format=csv,noheader"])
+                .output()
+        })
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_smi_output(&stdout)
 }
 
 fn detect_gpu_nvidia() -> Option<(String, String, u32)> {
@@ -276,4 +315,34 @@ fn detect_gpu_lspci() -> Option<(String, String, u32)> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_smi_output() {
+        let sample = "NVIDIA GeForce GTX 1650, 4096 MiB\n";
+        let res = parse_smi_output(sample);
+        assert!(res.is_some());
+        let (model, vendor, vram_mb) = res.unwrap();
+        assert_eq!(model, "NVIDIA GeForce GTX 1650");
+        assert_eq!(vendor, "NVIDIA");
+        assert_eq!(vram_mb, 4096);
+    }
+
+    #[test]
+    fn test_parse_smi_output_empty_or_invalid() {
+        assert!(parse_smi_output("").is_none());
+        assert!(parse_smi_output("   \n").is_none());
+    }
+
+    #[test]
+    fn test_detect_hardware_does_not_panic() {
+        let hw = detect_hardware();
+        assert!(!hw.cpu_brand.is_empty());
+        assert!(hw.cpu_cores >= 1);
+        assert!(hw.memory_total_gb >= 1);
+    }
 }

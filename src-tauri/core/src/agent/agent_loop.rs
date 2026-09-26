@@ -973,8 +973,9 @@ enum ToolEffect {
 
 fn tool_effect(name: &str) -> ToolEffect {
     match name {
-        "read_file" | "list_tree" | "search_code" | "git_status" | "git_diff" | "list_skills"
-        | "load_skill" => ToolEffect::ReadOnly,
+        "read_file" | "list_tree" | "search_code" | "symbol_search" | "git_status" | "git_diff" => {
+            ToolEffect::ReadOnly
+        }
         "write_file" | "replace_exact" | "edit_file" | "multi_edit_file" => ToolEffect::Mutation,
         _ => ToolEffect::Command,
     }
@@ -1197,6 +1198,23 @@ fn execute_read_only(
             ),
             cap,
         )),
+        "symbol_search" => match string_arg("query") {
+            Some(query) => {
+                let limit = usize_arg("limit").unwrap_or(20).min(100);
+                let index = crate::repo::scanner::SymbolIndex::build(&context.workspace);
+                let results = index.search(query, limit);
+                if results.is_empty() {
+                    ToolExecutionResult::output(format!("No symbols found matching '{query}'"))
+                } else {
+                    let mut lines = Vec::new();
+                    for s in results {
+                        lines.push(format!("{}:{}: {} {}", s.file_path, s.line_number, s.symbol_type, s.name));
+                    }
+                    ToolExecutionResult::output(truncate_tool_output(&lines.join("\n"), cap))
+                }
+            }
+            None => ToolExecutionResult::output("missing required argument: query"),
+        },
         other => ToolExecutionResult::output(format!("{other} is not a read-only tool")),
     }
 }
@@ -2935,12 +2953,14 @@ mod tests {
     fn tool_effects_are_classified_for_the_scheduler() {
         assert_eq!(tool_effect("read_file"), ToolEffect::ReadOnly);
         assert_eq!(tool_effect("git_diff"), ToolEffect::ReadOnly);
+        assert_eq!(tool_effect("symbol_search"), ToolEffect::ReadOnly);
         assert_eq!(tool_effect("replace_exact"), ToolEffect::Mutation);
         assert_eq!(tool_effect("write_file"), ToolEffect::Mutation);
         assert_eq!(tool_effect("edit_file"), ToolEffect::Mutation);
         assert_eq!(tool_effect("multi_edit_file"), ToolEffect::Mutation);
         assert_eq!(tool_effect("run_tests"), ToolEffect::Command);
         assert_eq!(tool_effect("run_command"), ToolEffect::Command);
+        assert_eq!(tool_effect("list_skills"), ToolEffect::Command);
     }
 
     #[test]
