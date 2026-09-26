@@ -14,7 +14,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
-import { Channel, DevicePairing, Agent } from '../types';
+import { Channel, DevicePairing, Agent } from './types';
 
 interface ChannelsViewProps {
   channels: Channel[];

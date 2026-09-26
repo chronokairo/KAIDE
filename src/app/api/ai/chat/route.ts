@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authenticateRequest, createNvidiaCredentialService } from '@/features/ai-credentials/composition/server';
+import { createChatComposition } from '@/features/ai-chat/composition/server';
+import { CredentialNotConfiguredError, UnauthorizedError, UpstreamLlmError } from '@/domain/errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,23 +14,19 @@ const requestSchema = z.object({
   maxTokens: z.number().int().min(1).max(16_384).default(2048),
 });
 
+// Adapter HTTP (ADR-0022): valida entrada, delega ao caso de uso e traduz erros de domínio.
 export async function POST(request: NextRequest) {
   try {
-    const user = await authenticateRequest(request.headers.get('authorization'));
+    const { identity, sendMessage } = createChatComposition();
+    const actor = await identity.authenticate(request.headers.get('authorization'));
     const input = requestSchema.parse(await request.json());
-    const credential = await createNvidiaCredentialService().service.resolve(user.id);
-    if (!credential) return NextResponse.json({ error: 'Configure sua NVIDIA API key na sidebar de IA.' }, { status: 409 });
-    const upstream = await fetch(`${credential.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${credential.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: input.model || credential.model, messages: input.messages, temperature: input.temperature, max_tokens: input.maxTokens, stream: false }),
-    });
-    const payload = await upstream.json();
-    if (!upstream.ok) return NextResponse.json({ error: 'NVIDIA não conseguiu concluir a solicitação' }, { status: upstream.status });
-    return NextResponse.json(payload);
+    const result = await sendMessage.execute(actor, input);
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Requisição de chat inválida' }, { status: 400 });
-    const status = error instanceof Error && error.message === 'UNAUTHORIZED' ? 401 : 500;
-    return NextResponse.json({ error: status === 401 ? 'Não autorizado' : 'Erro interno no chat' }, { status });
+    if (error instanceof UnauthorizedError) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (error instanceof CredentialNotConfiguredError) return NextResponse.json({ error: 'Configure sua NVIDIA API key na sidebar de IA.' }, { status: 409 });
+    if (error instanceof UpstreamLlmError) return NextResponse.json({ error: 'NVIDIA não conseguiu concluir a solicitação' }, { status: error.status });
+    return NextResponse.json({ error: 'Erro interno no chat' }, { status: 500 });
   }
 }

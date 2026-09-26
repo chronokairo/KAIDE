@@ -11,7 +11,7 @@ import {
   Settings,
   Radio
 } from 'lucide-react';
-import { TabType } from '../types';
+import { TabType } from './types';
 
 interface SidebarProps {
   currentTab: TabType;

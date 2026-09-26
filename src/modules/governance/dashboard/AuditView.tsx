@@ -12,7 +12,7 @@ import {
   Sparkles,
   Terminal
 } from 'lucide-react';
-import { AuditEvent } from '../types';
+import { AuditEvent } from './types';
 
 interface AuditViewProps {
   logs: AuditEvent[];

@@ -12,7 +12,7 @@ import {
   Activity,
   ArrowUpRight
 } from 'lucide-react';
-import { Session, Agent } from '../types';
+import { Session, Agent } from './types';
 
 interface GatewayViewProps {
   sessions: Session[];

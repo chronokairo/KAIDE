@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Server
 } from 'lucide-react';
-import { ModelCapability } from '../types';
+import { ModelCapability } from './types';
 
 interface ModelsViewProps {
   models: ModelCapability[];

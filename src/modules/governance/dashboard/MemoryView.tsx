@@ -10,7 +10,7 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react';
-import { DreamEntry } from '../types';
+import { DreamEntry } from './types';
 
 interface MemoryViewProps {
   dreams: DreamEntry[];

@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
   FileCheck
 } from 'lucide-react';
-import { PolicyRule, RiskLevel } from '../types';
+import { PolicyRule, RiskLevel } from './types';
 
 interface PolicyViewProps {
   policies: PolicyRule[];

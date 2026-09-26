@@ -1,5 +1,5 @@
-import type { AnnaTranscriptDefaults, AnnaUploadToolDefinition } from '../../contracts';
-import { fileMatchesAccept, getToolsWithAnnaUpload, matchesAny, parseAccept } from '../../shared';
+import type { AnnaTranscriptDefaults, AnnaUploadToolDefinition } from '../../harness/contracts';
+import { fileMatchesAccept, getToolsWithAnnaUpload, matchesAny, parseAccept } from '../../harness/shared';
 
 export type AnnaIntent = 'transcript' | 'batch-import' | 'chat';
 

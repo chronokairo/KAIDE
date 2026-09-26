@@ -19,7 +19,7 @@ import {
   Clock,
   Layers
 } from 'lucide-react';
-import { Agent, AgentRun, PlanStep, SpecLock, VerificationStage } from '../types';
+import { Agent, AgentRun, PlanStep, SpecLock, VerificationStage } from './types';
 
 interface RuntimeViewProps {
   agents: Agent[];
