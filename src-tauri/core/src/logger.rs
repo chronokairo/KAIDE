@@ -172,9 +172,11 @@ macro_rules! cki_trace {
 #[cfg(test)]
 mod tests {
     use super::*;
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_logger_levels_and_macros() {
+        let _guard = TEST_LOCK.lock().unwrap();
         CkiLogger::init_stderr(Level::Debug);
         assert!(CkiLogger::enabled(Level::Info));
         assert!(CkiLogger::enabled(Level::Debug));
@@ -188,6 +190,7 @@ mod tests {
 
     #[test]
     fn test_logger_file_output() {
+        let _guard = TEST_LOCK.lock().unwrap();
         let tmp = std::env::temp_dir().join(format!("test_cki_logger_{}.log", std::process::id()));
         CkiLogger::init_file(&tmp, Level::Info).expect("init_file failed");
         cki_info!("Log line for file verification: {}", 12345);

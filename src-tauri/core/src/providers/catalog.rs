@@ -445,7 +445,7 @@ fn fetch_gemini_models(kp: &KnownProvider, key: &str) -> Result<Vec<(String, Mod
 }
 
 /// Ollama local `GET {base}/api/tags` listing (the official route).
-fn fetch_ollama_models() -> Result<Vec<(String, ModelInfo)>> {
+pub(crate) fn fetch_ollama_models() -> Result<Vec<(String, ModelInfo)>> {
     let base = std::env::var("OLLAMA_HOST")
         .unwrap_or_else(|_| KNOWN_PROVIDERS[0].api.to_string());
     let url = format!("{}/api/tags", base.trim_end_matches('/'));

@@ -90,6 +90,24 @@ fn styled(text: &str, kind: Kind) -> Span<'static> {
     Span::styled(text.to_string(), style)
 }
 
+pub fn language_name(path: &str) -> &'static str {
+    let lower = path.to_ascii_lowercase();
+    if lower.ends_with(".rs") { "Rust" }
+    else if lower.ends_with(".py") { "Python" }
+    else if lower.ends_with(".ts") || lower.ends_with(".tsx") { "TypeScript" }
+    else if lower.ends_with(".js") || lower.ends_with(".jsx") { "JavaScript" }
+    else if lower.ends_with(".c") || lower.ends_with(".h") { "C" }
+    else if lower.ends_with(".cpp") || lower.ends_with(".cc") || lower.ends_with(".hpp") { "C++" }
+    else if lower.ends_with(".go") { "Go" }
+    else if lower.ends_with(".java") { "Java" }
+    else if lower.ends_with(".sh") || lower.ends_with(".bash") { "Shell" }
+    else if lower.ends_with(".json") { "JSON" }
+    else if lower.ends_with(".toml") { "TOML" }
+    else if lower.ends_with(".yaml") || lower.ends_with(".yml") { "YAML" }
+    else if lower.ends_with(".md") { "Markdown" }
+    else { "Plain Text" }
+}
+
 fn language(path: &str) -> &'static str {
     let lower = path.to_ascii_lowercase();
     if lower.ends_with(".rs") { "rust" }

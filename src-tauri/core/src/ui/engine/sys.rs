@@ -2,17 +2,87 @@
 
 use std::io::{self, Write};
 
+#[cfg(unix)]
+static ORIG_TERMIOS: std::sync::Mutex<Option<libc::termios>> = std::sync::Mutex::new(None);
+
+#[cfg(unix)]
 pub fn enable_raw_mode() -> io::Result<()> {
-    // Under Windows Console, raw mode can be enabled or simulated gracefully
+    unsafe {
+        let fd = libc::STDIN_FILENO;
+        if libc::isatty(fd) == 0 {
+            return Ok(());
+        }
+        let mut termios = std::mem::MaybeUninit::<libc::termios>::uninit();
+        if libc::tcgetattr(fd, termios.as_mut_ptr()) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let orig = termios.assume_init();
+        let mut raw = orig;
+
+        raw.c_iflag &= !(libc::BRKINT | libc::ICRNL | libc::INPCK | libc::ISTRIP | libc::IXON);
+        raw.c_oflag &= !(libc::OPOST);
+        raw.c_cflag |= libc::CS8;
+        raw.c_lflag &= !(libc::ECHO | libc::ICANON | libc::IEXTEN | libc::ISIG);
+        raw.c_cc[libc::VMIN] = 1;
+        raw.c_cc[libc::VTIME] = 0;
+
+        if libc::tcsetattr(fd, libc::TCSANOW, &raw) != 0 {
+            return Err(io::Error::last_os_error());
+        }
+
+        if let Ok(mut lock) = ORIG_TERMIOS.lock() {
+            if lock.is_none() {
+                *lock = Some(orig);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+pub fn disable_raw_mode() -> io::Result<()> {
+    unsafe {
+        let fd = libc::STDIN_FILENO;
+        if let Ok(mut lock) = ORIG_TERMIOS.lock() {
+            if let Some(orig) = lock.take() {
+                if libc::tcsetattr(fd, libc::TCSANOW, &orig) != 0 {
+                    return Err(io::Error::last_os_error());
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(unix)]
+pub fn size() -> io::Result<(u16, u16)> {
+    unsafe {
+        let mut winsz: libc::winsize = std::mem::zeroed();
+        let ret = libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut winsz);
+        if ret == 0 && winsz.ws_col > 0 && winsz.ws_row > 0 {
+            return Ok((winsz.ws_col, winsz.ws_row));
+        }
+    }
+    if let (Ok(width), Ok(height)) = (std::env::var("COLUMNS"), std::env::var("LINES")) {
+        if let (Ok(width), Ok(height)) = (width.parse::<u16>(), height.parse::<u16>()) {
+            return Ok((width.max(1), height.max(1)));
+        }
+    }
+    Ok((120, 30))
+}
+
+#[cfg(not(unix))]
+pub fn enable_raw_mode() -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(not(unix))]
 pub fn disable_raw_mode() -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(not(unix))]
 pub fn size() -> io::Result<(u16, u16)> {
-    // Default fallback terminal dimensions
     Ok((120, 30))
 }
 

@@ -98,18 +98,15 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 /// resize-safe rendering model. The fallback is used for redirected output
 /// and headless test environments.
 fn terminal_dimensions() -> (u16, u16) {
+    if let Ok((width, height)) = super::sys::size() {
+        if width > 0 && height > 0 {
+            return (width, height);
+        }
+    }
     #[cfg(windows)]
     {
         if let Some((width, height)) = windows_console_dimensions() {
             return (width.max(1), height.max(1));
-        }
-    }
-    #[cfg(not(windows))]
-    {
-        if let (Ok(width), Ok(height)) = (std::env::var("COLUMNS"), std::env::var("LINES")) {
-            if let (Ok(width), Ok(height)) = (width.parse::<u16>(), height.parse::<u16>()) {
-                return (width.max(1), height.max(1));
-            }
         }
     }
     (120, 30)
