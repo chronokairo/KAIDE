@@ -88,6 +88,7 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 | [0022](docs/adr/0022-migracao-hexagonal-sem-delecao.md) | Migração para arquitetura hexagonal sem deleção de código |
 | [0023](docs/adr/0023-tui-edit-ux-gpu-detection-e-workspace-context.md) | Paridade de UX/UI com microsoft/edit, GPU via SMI e contexto de workspace no agente |
 | [0024](docs/adr/0024-roadmap-p0-mercado-validacao-e-implementacao.md) | Roadmap de paridade com o mercado: P0s validados com testes de integração e os 3 P0s restantes implementados |
+| [0025](docs/adr/0025-ckc-modo-edit-aider-para-llms-pequenos.md) | Modo edit (aider-like) no `ckc` CLI para LLMs pequenos: editar/autocompletar apenas o arquivo aberto |
 
 ### Mapas de código — `docs/maps/`
 
