@@ -117,7 +117,7 @@ Envolve `AssistantRuntimeProvider` (`@assistant-ui/react`, `useLocalRuntime(adap
 
 - **`src-tauri/`** é o app Tauri v2 (tauri.conf.json, capabilities, icons, gen) com workspace Cargo `members = ["core", "shell", "intelligence"]`.
 - **`src-tauri/shell/src/lib.rs` (25 linhas)**: casca FINA. Registra **apenas** `#[tauri::command] fn ckc_version() -> String` via `invoke_handler(generate_handler![ckc_version])` + `tauri_plugin_shell`. O comentário no arquivo registra o débito: *"o wiring detalhado dos comandos Tauri para as funções do ckc ainda será conectado incrementalmente"* (ADR-0005).
-- **`src-tauri/core`** é o crate `ckc` (núcleo zero-lib — ver `docs/maps/ckc-agent-tools-api.md` e `docs/maps/ckc-llm-server-api.md`).
+- **`chronokairo/cli`** é o crate `ckc` / binário `ck` (núcleo zero-lib — ver `docs/maps/ckc-agent-tools-api.md` e `docs/maps/ckc-llm-server-api.md`).
 - **`src-tauri/intelligence`** tem `commands.rs` (16 `#[tauri::command]`) para OSINT/graph/dossier.
 - **Consequência**: os comandos que o frontend espera (`stream_agent_session`, `interrupt_agent`, `resolve_approval`, `runtime_request` e os demais de `agentClient`/hooks) **ainda não estão registrados na casca** — em web retornam `available:false`; no desktop Tauri atual falham silenciosamente (catch → `available:false`). A casca antiga com 100+ comandos IPC está no histórico (branches `cli`/`desktop`), não neste checkout.
 - O contrato esperado pelo frontend para a task supervision já existe no ckc: `protocol::Session` (Op/EventMsg), `app_server::runtime_api::call` (33 métodos) e `AppServer` (JSON-RPC stdio). O wiring é o gap.

@@ -5,6 +5,19 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+### 2026-09-27
+
+#### Alterado
+- **Núcleo Rust `ckc` extraído para o repo próprio `chronokairo/cli` (ADR-0027):**
+  - `src-tauri/core/` (263 arquivos, crate `ckc`) foi extraído para [`chronokairo/cli`](https://gitlab.com/chronokairo/cli), onde vive como raiz do projeto Rust. O histórico dos 144 commits do antigo `chronokairo/cli` foi preservado como base.
+  - A casca Tauri (`src-tauri/shell`) passou a consumir o núcleo por `git` + `tag = "v0.1.0"`: `ckc = { git = "https://gitlab.com/chronokairo/cli.git", tag = "v0.1.0" }`. O workspace `src-tauri` ficou com os membros `shell` e `intelligence`.
+  - O binário foi renomeado de `ckc` para **`ck`**; o package/lib continuam `ckc` para não quebrar a git dependency. Uso/help, user-agent HTTP e `serverInfo` do MCP server passaram a usar `ck`.
+  - O `ckc` deixa de ser só o coding agent do desktop e passa a ser a interface de linha de comando dos produtos ChronoKairo.
+  - **Impacto:** builds do desktop passam a exigir rede na primeira resolução da git dependency; toda evolução do agente, tools, runtime de LLM e testes `p0_*` passa a acontecer no repo `chronokairo/cli`, não neste.
+
+#### Removido
+- **`src-tauri/core/`** — movido para `chronokairo/cli` (sem perda de código; validado com `cargo metadata` e `cargo check -p ckc`).
+
 ### 2026-09-26
 
 #### Adicionado

@@ -19,8 +19,9 @@ tauri-plugin-shell = "2"
 # checar/atualizar e reiniciar a aplicação após instalar.
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
-# Núcleo zero-lib (fonte de verdade do código Rust): a casca apenas o consome.
-ckc = { path = "../core" }
+# Núcleo zero-lib (fonte de verdade do código Rust): mora no repo próprio
+# `chronokairo/cli` (ADR-0027). Fixado na tag para builds reprodutíveis.
+ckc = { git = "https://gitlab.com/chronokairo/cli.git", tag = "v0.1.0" }
 # Harness de OSINT e Due Diligence
 chronokairo-intelligence = { path = "../intelligence" }
 

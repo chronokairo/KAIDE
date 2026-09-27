@@ -1,7 +1,7 @@
 # Mapa de APIs do núcleo `ckc` — Agente, Tools e Repo
 
 > Gerado em 2026-09-26 como subsídio para os testes de integração dos P0s de mercado (`TODO.md` — "P0 — Coding agent de mercado").
-> Crate: `src-tauri/core` (`ckc`, zero-lib). Todos os módulos são `pub mod` via `lib.rs`, acessíveis como `ckc::...`.
+> Crate: `chronokairo/cli` → `ckc` (zero-lib), binário `ck`. Todos os módulos são `pub mod` via `lib.rs`, acessíveis como `ckc::...`.
 > Macros do crate: `crate::json!` / `crate::json_expr!` (`#[macro_export]`, root). `crate::json::Value` é o enum JSON próprio. Erros em `crate::error::{Result, anyhow, bail, message, Context}`.
 
 ## 1. `ckc::agent::*`
@@ -384,7 +384,7 @@ impl SandboxPolicy {
 }
 ```
 
-**Importante**: `SandboxPolicy` é declarativa — os checks são chamados explicitamente (usada por `ModularAgentLoop`; o `shell.rs` NÃO usa SandboxPolicy, usa os próprios gates + Config). Há também o diretório físico `src-tauri/core/sandbox/` (fora do módulo `tools`).
+**Importante**: `SandboxPolicy` é declarativa — os checks são chamados explicitamente (usada por `ModularAgentLoop`; o `shell.rs` NÃO usa SandboxPolicy, usa os próprios gates + Config). Há também o diretório físico `sandbox/` (raiz do repo `chronokairo/cli`) (fora do módulo `tools`).
 
 **Testes (3)**: `test_sandbox_path_traversal`, `test_sandbox_denied_patterns`, `test_sandbox_command_filter` (helpers: temp dirs `chronokairo_sb_test`).
 

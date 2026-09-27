@@ -38,11 +38,12 @@ HTTP/SSE/MCP adapters -> application use cases -> domain -> output ports -> infr
 
 ## Organização do monorepo
 
-Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolvimento do `thinkcoffee`:
+Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento do `thinkcoffee`:
 
-- **`src-tauri/core`** — núcleo Rust **zero-lib** (crate `ckc`), fonte de verdade da lógica do agente nativo e execução de ferramentas.
-- **`src-tauri/shell`** — casca Tauri fina que consome o `ckc` para execução desktop nativa.
+- **`src-tauri/shell`** — casca Tauri fina. Consome o crate `ckc` (binário `ck`) por git dependency do repo **`chronokairo/cli`** (tag `v0.1.0`) e o harness de OSINT local (`src-tauri/intelligence`).
+- **`src-tauri/intelligence`** — crate `chronokairo-intelligence` (OSINT & Due Diligence Harness).
 - **`src/`** — frontend Next.js (React 19), subsistema RAG (UI em `src/modules/rag`; backend em Next API routes `src/app/api/*` sobre o núcleo `src/server/rag`) e suíte de controle de inteligência herdada do `thinkcoffee` (`src/modules/ai/components/`: Agentes, Skills, Memória, Sessões, Prompts, Hooks, Patches).
+- **Núcleo Rust zero-lib**: **não** está neste repositório. Vive em [`chronokairo/cli`](https://gitlab.com/chronokairo/cli) (`ckc::agent`, `ckc::llm`, `ckc::mcp`, `ckc::tools`, `ckc::repo`, ...) — ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence ao repo `cli`, não a este.
 - Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
 ## Critérios mínimos
@@ -102,6 +103,6 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 ### TODOs
 
 - [`TODO.md`](TODO.md) — débitos técnicos e melhorias do backend RAG (segurança, performance, arquitetura, testes, DevOps).
-- [`src-tauri/core/TODO.md`](src-tauri/core/TODO.md) — pendências do núcleo Rust `ckc`.
+- [`chronokairo/cli` → `TODO.md`](https://gitlab.com/chronokairo/cli/-/blob/main/TODO.md) — pendências do núcleo Rust `ckc` / binário `ck` (repo próprio, ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md)).
 - [`docs/market/TODO.md`](docs/market/TODO.md) — paridade com coding agents de mercado (CLI e desktop), derivada dos changelogs em `docs/market/changelogs/`.
 - [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).

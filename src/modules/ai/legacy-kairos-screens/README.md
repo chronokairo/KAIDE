@@ -17,7 +17,7 @@ e `react/compiler-runtime`):
 
 - Portar o design de interação (chat, transcript, keybindings, busca) para a UI
   Next de chat do ai (`src/modules/ai`), completando a reimplementação que já
-  tem núcleo Rust (`src-tauri/core` `ckc`).
+  tem núcleo Rust (crate `ckc`/binário `ck` do repo `chronokairo/cli`).
 - Não reintroduzir código derivado de Anthropic/Claude Code: reescrever do zero
   (regra AGENTS #8).
 - O fork original permanece no histórico do crm (`legacy/merged/sales/laciels`).
