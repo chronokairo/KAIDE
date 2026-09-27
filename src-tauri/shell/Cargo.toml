@@ -15,6 +15,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+# Auto-update do desktop (P0 distribuição): o par updater/process permite
+# checar/atualizar e reiniciar a aplicação após instalar.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 # Núcleo zero-lib (fonte de verdade do código Rust): a casca apenas o consome.
 ckc = { path = "../core" }
 # Harness de OSINT e Due Diligence

@@ -1,4 +1,5 @@
 pub mod agent_loop;
+pub mod checkpoint;
 pub mod executor;
 pub mod finalize;
 pub mod r#loop;

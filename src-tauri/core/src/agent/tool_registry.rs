@@ -544,6 +544,8 @@ impl ToolRegistry {
         self.register(Box::new(HighlightTool)).unwrap();
         self.register(Box::new(PickerTool)).unwrap();
         self.register(Box::new(TodoTool)).unwrap();
+        self.register(Box::new(WorktreeTool)).unwrap();
+        self.register(Box::new(CheckpointTool)).unwrap();
     }
 
     pub fn register(&mut self, tool: Box<dyn Tool>) -> Result<()> {
@@ -585,6 +587,143 @@ impl ToolRegistry {
                 crate::json_expr!({ "type": "function", "function": function })
             })
             .collect()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Worktree por task e checkpoints duráveis (P0 de mercado).
+// ---------------------------------------------------------------------------
+
+pub struct WorktreeTool;
+
+impl Tool for WorktreeTool {
+    fn name(&self) -> &str { "worktree" }
+    fn description(&self) -> &str { "Manage a dedicated git worktree per task (create/list/remove)" }
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "op": { "type": "string", "enum": ["create", "list", "remove"], "description": "Operation" },
+                "task_id": { "type": "string", "description": "Task id that owns the worktree" },
+                "force": { "type": "boolean", "description": "Force removal (default false)" }
+            },
+            "required": ["op"]
+        })
+    }
+    fn effect_class(&self) -> ToolEffect { ToolEffect::Command }
+    fn execute(&self, ctx: &mut ToolContext, args: &serde_json::Map<String, Value>) -> Result<ToolOutput> {
+        let op = args.get("op").and_then(|v| v.as_str()).unwrap_or("list");
+        let task_id = args.get("task_id").and_then(|v| v.as_str()).unwrap_or("");
+        let force = args.get("force").and_then(|v| v.as_bool()).unwrap_or(false);
+        let manager = crate::tools::worktree::WorktreeManager::new(ctx.state.config.workspace_dir.clone());
+        match op {
+            "create" => {
+                if task_id.trim().is_empty() {
+                    return Ok(ToolOutput::output("missing required argument: task_id"));
+                }
+                match manager.create(task_id) {
+                    Ok(info) => Ok(ToolOutput::output(format!(
+                        "worktree ready: {} (branch {})",
+                        info.path, info.branch
+                    ))),
+                    Err(e) => Ok(ToolOutput::output(format!("worktree create failed: {e}"))),
+                }
+            }
+            "remove" => {
+                if task_id.trim().is_empty() {
+                    return Ok(ToolOutput::output("missing required argument: task_id"));
+                }
+                match manager.remove(task_id, force) {
+                    Ok(()) => Ok(ToolOutput::output(format!("worktree removed for task '{task_id}'"))),
+                    Err(e) => Ok(ToolOutput::output(format!("worktree remove failed: {e}"))),
+                }
+            }
+            _ => match manager.list() {
+                Ok(list) => {
+                    let mut output = String::new();
+                    for info in list {
+                        output.push_str(&format!(
+                            "{} {} {}\n",
+                            info.id, info.branch, info.head
+                        ));
+                    }
+                    if output.is_empty() {
+                        output = "no task worktrees".into();
+                    }
+                    Ok(ToolOutput::output(output))
+                }
+                Err(e) => Ok(ToolOutput::output(format!("worktree list failed: {e}"))),
+            },
+        }
+    }
+}
+
+pub struct CheckpointTool;
+
+impl Tool for CheckpointTool {
+    fn name(&self) -> &str { "checkpoint" }
+    fn description(&self) -> &str { "Durable task checkpoints: create/restore/list git-backed snapshots" }
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "op": { "type": "string", "enum": ["create", "restore", "list"], "description": "Operation" },
+                "task_id": { "type": "string", "description": "Task id that owns the checkpoint" },
+                "message": { "type": "string", "description": "Checkpoint description" },
+                "id": { "type": "string", "description": "Checkpoint id (restore)" }
+            },
+            "required": ["op"]
+        })
+    }
+    fn effect_class(&self) -> ToolEffect { ToolEffect::Command }
+    fn execute(&self, ctx: &mut ToolContext, args: &serde_json::Map<String, Value>) -> Result<ToolOutput> {
+        let op = args.get("op").and_then(|v| v.as_str()).unwrap_or("list");
+        let task_id = args.get("task_id").and_then(|v| v.as_str()).unwrap_or("");
+        let message = args.get("message").and_then(|v| v.as_str()).unwrap_or("");
+        let id = args.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        let store = crate::agent::checkpoint::CheckpointStore::for_workspace(&ctx.state.config.workspace_dir);
+        match op {
+            "create" => {
+                if task_id.trim().is_empty() {
+                    return Ok(ToolOutput::output("missing required argument: task_id"));
+                }
+                let session_id = ctx.state.session_id;
+                match store.create(task_id, message, session_id, 0, 0) {
+                    Ok(checkpoint) => {
+                        Ok(ToolOutput::output(format!("checkpoint {}: {}", checkpoint.id, checkpoint.commit)))
+                    }
+                    Err(e) => Ok(ToolOutput::output(format!("checkpoint create failed: {e}"))),
+                }
+            }
+            "restore" => {
+                if id.trim().is_empty() {
+                    return Ok(ToolOutput::output("missing required argument: id"));
+                }
+                match store.restore(id) {
+                    Ok(checkpoint) => Ok(ToolOutput::output(format!(
+                        "restored {} at {}",
+                        checkpoint.id, checkpoint.commit
+                    ))),
+                    Err(e) => Ok(ToolOutput::output(format!("checkpoint restore failed: {e}"))),
+                }
+            }
+            _ => match store.list(if task_id.trim().is_empty() { None } else { Some(task_id) }) {
+                Ok(list) => {
+                    let mut output = String::new();
+                    for checkpoint in list {
+                        output.push_str(&format!(
+                            "{} task={} {} {}\n",
+                            checkpoint.id, checkpoint.task_id, checkpoint.created_at, checkpoint.message
+                        ));
+                    }
+                    if output.is_empty() {
+                        output = "no checkpoints".into();
+                    }
+                    Ok(ToolOutput::output(output))
+                }
+                Err(e) => Ok(ToolOutput::output(format!("checkpoint list failed: {e}"))),
+            },
+        }
     }
 }
 

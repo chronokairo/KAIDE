@@ -45,4 +45,20 @@ export const agentClient = {
     invokeHarness<any>('interrupt_agent', { sessionId }),
   resolveApproval: async (sessionId: string, requestId: string, decision: ApprovalDecision) =>
     invokeHarness<any>('resolve_approval', { sessionId, requestId: Number(requestId), decision }),
+
+  // Task supervision — worktrees e checkpoints duráveis (runtime_api do ckc).
+  createTaskWorktree: async (taskId: string, workspace?: string) =>
+    invokeRuntime<any>('create_task_worktree', { taskId, workspace }),
+  listTaskWorktrees: async (workspace?: string) =>
+    invokeRuntime<any>('list_task_worktrees', { workspace }),
+  removeTaskWorktree: async (taskId: string, force?: boolean, workspace?: string) =>
+    invokeRuntime<any>('remove_task_worktree', { taskId, force: force ?? false, workspace }),
+  createCheckpoint: async (
+    taskId: string,
+    opts?: { message?: string; sessionId?: number; turnId?: number; eventSeq?: number; workspace?: string },
+  ) => invokeRuntime<any>('create_checkpoint', { taskId, ...opts }),
+  restoreCheckpoint: async (checkpointId: string, workspace?: string) =>
+    invokeRuntime<any>('restore_checkpoint', { checkpointId, workspace }),
+  listCheckpoints: async (taskId?: string, workspace?: string) =>
+    invokeRuntime<any>('list_checkpoints', { taskId, workspace }),
 };

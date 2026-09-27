@@ -39,6 +39,12 @@ const METHODS: &[&str] = &[
     "get_attribution_policy",
     "get_git_user_info",
     "format_commit_attribution",
+    "create_task_worktree",
+    "list_task_worktrees",
+    "remove_task_worktree",
+    "create_checkpoint",
+    "restore_checkpoint",
+    "list_checkpoints",
 ];
 
 pub fn supports(method: &str) -> bool {
@@ -114,8 +120,103 @@ pub fn call(
         "get_attribution_policy" => Ok(attribution_policy(&workspace)),
         "get_git_user_info" => Ok(git_user_info(&workspace)),
         "format_commit_attribution" => format_commit_attribution(&workspace, &params),
+        "create_task_worktree" => create_task_worktree(&workspace, &params),
+        "list_task_worktrees" => list_task_worktrees(&workspace),
+        "remove_task_worktree" => remove_task_worktree(&workspace, &params),
+        "create_checkpoint" => create_checkpoint(&workspace, &params),
+        "restore_checkpoint" => restore_checkpoint(&workspace, &params),
+        "list_checkpoints" => list_checkpoints(&workspace, &params),
         _ => Err(format!("unsupported runtime method: {method}")),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Worktree por task e checkpoints duráveis (supervisão de tasks).
+// ---------------------------------------------------------------------------
+
+fn create_task_worktree(workspace: &Path, params: &Value) -> Result<Value, String> {
+    let task_id = params
+        .get("taskId")
+        .or_else(|| params.get("task_id"))
+        .and_then(Value::as_str)
+        .ok_or("taskId is required")?;
+    let manager = crate::tools::worktree::WorktreeManager::new(workspace.to_path_buf());
+    let info = manager
+        .create(task_id)
+        .map_err(|error| error.to_string())?;
+    Ok(serde_json::to_value(&info).map_err(|error| error.to_string())?)
+}
+
+fn list_task_worktrees(workspace: &Path) -> Result<Value, String> {
+    let manager = crate::tools::worktree::WorktreeManager::new(workspace.to_path_buf());
+    let list = manager.list().map_err(|error| error.to_string())?;
+    Ok(json!({ "worktrees": list }))
+}
+
+fn remove_task_worktree(workspace: &Path, params: &Value) -> Result<Value, String> {
+    let task_id = params
+        .get("taskId")
+        .or_else(|| params.get("task_id"))
+        .and_then(Value::as_str)
+        .ok_or("taskId is required")?;
+    let force = params.get("force").and_then(Value::as_bool).unwrap_or(false);
+    let manager = crate::tools::worktree::WorktreeManager::new(workspace.to_path_buf());
+    manager.remove(task_id, force).map_err(|error| error.to_string())?;
+    Ok(json!({ "removed": true, "taskId": task_id }))
+}
+
+fn create_checkpoint(workspace: &Path, params: &Value) -> Result<Value, String> {
+    let task_id = params
+        .get("taskId")
+        .or_else(|| params.get("task_id"))
+        .and_then(Value::as_str)
+        .ok_or("taskId is required")?;
+    let message = params.get("message").and_then(Value::as_str).unwrap_or("");
+    let session_id = params
+        .get("sessionId")
+        .or_else(|| params.get("session_id"))
+        .and_then(Value::as_i64);
+    let turn_id = params
+        .get("turnId")
+        .or_else(|| params.get("turn_id"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let event_seq = params
+        .get("eventSeq")
+        .or_else(|| params.get("event_seq"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let store = crate::agent::checkpoint::CheckpointStore::for_workspace(workspace);
+    let checkpoint = store
+        .create(task_id, message, session_id, turn_id, event_seq)
+        .map_err(|error| error.to_string())?;
+    serde_json::to_value(&checkpoint).map_err(|error| error.to_string())
+}
+
+fn restore_checkpoint(workspace: &Path, params: &Value) -> Result<Value, String> {
+    let checkpoint_id = params
+        .get("checkpointId")
+        .or_else(|| params.get("checkpoint_id"))
+        .or_else(|| params.get("id"))
+        .and_then(Value::as_str)
+        .ok_or("checkpointId is required")?;
+    let store = crate::agent::checkpoint::CheckpointStore::for_workspace(workspace);
+    let checkpoint = store
+        .restore(checkpoint_id)
+        .map_err(|error| error.to_string())?;
+    serde_json::to_value(&checkpoint).map_err(|error| error.to_string())
+}
+
+fn list_checkpoints(workspace: &Path, params: &Value) -> Result<Value, String> {
+    let task_id = params
+        .get("taskId")
+        .or_else(|| params.get("task_id"))
+        .and_then(Value::as_str);
+    let store = crate::agent::checkpoint::CheckpointStore::for_workspace(workspace);
+    let checkpoints = store
+        .list(task_id)
+        .map_err(|error| error.to_string())?;
+    Ok(json!({ "checkpoints": checkpoints }))
 }
 
 fn attribution_policy(workspace: &Path) -> Value {

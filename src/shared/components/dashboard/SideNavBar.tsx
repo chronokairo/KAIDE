@@ -39,6 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Engenharia & Harness',
     items: [
+      { id: 'tasks', label: 'Task Supervision', icon: 'monitor_heart', badge: 'Novo' },
       { id: 'patches', label: 'Patches & Diff Viewer', icon: 'difference' },
       { id: 'contexto', label: 'Contexto & Fragmentos', icon: 'format_list_bulleted' },
       { id: 'hooks', label: 'Sistema de Hooks', icon: 'webhook' },
