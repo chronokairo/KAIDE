@@ -28,6 +28,7 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0022](./adr/0022-migracao-hexagonal-sem-delecao.md) | Migração para arquitetura hexagonal sem deleção de código (strangler fig aditivo) | 2026-09-26 | Aceito |
 | [ADR-0023](./adr/0023-tui-edit-ux-gpu-detection-e-workspace-context.md) | Paridade de UX/UI com microsoft/edit, detecção de GPU via SMI e contexto de workspace no agente | 2026-09-26 | Aceito |
 | [ADR-0024](./adr/0024-roadmap-p0-mercado-validacao-e-implementacao.md) | Roadmap de paridade com o mercado: P0s validados com testes de integração e os 3 P0s restantes implementados | 2026-09-26 | Aceito (débitos abertos) |
+| [ADR-0025](./adr/0025-ckc-modo-edit-aider-para-llms-pequenos.md) | Modo edit (aider-like) no `ckc` CLI para LLMs pequenos: editar/autocompletar apenas o arquivo aberto, em vez de agent | 2026-09-26 | Aceito (débito aberto) |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.
@@ -37,3 +38,4 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 - **Wiring dos comandos Tauri ao núcleo `ckc`** (ADR-0005): casca `src-tauri/shell` deve chamar comandos do crate `ckc` (zero-lib) incrementalmente.
 - **Rotas de IA vindas do platform** (ADR-0005): `src/app/api/ai/*` e `ai-credentials` recém-recebidos aguardam cobertura de testes de integração e validação de CORS/auth nos caminhos públicos.
 - **Roadmap de features a partir dos changelogs do mercado** (2026-09-26): corpus, digests, suíte de validação dos P0s e os 3 P0s restantes registrados em [ADR-0024](./adr/0024-roadmap-p0-mercado-validacao-e-implementacao.md). Abertos: cargo check da casca no Linux (libdbus-1-dev), build estático Tauri × API routes, endpoint de releases do updater e histórico completo de changelogs (cursor/codex web/só-web).
+- **Modo edit (aider-like) no `ckc` CLI para LLMs pequenos** (2026-09-26): sem loop de agent — editar/autocompletar apenas o arquivo aberto no editor (active file binding do ADR-0023), formato por capacidade do modelo, escopo mínimo de permissões e backend p/ bridges de IDE. Detalhe em [ADR-0025](./adr/0025-ckc-modo-edit-aider-para-llms-pequenos.md).
