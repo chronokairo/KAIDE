@@ -400,6 +400,7 @@ dependencies = [
 [[package]]
 name = "ckc"
 version = "0.1.0"
+source = "git+https://gitlab.com/chronokairo/cli.git?tag=v0.1.0#ecb13c0049acc61de3c7799b9b08334206acd7a4"
 dependencies = [
  "libc",
  "ocl",

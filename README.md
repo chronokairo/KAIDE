@@ -36,8 +36,8 @@ Consolidação dos antigos `cli`, `desktop` e `ai` — histórico preservado nas
 - **OCR** (`src/modules/ocr`), **coding agent Kairos-Dev** (`src/modules/dev`) e repositórios de IA satélite (`bi`, `crm`, `financeiro`, `projetos`).
 
 ### Núcleo Rust zero-lib (desktop)
-- Crate `ckc` (`src-tauri/core`): agent, LLM, MCP, memory, skills, terminal, editor, tools, protocol, http, compressor, providers, app_server, async_rt, hw_recommend, image_gen — sem dependências externas.
-- Casca Tauri fina (`src-tauri/shell`) para execução desktop nativa.
+- Crate `ckc` / binário `ck` (repo `chronokairo/cli`, tag `v0.1.0`): agent, LLM, MCP, memory, skills, terminal, editor, tools, protocol, http, compressor, providers, app_server, async_rt, hw_recommend, image_gen — sem dependências externas.
+- Casca Tauri fina (`src-tauri/shell`) para execução desktop nativa, consumindo o `ckc` por git dependency.
 
 ### Telas de IA (data-screens)
 - `/ia` e subpáginas: agentes autônomos, automação inteligente, LLMs, modelos de IA, NLP e visão computacional.
@@ -62,8 +62,8 @@ chronokairo-ai/
 │   └── shared/               # Componentes/config compartilhados
 │
 ├── src-tauri/                # App desktop (Cargo workspace)
-│   ├── core/                 # Núcleo Rust zero-lib — crate `ckc` (fonte de verdade)
-│   └── shell/                # Casca Tauri fina (consome o ckc)
+│   ├── shell/                # Casca Tauri fina (consome o ckc de chronokairo/cli)
+│   └── intelligence/         # Harness de OSINT e Due Diligence
 │
 ├── tools/                    # 21 ferramentas de IA absorvidas (research, anamnesic, sandbox, ...)
 ├── docs/                     # Documentação — ADRs (docs/adr) e RAG (docs/rag)
@@ -74,7 +74,7 @@ chronokairo-ai/
 ```
 
 Princípios:
-- **Núcleo Rust zero-lib** (`src-tauri/core`, crate `ckc`): a lógica do agente/CLI é a fonte de verdade; o Tauri é apenas uma casca fina que a consome.
+- **Núcleo Rust zero-lib** (repo `chronokairo/cli`, crate `ckc` / binário `ck`): a lógica do agente/CLI é a fonte de verdade; o Tauri é apenas uma casca fina que a consome.
 - **Frontend Next** consome a **UI compartilhada** do platform (`@chronokairo/platform/ui`).
 - **Hexagonal**: domínio/casos de uso desacoplados de infraestrutura (ver `AGENTS.md`).
 
@@ -82,7 +82,10 @@ Princípios:
 
 O histórico dos repositórios originais foi preservado como branches:
 - `main` — monorepo unificado (este layout).
-- `cli` — histórico do antigo `chronokairo/cli` (crate Rust zero-lib).
+- `cli` — histórico do antigo `chronokairo/cli` (crate Rust zero-lib). Esse
+  código virou o repo próprio [`chronokairo/cli`](https://gitlab.com/chronokairo/cli)
+  (ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md)); a branch
+  fica aqui só como arquivo histórico.
 - `desktop` — histórico do antigo `chronokairo/desktop` (Next + Tauri).
 
 ## 🚀 Desenvolvimento

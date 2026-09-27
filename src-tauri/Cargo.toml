@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["core", "shell", "intelligence"]
+members = ["shell", "intelligence"]
 
-# Núcleo: crate zero-lib `ckc` (core) — fonte de verdade do código Rust.
 # Inteligência: crate `intelligence` (OSINT & Due Diligence Harness).
-# Casca: crate `shell` (Tauri) que consome o núcleo e inteligência.
+# Casca: crate `shell` (Tauri) que consome a inteligência e o núcleo zero-lib
+# `ckc`, que mora no repo próprio `chronokairo/cli` (ver ADR-0027).
 
 [profile.release]
 opt-level = "s"

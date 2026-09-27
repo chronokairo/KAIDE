@@ -4,7 +4,7 @@
 
 Todos os P0s de fundação foram implementados e validados (19 capabilities + worktree/checkpoints,
 tela de task supervision e distribuição/auto-update): 31 testes de integração em
-`src-tauri/core/tests/p0_*.rs`, suíte completa verde (519 unit + 31 integração).
+`chronokairo/cli` → `tests/p0_*.rs`, suíte completa verde (519 unit + 31 integração).
 Registro: [ADR-0024](docs/adr/0024-roadmap-p0-mercado-validacao-e-implementacao.md) ·
 Entregas no [CHANGELOG](CHANGELOG.md) (2026-09-26).
 

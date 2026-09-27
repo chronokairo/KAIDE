@@ -1,7 +1,7 @@
 # Mapa de APIs do núcleo `ckc` — LLM, Providers, MCP, Memória, Skills, Compressor, Protocolo e App-Server
 
 > Gerado em 2026-09-26 como subsídio para os testes de integração dos P0s de mercado (`TODO.md` — "P0 — Coding agent de mercado").
-> Crate: `src-tauri/core` (`ckc`, zero-lib). Todos os módulos são `pub mod` via `lib.rs` (`ckc::llm::...`, `ckc::mcp::...`, etc.).
+> Crate: `chronokairo/cli` → `ckc` (zero-lib), binário `ck`. Todos os módulos são `pub mod` via `lib.rs` (`ckc::llm::...`, `ckc::mcp::...`, etc.).
 
 **Infra compartilhada** (`src/error.rs`, `src/http/`, `src/async_rt/`):
 

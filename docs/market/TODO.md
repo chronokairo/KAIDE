@@ -2,7 +2,7 @@
 
 **Data:** 26 de setembro de 2026
 **Corpus:** 23 changelogs baixados em [`docs/market/changelogs/`](changelogs/) — janela dominante mai–set/2026 (tabela de cobertura ao final).
-**Método:** digests dos changelogs cruzados com o que o repo já rastreia em `docs/desktop-gap-analysis-2026.md` (D01–D22), `src-tauri/core/docs/adr/0015-competitive-backlog.md` (C1–C9, R1–R3), `src-tauri/core/docs/gap-analysis-*-2026-08.md` e `src-tauri/core/TODO.md`. Itens já cobertos nesses documentos **não são duplicados** — este TODO registra apenas **deltas novos** e refinamentos com evidência de mercado.
+**Método:** digests dos changelogs cruzados com o que o repo já rastreia em `docs/desktop-gap-analysis-2026.md` (D01–D22), `chronokairo/cli` → `docs/adr/0015-competitive-backlog.md` (C1–C9, R1–R3), `chronokairo/cli` → `docs/gap-analysis-*-2026-08.md` e `chronokairo/cli` → `TODO.md`. Itens já cobertos nesses documentos **não são duplicados** — este TODO registra apenas **deltas novos** e refinamentos com evidência de mercado.
 
 **Prioridades:** P1 = paridade obrigatória em 2026 / risco competitivo; P2 = diferencial competitivo; P3 = acompanhamento.
 
@@ -19,7 +19,7 @@
 9. **Custos/telemetria de primeira classe**: TTFT e tok/s por mensagem, cache hit-ratio com diagnóstico de miss, dashboards de uso e orçamento por org/goal/subagente.
 10. **Dial de esforço/modelo substitui escolha manual**: low→ultra (Amp), tier Auto (Copilot), roteamento por turno (Kiro Jev), reasoning effort por chamada (Qwen/Crush/Aider).
 
-## TODO — núcleo `ckc` (`src-tauri/core`)
+## TODO — núcleo `ckc` (repo `chronokairo/cli`)
 
 - [ ] **A1 (P1) Classificador de risco no approval gate**: risco de tool call avaliado por LLM de 1 token, evidência persistente que sobreviva a compaction, aprovação invalidada quando permissões forem ampliadas. [Codex Guardian V2, 0.150→0.157; Claude Code auto mode server-side, 2.1.257/2.1.278]
 - [ ] **A2 (P1) Governança de subagentes**: limite de profundidade (subagentes não aninham subagentes por padrão), permissões próprias por subagente, allowlist explícita de tools por subagente, caps de concorrência/spawns/WebSearch por sessão. [OpenCode v1.18.2/v1.17.2; Qwen 0.23.4; Claude Code 2.1.232/2.1.212]
