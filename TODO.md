@@ -29,6 +29,37 @@ Pendente (P0 de mercado ainda não implementado):
 - [x] Tela canônica de task supervision (timeline, árvore de agentes, approvals, terminal, checks, diff) — `src/modules/ai/components/TaskSupervisionScreen.tsx`: status derivado (`running/attention/failed/complete`), timeline de eventos, subagentes, checks, arquivos alterados, tokens, approvals inline (allow_once/allow_session/deny), diff/patch embutido e worktrees/checkpoints via runtime; nav `tasks` em NAV_GROUPS + case em `src/app/page.tsx`; cliente em `src/modules/dev/harness/agent.ts`
 - [x] Distribuição e auto-update validados (NSIS/updater) — `src-tauri/tauri.conf.json`: targets nsis+appimage+deb, `createUpdaterArtifacts`, `plugins.updater` com pubkey real (keypair em `~/.chronokairo/keys/chronokairo-updater.key[.pub]`, privado fora do repo); casca: `tauri-plugin-updater`+`tauri-plugin-process`, comandos `check_for_updates`/`install_update` (`src-tauri/shell/src/lib.rs`); permissão `updater:default`. Débitos remanescentes registrados no ADR_LOG (cargo check Linux precisa libdbus-1-dev; build estático Tauri ainda incompatível com API routes)
 
+## P1 — Coding agent de mercado (detalhe e fontes em `docs/market/TODO.md`)
+
+Núcleo `ckc`:
+
+- [ ] **A1** Classificador de risco no approval gate — risco da tool call avaliado por LLM (1 token), evidência persistente que sobreviva a compaction, aprovação invalidada ao ampliar permissões [Codex Guardian V2; Claude Code auto mode] — base: `AgentHooks.require_approval`, `tools/exec_policy.rs`
+- [ ] **A2** Governança de subagentes — sem aninhamento por padrão, permissões próprias, allowlist de tools por subagente, caps de concorrência/spawns/WebSearch por sessão [OpenCode v1.18; Qwen 0.23.4; Claude Code 2.1.232] — base: `agent/subagent.rs`
+- [ ] **A3** Compaction econômica — microcompactação preservando prompt-cache, resume por boundary de compaction, checkpoint no compaction, modelo dedicado configurável [Qwen 0.23.0; Codex 0.150/0.155; Zed `compaction_model`] — base: `compressor/`, `memory/short_term.rs`
+- [ ] **A4** Cliente MCP 2026-07-28 — OAuth com refresh (RFC 9207/CIMD), tool search paginado + deferred loading, startup não bloqueante, `output_token_limit` por tool, resource templates, abort signals [Claude Code 2.1.274/2.1.283; Codex 0.147/0.152; Gemini CLI v0.60] — base: `mcp/mod.rs`
+- [ ] **A5** Sandbox fail-closed — rede imposta em redirects/HTTP-WS contínuos com cancelamento na revogação, mascaramento de credenciais no egress (JWT/SigV4), regra "containment escape" [Codex 0.156/0.157; Claude Code 2.1.224] — base: `tools/sandbox.rs`, `tools/shell.rs`
+
+Protocolo e multi-superfície:
+
+- [ ] **B1** ACP como porta universal — expor o `ckc` como ACP server e consumir harnesses externos (Claude Code/Codex/goose) como backends orquestráveis; elicitação/question via ACP [Zed v1.12/v1.17; Goose ACP; Kiro Crew 0.7.0] — base: `mcp/server.rs`, `protocol/`
+- [ ] **B2** Daemon app-server compartilhado — lifecycle de daemon (auto-start, updates geridos), sessões compartilhadas entre TUI/IDE/desktop [Codex 0.154–0.157] — base: `app_server/`
+
+Shell desktop (Tauri):
+
+- [ ] **C1** Console de supervisão/fleet — kanban de sessões com estados ("aguardando confirmação"), stop de subagente individual, indicador de subagentes ativos, modelo/reasoning por missão, milestones com validação [Windsurf Command Center 3.7–3.10; Factory Mission Control; Codex 0.156] — base: `TaskSupervisionScreen.tsx`
+- [ ] **C2** UX de checkpoints/rewind — verificação de backups antes de restaurar, navegação anterior/próximo entre checkpoints no chat, "view changes" ao concluir task [Claude Code 2.1.265; Roo Code 3.53.0; Cline 4.1.7] — base: `agent/checkpoint.rs`
+
+Autonomia e review:
+
+- [ ] **D1** Fila durável de tasks/workflows — journal/WAL de sessão que sobreviva a restarts [Kiro Crew 0.7.0; Qwen Managed Runtime v2] — base: `protocol/event_log.rs`
+- [ ] **D2** Gatilhos event-driven — watch de PR (GitHub/GitLab/Bitbucket/Azure DevOps) com comentários de review alimentando o agente, agendamentos, comentários do time [Cursor Subscriptions 2026-08-19; Kilo PR watches 7.5.16+; OpenHands automations]
+
+Plataforma, segurança e governança:
+
+- [ ] **E1** Supply-chain de plugins/skills — pin sha256 da origem, npm `--ignore-scripts` + verificação de integridade, validação de manifesto, evals de plugin com relatório pontuado, marketplace com allowlist enterprise [Claude Code 2.1.269–2.1.281; Codex 0.150; Cline 4.1.12] — base: `skills/mod.rs`
+- [ ] **E2** Managed settings fail-closed — políticas geridas só apertam (nunca afrouxam), `availableModelsMatch: "exact"` + `deniedModels`, sandbox floor corporativo [Claude Code 2.1.283/2.1.280; Copilot CLI 1.0.76/1.0.87] — base: `config/settings.rs`
+- [ ] **E3** Segredos e arquivos sensíveis — aprovação explícita para ler `.env`/chaves/certificados, não carregar `.env` automaticamente, redaction em telemetria [Augment 2026-09-14; Kiro CLI 2.24; Goose 1.49] — base: `tools/sandbox.rs` (`denied_patterns`)
+
 ## P0 — Refatoração ChronoKairo AI
 
 - [ ] Substituir o branding Athena pela identidade ChronoKairo AI.
