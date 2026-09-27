@@ -18,5 +18,6 @@ pub mod test;
 pub mod transaction;
 pub mod unicode;
 pub mod web;
+pub mod worktree;
 pub mod wrap;
 pub mod pdf_translator;

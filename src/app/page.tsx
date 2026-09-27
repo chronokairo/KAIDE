@@ -8,6 +8,7 @@ import { TerminalBottomPanel } from '@/shared/components/dashboard/TerminalBotto
 import { useLayoutPanels } from '@/providers/LayoutPanelsProvider';
 import { useHarnessMode } from '@/providers/HarnessModeProvider';
 import { useHarnessOverview } from '@/modules/dev/hooks/useHarness';
+import { TaskSupervisionScreen } from '@/modules/ai/components/TaskSupervisionScreen';
 
 // Core View Components
 import { AiChatInterface } from '@/modules/ai/components/AiChatInterface';
@@ -160,6 +161,14 @@ export default function DesktopHome() {
         return (
           <div className="p-6 h-full overflow-y-auto max-w-6xl mx-auto w-full">
             <IntelligencePanel />
+          </div>
+        );
+
+      case 'tasks':
+      case 'task-supervision':
+        return (
+          <div className="h-full max-w-6xl mx-auto w-full">
+            <TaskSupervisionScreen />
           </div>
         );
 

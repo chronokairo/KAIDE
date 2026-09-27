@@ -87,8 +87,17 @@ Este repositório consolida `cli`, `desktop`, `ai` e as ferramentas de desenvolv
 | [0021](docs/adr/0021-absorcao-ia-projetos-crm-e-satelites.md) | Absorção das capacidades de IA satélites (projects, crm, bi, marketing, legal, ...) |
 | [0022](docs/adr/0022-migracao-hexagonal-sem-delecao.md) | Migração para arquitetura hexagonal sem deleção de código |
 
+### Mapas de código — `docs/maps/`
+
+| Mapa | Conteúdo |
+| --- | --- |
+| [ckc-agent-tools-api.md](docs/maps/ckc-agent-tools-api.md) | APIs públicas do núcleo `ckc`: agente (loop, hooks, subagentes, estado, registry), tools (fs, shell, patch, git, sandbox, exec_policy, background, picker) e repo (contexto, AGENTS.md, scanner) |
+| [ckc-llm-server-api.md](docs/maps/ckc-llm-server-api.md) | APIs do núcleo `ckc`: LLM (client/streaming, router, provider_chain, prompts), providers (catálogo, store), MCP, memória, skills, compressor, protocolo (Op/EventMsg/event log) e app-server headless |
+| [frontend-dev-harness-ui.md](docs/maps/frontend-dev-harness-ui.md) | UI do dev harness: navegação (NAV_GROUPS), runtime do agente no frontend (transport, agentClient, hooks, tipos), componentes, casca Tauri atual e receita para a task supervision |
+
 ### TODOs
 
 - [`TODO.md`](TODO.md) — débitos técnicos e melhorias do backend RAG (segurança, performance, arquitetura, testes, DevOps).
 - [`src-tauri/core/TODO.md`](src-tauri/core/TODO.md) — pendências do núcleo Rust `ckc`.
+- [`docs/market/TODO.md`](docs/market/TODO.md) — paridade com coding agents de mercado (CLI e desktop), derivada dos changelogs em `docs/market/changelogs/`.
 - [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).
