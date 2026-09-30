@@ -26,7 +26,9 @@
               ((string= arg "--telegram-test") (setf telegram-test t cli t))
               ((or (string= arg "--help") (string= arg "-h"))
                (format t "Usage: forgepair.sh [--prompt REQUEST] [--cli] [--mock] [--telegram-test]~%~
-Single provider from config.sexp. The executor works in the project folder where the binary was opened.~%")
+Single provider from config.sexp. The executor works in the project folder where the binary was opened.~%~
+Optional local decider (evidence-based validation): set DECIDER_URL or run~%~
+llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.md.~%")
                (sb-ext:exit :code 0))
               (t (error "unknown option: ~A" arg)))))
     (list :cli cli :mock mock
@@ -47,6 +49,20 @@ Single provider from config.sexp. The executor works in the project folder where
     (let ((provider (provider-definition nil)))
       (assert (string= (getf provider :key-env) "OPENROUTER_API_KEY"))
       (assert (string= (getf provider :model) "deepseek/deepseek-v4.1-flash")))
+    ;; Decider: prompt shape and graceful degradation with no server configured
+    (let ((prompt (decider-prompt "state text" "pergunta?" '("sim" "nao"))))
+      (assert (search "Question: pergunta?" prompt))
+      (assert (search "(A) sim" prompt))
+      (assert (search "(B) nao" prompt))
+      (assert (search "Answer: (" prompt)))
+    (multiple-value-bind (ok note)
+        (validate-evidence nil nil "fiz algo" "saida nao vazia")
+      (assert ok)
+      (assert (search "heuristica" note)))
+    (multiple-value-bind (ok note)
+        (validate-evidence nil nil "" "")
+      (declare (ignore note))
+      (assert (not ok)))
     (format t "forgepair self-test: ok~%")))
 
 (defun run-entrypoint ()
@@ -89,7 +105,11 @@ Single provider from config.sexp. The executor works in the project folder where
                         ;; Session: the SAME Telegram chat as the output.
                         (session-port (and tg-token tg-chat-id-fn
                                           (make-telegram-session-port tg-token
-                                                                      tg-chat-id-fn))))
+                                                                      tg-chat-id-fn)))
+                        ;; Local decider (evidence-based validation). Opt-in and
+                        ;; silent: if nothing answers at decider-url, validate-
+                        ;; evidence falls back to its non-decider heuristic.
+                        (decider-port (make-local-decider-port (decider-url credentials))))
                    (when tg-token
                      (format t "~&Telegram: modo chat ativo — a conversa (voce, turnos e ferramentas) vai para o mesmo chat.~%")
                      (force-output))
@@ -99,6 +119,7 @@ Single provider from config.sexp. The executor works in the project folder where
                                provider
                                (make-http-provider-port credentials)
                                (make-sandbox-command-port *work-dir*)
+                               decider-port
                                output-port
                                (make-notes-port)
                                prompt-port

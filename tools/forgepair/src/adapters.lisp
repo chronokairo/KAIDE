@@ -86,6 +86,96 @@
                       ((and reasoning (> (length reasoning) 0)) reasoning)
                       (t "")))))))
 
+;;; Local decider adapter (zero-lib: plain curl to a local llama.cpp server).
+;;;
+;;; A "decider" model (see Mapika/decider-2b-GGUF) is not a chat model: it
+;;; reads a state and a typed question with an explicit option list, and the
+;;; answer is the option letter with the highest logit at one fixed position,
+;;; never generated free text. This mirrors that readout contract (the
+;;; "state_first" layout documented on the model card) over llama.cpp's native
+;;; /completion endpoint, asking for exactly one token with its top candidate
+;;; probabilities (n_probs).
+
+(defun decider-prompt (state question options)
+  "Build a decider-style state-first prompt ending right before the answer
+letter, matching the Mapika/decider readout contract."
+  (with-output-to-string (out)
+    (format out "Context:~%~A~%~%Question: ~A~%Options:~%" state question)
+    (loop for option in options
+          for letter from (char-code #\A)
+          do (format out "(~C) ~A~%" (code-char letter) option))
+    (format out "Answer: (")))
+
+(defun decider-candidate-prob (candidates letter-string)
+  "CANDIDATES is the JSON array llama.cpp's /completion returns under
+completion_probabilities[0].probs when n_probs is set: a list of objects,
+each naming one top candidate token (\"tok_str\" in current llama.cpp builds;
+some older/newer builds use \"token\" or \"text\") with its \"prob\" (or
+\"probability\"). Tries the known field-name variants and returns 0 if none
+of them are found, rather than signalling — a shape change degrades this one
+question to its lowest score instead of dropping the whole decider."
+  (loop for candidate in candidates
+        for tok = (or (field "tok_str" candidate) (field "token" candidate)
+                      (field "text" candidate))
+        when (and tok (string= tok letter-string))
+          return (or (field "prob" candidate) (field "probability" candidate) 0.0d0)
+        finally (return 0.0d0)))
+
+(defun decider-call (url state questions)
+  "One curl round-trip per question (decider prompts are short; batching is not
+worth the added complexity here). Returns a list of plists
+(:question :choice :confidence), skipping any question whose request fails,
+or NIL if every question failed (server unreachable, model not loaded)."
+  (let ((answers
+          (loop for q in questions
+                for question = (getf q :question)
+                for options = (getf q :options)
+                for prompt = (decider-prompt state question options)
+                for request = (merge-pathnames "decider-request.json" *runtime*)
+                for response = (merge-pathnames "decider-response.json" *runtime*)
+                for err = (merge-pathnames "decider.err" *runtime*)
+                append
+                (handler-case
+                    (progn
+                      (spit request
+                            (format nil "{\"prompt\":~A,\"n_predict\":1,\"n_probs\":8,\"temperature\":0.0}"
+                                    (json-string prompt)))
+                      (with-open-file (out response :direction :output :if-exists :supersede :if-does-not-exist :create)
+                        (with-open-file (error-stream err :direction :output :if-exists :supersede :if-does-not-exist :create)
+                          (unless (zerop (run-process "curl"
+                                                      (list "--fail-with-body" "--silent" "--show-error"
+                                                            "--connect-timeout" "3" "--max-time" "15"
+                                                            "-H" "Content-Type: application/json" "--data-binary"
+                                                            (format nil "@~A" (namestring request)) url)
+                                                      :output out :error error-stream))
+                            (error "decider request failed: ~A" (slurp error-stream)))))
+                      (let* ((document (parse-json (slurp response)))
+                             (entry (first (field "completion_probabilities" document)))
+                             (candidates (field "probs" entry))
+                             (scored (loop for letter from (char-code #\A)
+                                           for option in options
+                                           collect (cons option
+                                                         (decider-candidate-prob
+                                                          candidates (string (code-char letter))))))
+                             (best (first (sort (copy-list scored) #'> :key #'cdr))))
+                        (list (list :question question :choice (car best) :confidence (cdr best)))))
+                  (error () nil)))))
+    (and answers answers)))
+
+(defun make-local-decider-port (url)
+  "Decider adapter for a local llama.cpp server. Never signals: any failure
+(server not running, model not loaded, malformed response) is swallowed and
+surfaces as NIL, so callers (validate-evidence) degrade to their non-decider
+heuristic instead of blocking the session on optional local infrastructure.
+
+If DECIDE always returns NIL against a server you can confirm is running and
+serving the model, curl the endpoint by hand once (see docs/decider.md) and
+check decider-candidate-prob's field-name list matches your llama.cpp build."
+  (make-decider-port
+   :call (lambda (state questions)
+            (handler-case (decider-call url state questions)
+              (error () nil)))))
+
 (defun env-mask-args (&optional (dir *work-dir*))
   "Return bwrap args masking every .env* file with /dev/null so agent commands
 cannot read credentials, whatever the suffix (.env, .env.local, .env.dev...).

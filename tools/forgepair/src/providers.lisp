@@ -27,3 +27,28 @@
 
 (defun current-year-model-p (entry)
   (= (or (model-year entry) 0) (current-year)))
+
+;;; Local decider (evidence-based validation). Not a remote provider and not a
+;;; commodity catalog (rule 10) — a single local endpoint, opt-in, that the
+;;; session falls back from when it is not reachable. See ADR-0010 and
+;;; docs/decider.md for what to run and why.
+
+(defparameter *default-decider-url* "http://127.0.0.1:8080/completion"
+  "Endpoint of a local llama.cpp server hosting a Mapika \"decider\" GGUF
+(https://huggingface.co/Mapika/decider-2b-GGUF). Start it separately, e.g.:
+
+  llama-server -hf Mapika/decider-2b-GGUF:Q8_0 --port 8080
+
+Q8_0 (2.0 GB) is recommended over Q4_K_M (1.3 GB): the model card reports it
+as statistically equal to the unquantized weights, and it still leaves
+headroom on a 4 GB card. decider-0.8b-GGUF is a lighter fallback if VRAM is
+shared with another local model. Override with the DECIDER_URL environment
+variable; leave the server stopped to disable the decider entirely (validate-
+evidence then falls back to its non-decider heuristic — see
+application.lisp).")
+
+(defun decider-url (credentials)
+  "Resolve the decider endpoint from DECIDER_URL, or *DEFAULT-DECIDER-URL*
+when unset or empty."
+  (let ((value (ignore-errors (funcall (credential-port-get credentials) "DECIDER_URL"))))
+    (if (and value (> (length (trim value)) 0)) value *default-decider-url*)))

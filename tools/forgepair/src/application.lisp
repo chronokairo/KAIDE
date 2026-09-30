@@ -85,16 +85,42 @@ the final JSON reply (or NIL if the tool budget was exhausted)."
                   (values (if err nil reply) transcript)))))))
     (values nil transcript)))
 
-(defun validate-evidence (executor-output improver-output)
-  "Validate by real evidence: non-empty git diff in the project, or exit code 0
-from the last command. Returns (values executor-ok improver-ok note)."
-  ;; For now, just check that executor produced output
-  (let ((executor-ok (and executor-output (not (string= (trim executor-output) ""))))
-        (improver-ok t)  ; no improver role anymore
-        (note ""))
-    (values executor-ok improver-ok note)))
+(defun evidence-state (executor-message executor-output diff)
+  "Build the text a decider (or a human) would read to judge whether real work
+happened: the executor's own summary, the tail of its tool transcript (which
+carries the [exit N] markers make-sandbox-command-port appends), and a git
+diff taken in the project directory."
+  (format nil "Executor message: ~A~%~%Tool transcript (tail):~%~A~%~%git diff --stat:~%~A"
+          executor-message
+          (let ((out (trim (or executor-output ""))))
+            (if (> (length out) 2000) (subseq out (- (length out) 2000)) out))
+          (trim (or diff ""))))
 
-(defun run-session (config provider provider-port executor-command-port
+(defun validate-evidence (decider-port command-port executor-message executor-output)
+  "Validate by real evidence. When a local decider is configured (see
+make-local-decider-port), ask it a typed yes/no question grounded in a git
+diff and the tool transcript, instead of guessing from a narrative — this is
+rule 12 (judge by evidence, not a model guessing whether a role 'looked
+busy'). Falls back to the non-empty-output heuristic when no decider answers
+(llama-server not running, no .git in the work dir, etc.) so the session never
+blocks on optional local infrastructure.
+Returns (values executor-ok note)."
+  (let* ((diff (and command-port
+                    (ignore-errors (execute-command command-port "git diff --stat 2>/dev/null"))))
+         (state (evidence-state executor-message executor-output diff))
+         (answers (decide decider-port state
+                          (list (list :question
+                                      "O diff e o transcript mostram trabalho real: mudancas de codigo nao vazias, nao apenas leitura, e nao revertidas?"
+                                      :options '("sim" "nao"))))))
+    (if answers
+        (let ((answer (first answers)))
+          (values (string= (getf answer :choice) "sim")
+                  (format nil "(decider: ~A, confianca ~,2F)"
+                          (getf answer :choice) (or (getf answer :confidence) 0.0d0))))
+        (values (and executor-output (not (string= (trim executor-output) "")))
+                "(heuristica: saida do executor nao-vazia; decider indisponivel)"))))
+
+(defun run-session (config provider provider-port executor-command-port decider-port
                     output-port notes-port prompt-port
                     &key cli mock session-port on-start)
   (let* ((rules (slurp (merge-pathnames "AGENTS.md" *root*)))
@@ -121,9 +147,10 @@ from the last command. Returns (values executor-ok improver-ok note)."
           (multiple-value-setq (executor-message executor-output)
             (run-executor mock provider-port provider rules request history
                           (notes-text notes-port) feedback executor-command-port session-port))
-          ;; Validate by evidence (git diff, exit codes)
-          (multiple-value-bind (executor-ok improver-ok note)
-              (validate-evidence executor-output "")
+          ;; Validate by evidence (git diff, exit codes; local decider if configured)
+          (multiple-value-bind (executor-ok note)
+              (validate-evidence decider-port executor-command-port
+                                 executor-message executor-output)
             (render-turn output-port
                          (format nil "Executor(~A)" (getf provider :label))
                          executor-message "[tool chain]" executor-output)
