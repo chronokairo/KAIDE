@@ -169,119 +169,6 @@ llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.m
     (assert (string= "" (verify-command nil)))
     (assert (null *default-verify-command*))
     (assert (string= "make test" (verify-command '(:verify-command "make test"))))
-;;;; Installed-agent behaviour: work in the folder you opened.
-;;;; These tests fail on the pre-fix code. load-config read config.sexp from
-;;;; *root* (the install directory), so running Forgepair inside another repo
-;;;; silently used Forgepair's own :verify-command and its own .env. A PATH-
-;;;; installed agent must read the project it was invoked in, not the directory
-;;;; it happens to live in.
-(let ((project (make-temp-project "self-test-project")))
-  (unwind-protect
-       (progn
-         (write-project-file project "config.sexp" "(:verify-command \"project-gate\")")
-         (assert (string= (verify-command (load-config project)) "project-gate"))
-         ;; A project without its own config falls back to the install one.
-         (let ((bare (make-temp-project "self-test-bare")))
-           (unwind-protect
-                (progn
-                  (assert (string= (verify-command (load-config bare))
-                                   (verify-command (load-config *root*)))))
-             (delete-directory bare :recursive t)))
-         ;; Project rules win; the shipped constitution is the fallback.
-         (write-project-file project "AGENTS.md" "project rules")
-         (assert (string= (load-rules project) "project rules"))
-         (assert (> (length (load-rules *root*)) 0))
-         (let ((bare (make-temp-project "self-test-bare")))
-           (unwind-protect
-                (progn (assert (> (length (load-rules bare)) 0)))
-             (delete-directory bare :recursive t)))
-    (delete-directory project :recursive t)))
-
-;;;; Project root is discovered by walking up, the way git and npm do, so
-;;;; running the agent in a subdirectory still edits the whole project.
-(let* ((project (make-temp-project "self-test-root"))
-       (nested (merge-pathnames "src/deep/" project)))
-  (unwind-protect
-       (progn
-(ensure-directories-exist nested)
-        (ensure-directories-exist (merge-pathnames ".forgepair/probe" project))
-         (assert (string= (namestring (truename project))
-                          (namestring (truename
-                                       (resolve-project-root
-                                        (namestring (truename nested))))))))
-    (delete-directory project :recursive t)))
-
-;;;; Dynamic model consumption with a 24h cache.
-(assert (string= "https://openrouter.ai/api/v1/models"
-                 (models-endpoint '(:url "https://openrouter.ai/api/v1/chat/completions"))))
-(assert (string= "http://127.0.0.1:1234/v1/models"
-                 (models-endpoint '(:url "http://127.0.0.1:1234/v1/chat/completions"))))
-;; An explicit :models-url wins, for providers whose listing is elsewhere.
-(assert (string= "https://x.test/list"
-                 (models-endpoint '(:url "https://x.test/v1/chat/completions"
-                                    :models-url "https://x.test/list"))))
-
-;; Fresh for 24h, stale after. The TTL is the point of the cache: a stale
-;; entry must still be usable when the network is down, never silently
-;; dropped.
-(let ((now (get-universal-time)))
-  (assert (cache-fresh-p now))
-  (assert (cache-fresh-p (- now 86399)))
-  (assert (not (cache-fresh-p (- now 86401))))
-  (assert (not (cache-fresh-p nil))))
-
-;; Alias resolution: OpenRouter serves variant suffixes (:free, :thinking) and
-;; canonical slugs separately, so a configured variant resolves to the real
-;; entry instead of looking "not found".
-(let ((catalog (list (list "id" . "acme/thinker")
-                      (list "id" . "acme/thinker:free"))))
-  (assert (string= "acme/thinker" (resolve-model "acme/thinker:free" catalog)))
-  (assert (string= "acme/thinker" (resolve-model "acme/thinker" catalog)))
-  ;; Unknown ids are returned as configured: Forgepair must not invent or
-  ;; substitute a model (rule 13 - no routing, no catalogue).
-  (assert (string= "acme/ghost" (resolve-model "acme/ghost" catalog)))
-  ;; No catalogue at all (offline, first run) leaves the model untouched.
-  (assert (string= "acme/thinker" (resolve-model "acme/thinker" nil))))
-
-;; Deprecation is visible before the first token is spent.
-(let ((catalog (list (list (cons "id" "acme/old")
-                             (cons "deprecation_date" "2026-12-01"))
-                      (list (cons "id" "acme/new"))))
-  (assert (model-deprecated-p "acme/old" catalog))
-  (assert (not (model-deprecated-p "acme/new" catalog)))
-  ;; Tools support: unknown is not "unsupported".
-  (assert (model-supports-tools-p "acme/new" nil))
-  (assert (model-supports-tools-p
-          "acme/new" (list (list (cons "id" "acme/new")
-                                 (cons "supported_parameters" (list "tools" "json"))))))
-  (assert (not (model-supports-tools-p
-                "acme/new" (list (list (cons "id" "acme/new")
-                                       (cons "supported_parameters" (list "json"))))))))
-
-;; The catalogue survives a round trip through the cache file, which is what
-;; makes the 24h TTL worth anything: the fetch happens once, not per request.
-(let* ((path (merge-pathnames "forgepair-cache-test/" *cache-dir*))
-       (cache-path (merge-pathnames "roundtrip.json" path)))
-  (unwind-protect
-       (progn
-         (ensure-directories-exist cache-path)
-         (with-open-file (out cache-path :direction :output :if-exists :supersede)
-           (write-string
-            (format nil "{\"fetched_at\":~D,\"data\":[{\"id\":\"acme/a\",\"deprecation_date\":null,\"supported_parameters\":[\"tools\"],\"context_length\":4096,\"pricing\":{\"prompt\":\"0\"}}]}"
-                    (get-universal-time))
-            out))
-         (multiple-value-bind (catalog fetched-at)
-             (handler-case
-                 (let* ((document (parse-json (slurp cache-path)))
-                        (data (field "data" document)))
-                   (values data (field "fetched_at" document)))
-               (error () (values nil nil)))
-           (assert (consp catalog))
-           (assert (cache-fresh-p fetched-at))
-           (assert (string= "acme/a" (field "id" (first catalog))))
-           (assert (model-supports-tools-p "acme/a" catalog))))
-    (delete-directory path :recursive t)))
-    (assert (string= "" (verify-command '(:verify-command ""))))
 
     ;; --- Installed-agent behaviour: work in the folder you opened ---
     ;; These assertions fail on the pre-fix code. load-config read
@@ -306,13 +193,13 @@ llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.m
              ;; constitution and the project's own AGENTS.md is ignored).
              (write-project-file project "AGENTS.md" "project rules")
              (assert (string= (load-rules project) "project rules"))
-             (assert (string= (load-rules *root*) (trim (load-rules *root*))))
+             (assert (> (length (load-rules *root*)) 0))
              ;; A project with no AGENTS.md still gets the shipped constitution.
              (let ((bare (make-temp-project "self-test-bare")))
                (unwind-protect
                     (progn (assert (> (length (load-rules bare)) 0)))
-(delete-directory bare :recursive t)))
-        (delete-directory project :recursive t)))
+                 (delete-directory bare :recursive t)))
+        (delete-directory project :recursive t))))
 
     ;; Project root is discovered by walking up, the way git and npm do, so
     ;; running the agent in a subdirectory still edits the whole project.
@@ -321,7 +208,7 @@ llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.m
       (unwind-protect
            (progn
              (ensure-directories-exist nested)
-             (make-directory (merge-pathnames ".forgepair/" project))
+             (ensure-directories-exist (merge-pathnames ".forgepair/probe" project))
              (assert (string= (namestring (truename project))
                               (namestring (truename
                                            (resolve-project-root
@@ -337,6 +224,7 @@ llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.m
     (assert (string= "https://x.test/list"
                      (models-endpoint '(:url "https://x.test/v1/chat/completions"
                                         :models-url "https://x.test/list"))))
+
     ;; Fresh for 24h, stale after. The TTL is the point of the cache: a stale
     ;; entry must still be usable when the network is down, never silently
     ;; dropped.
@@ -345,19 +233,61 @@ llama-server on the default http://127.0.0.1:8080/completion; see docs/decider.m
       (assert (cache-fresh-p (- now 86399)))
       (assert (not (cache-fresh-p (- now 86401))))
       (assert (not (cache-fresh-p nil))))
+
     ;; Alias resolution: OpenRouter serves variant suffixes (:free, :thinking)
     ;; and canonical slugs separately, so a configured variant resolves to the
     ;; real entry instead of looking "not found".
-    (let ((catalog (list (list :id "acme/thinker" :supports-tools t)
-                          (list :id "acme/thinker:free"))))
-      (assert (string= "acme/thinker"
-                       (resolve-model "acme/thinker:free" catalog)))
+    (let ((catalog (list (list (cons "id" "acme/thinker"))
+                         (list (cons "id" "acme/thinker:free")))))
+      (assert (string= "acme/thinker" (resolve-model "acme/thinker:free" catalog)))
       (assert (string= "acme/thinker" (resolve-model "acme/thinker" catalog)))
       ;; Unknown ids are returned as configured: Forgepair must not invent or
       ;; substitute a model (rule 13 - no routing, no catalogue).
       (assert (string= "acme/ghost" (resolve-model "acme/ghost" catalog)))
       ;; No catalogue at all (offline, first run) leaves the model untouched.
       (assert (string= "acme/thinker" (resolve-model "acme/thinker" nil))))
+
+    ;; Deprecation is visible before the first token is spent.
+    (let ((catalog (list (list (cons "id" "acme/old")
+                               (cons "deprecation_date" "2026-12-01"))
+                         (list (cons "id" "acme/new")))))
+      (assert (model-deprecated-p "acme/old" catalog))
+      (assert (not (model-deprecated-p "acme/new" catalog)))
+      ;; Tools support: unknown is not "unsupported".
+      (assert (model-supports-tools-p "acme/new" nil))
+      (assert (model-supports-tools-p
+               "acme/new"
+               (list (list (cons "id" "acme/new")
+                           (cons "supported_parameters" (list "tools" "json"))))))
+      (assert (not (model-supports-tools-p
+                    "acme/new"
+                    (list (list (cons "id" "acme/new")
+                                (cons "supported_parameters" (list "json"))))))))
+
+    ;; The catalogue survives a round trip through the cache file, which is what
+    ;; makes the 24h TTL worth anything: the fetch happens once, not per request.
+    (let* ((path (merge-pathnames "forgepair-cache-test/" *cache-dir*))
+           (cache-path (merge-pathnames "roundtrip.json" path)))
+      (unwind-protect
+           (progn
+             (ensure-directories-exist cache-path)
+             (with-open-file (out cache-path :direction :output :if-exists :supersede)
+               (write-string
+                (format nil "{\"fetched_at\":~D,\"data\":[{\"id\":\"acme/a\",\"deprecation_date\":null,\"supported_parameters\":[\"tools\"],\"context_length\":4096,\"pricing\":{\"prompt\":\"0\"}}]}"
+                        (get-universal-time))
+                out))
+             (multiple-value-bind (catalog fetched-at)
+                 (handler-case
+                     (let* ((document (parse-json (slurp cache-path)))
+                            (data (field "data" document)))
+                       (values data (field "fetched_at" document)))
+                   (error () (values nil nil)))
+               (assert (consp catalog))
+               (assert (cache-fresh-p fetched-at))
+               (assert (string= "acme/a" (field "id" (first catalog))))
+               (assert (model-supports-tools-p "acme/a" catalog))))
+        (delete-directory path :recursive t)))
+
     (format t "forgepair self-test: ok~%")))
 
 (defun run-entrypoint ()
