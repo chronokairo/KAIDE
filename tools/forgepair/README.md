@@ -234,7 +234,6 @@ src/domain.lisp           protocolo JSON, prompts e decisões puras
 src/ports.lisp            contratos dos adapters (inclui decider-port)
 src/providers.lisp        provider do executor e URL do decider local
 src/adapters.lisp         dotenv, curl, Bubblewrap, Telegram, decider local
-src/forgepair.lisp        implementação legada mantida como referência
 scripts/                  diagnósticos: reader, lint e balanceadores de parênteses
 config.sexp               provider do executor e :verify-command
 AGENTS.md                 constituição do agente (regras + executor)
