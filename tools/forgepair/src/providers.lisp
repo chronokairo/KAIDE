@@ -13,6 +13,27 @@
   "Return provider plist from CONFIG or *DEFAULT-PROVIDER*."
   (or (getf config :provider) *default-provider*))
 
+(defparameter *default-verify-command* nil
+  "The command Forgepair runs after each executor attempt to decide whether the
+attempt is acceptable. It must belong to the repository being worked on, not to
+the model: its exit code is evidence a model cannot argue with. Set
+:verify-command in config.sexp; set it to \"\" to run no mechanical gate (then
+conformance rests on the decider alone, if one is configured).
+
+NIL by default on purpose. A verification command guessed from the wrong
+repository is worse than none: it fails for reasons unrelated to the patch, and
+the agent burns every attempt chasing a defect that is not in its own diff.
+Guessing \"sbcl --script src/entrypoint.lisp\" would only be correct inside
+Forgepair itself, and Forgepair's config.sexp now states it explicitly.")
+
+(defun verify-command (config)
+  "Resolve the repository's own verification command from CONFIG, falling back to
+*DEFAULT-VERIFY-COMMAND*. Returns \"\" when none is configured, which callers read
+as 'no mechanical gate' rather than as a pass."
+  (let ((value (getf config :verify-command)))
+    (or (and (stringp value) value)
+        (or *default-verify-command* ""))))
+
 (defun current-year ()
   (nth 5 (multiple-value-list (decode-universal-time (get-universal-time)))))
 

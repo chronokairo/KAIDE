@@ -9,6 +9,10 @@
 (defparameter *max-tool-steps* 8
   "How many tool calls the executor may chain in a single run before the harness
 forcibly treats the reply as final (prevents an infinite tool loop).")
+(defparameter *max-executor-attempts* 3
+  "How many times the executor may try before the session reports failure. Past
+this the agent is not converging and another attempt just costs another model
+call against the same unresolved defect.")
 
 (defun mock-executor-call (context)
   (let ((step (incf *mock-step*)))
@@ -85,93 +89,233 @@ the final JSON reply (or NIL if the tool budget was exhausted)."
                   (values (if err nil reply) transcript)))))))
     (values nil transcript)))
 
-(defun evidence-state (executor-message executor-output diff)
-  "Build the text a decider (or a human) would read to judge whether real work
-happened: the executor's own summary, the tail of its tool transcript (which
-carries the [exit N] markers make-sandbox-command-port appends), and a git
-diff taken in the project directory."
-  (format nil "Executor message: ~A~%~%Tool transcript (tail):~%~A~%~%git diff --stat:~%~A"
-          executor-message
-          (let ((out (trim (or executor-output ""))))
-            (if (> (length out) 2000) (subseq out (- (length out) 2000)) out))
-          (trim (or diff ""))))
+(defun search-backwards (needle haystack)
+  "Index of the last occurrence of NEEDLE in HAYSTACK, or NIL. Common Lisp has
+no SEARCH-FROM-END, and the sandbox transcript can be 12000 characters, so scan
+backwards from the end rather than searching the whole string per candidate."
+  (let ((end (length haystack))
+        (needle-length (length needle))
+        (found nil))
+    (loop while (and (not found) (>= end needle-length))
+          for start = (- end needle-length)
+          when (and (char= (char haystack start) (char needle 0))
+                    (string= needle haystack :start2 start :end2 end))
+            do (setf found start)
+          do (decf end 1))
+    found))
 
-(defun validate-evidence (decider-port command-port executor-message executor-output)
-  "Validate by real evidence. When a local decider is configured (see
-make-local-decider-port), ask it a typed yes/no question grounded in a git
-diff and the tool transcript, instead of guessing from a narrative — this is
-rule 12 (judge by evidence, not a model guessing whether a role 'looked
-busy'). Falls back to the non-empty-output heuristic when no decider answers
-(llama-server not running, no .git in the work dir, etc.) so the session never
-blocks on optional local infrastructure.
-Returns (values executor-ok note)."
-  (let* ((diff (and command-port
-                    (ignore-errors (execute-command command-port "git diff --stat 2>/dev/null"))))
-         (state (evidence-state executor-message executor-output diff))
-         (answers (decide decider-port state
-                          (list (list :question
-                                      "O diff e o transcript mostram trabalho real: mudancas de codigo nao vazias, nao apenas leitura, e nao revertidas?"
-                                      :options '("sim" "nao"))))))
-    (if answers
-        (let ((answer (first answers)))
-          (values (string= (getf answer :choice) "sim")
-                  (format nil "(decider: ~A, confianca ~,2F)"
-                          (getf answer :choice) (or (getf answer :confidence) 0.0d0))))
-        (values (and executor-output (not (string= (trim executor-output) "")))
-                "(heuristica: saida do executor nao-vazia; decider indisponivel)"))))
+(defun command-exit-code (output)
+  "Last [exit N] marker make-sandbox-command-port appends to OUTPUT, as an
+integer, or NIL when the text carries no marker (empty output, or a port that
+does not run through the sandbox)."
+  (let ((marker (and (plusp (length (or output "")))
+                     (search-backwards "[exit " output))))
+    (when marker
+      (let* ((end (or (position #\] output :start marker) (length output)))
+             (digits (subseq output (+ marker 6) end)))
+        (and (plusp (length digits))
+             (ignore-errors (parse-integer digits)))))))
 
-(defun run-session (config provider provider-port executor-command-port decider-port
-                    output-port notes-port prompt-port
-                    &key cli mock session-port on-start)
-  (let* ((rules (slurp (merge-pathnames "AGENTS.md" *root*)))
-         (request (user-prompt prompt-port))
-         (history "No executor action has happened yet.")
-         (feedback "")
-         (notes-port-started nil))
-    (when (string= (trim (or request "")) "")
-      (error "no user request provided; pass --prompt or pipe it on stdin"))
-    (when mock (setf *mock-step* 0))
-    (unless cli
-      (funcall (notes-port-start notes-port))
-      (setf notes-port-started t))
-    (when on-start (funcall on-start))
-    ;; Chat-style Telegram: echo the pedido
-    (session-event session-port "voce" request)
-    (session-event session-port "forgepair"
-                   (format nil "executor=~A" (getf provider :label)))
-    ;; Single executor loop until done or evidence validates
-    (loop for attempt from 1 to 3
-          with executor-message = "" with executor-output = ""
+(defun tail-of (text limit)
+  "Last LIMIT characters of TEXT (TRIMmed), or all of it when shorter."
+  (let ((out (trim (or text ""))))
+    (if (> (length out) limit) (subseq out (- (length out) limit)) out)))
+
+(defun run-verification (command-port verify-command)
+  "Run VERIFY-COMMAND (the repo's own check) through the sandbox and return
+(values exit-code output). EXIT-CODE is NIL when no command port is available or
+the command could not be run at all, which callers read as 'gate not
+evaluated' rather than as a pass."
+  (if (or (null command-port) (string= (trim (or verify-command "")) ""))
+      (values nil "")
+      (handler-case
+          (let ((out (execute-command command-port verify-command)))
+            (values (command-exit-code out) out))
+        (error () (values nil "")))))
+
+(defun conformance-state (request executor-message executor-output diff verify-output)
+  "The text the decider reads to judge conformance: the FROZEN request first, so
+the decision is graded against a spec fixed before the patch existed, then the
+executor summary, the tail of the tool transcript, the git diff and the
+verification output. Everything is truncated to keep the state inside the length
+the decider's model card validated (prompts up to 1536 tokens; quantization
+error grows with state size)."
+  (format nil "Request (frozen before any edit):~%~A~%~%Executor message: ~A~%~%Tool transcript (tail):~%~A~%~%git diff --stat:~%~A~%~%Verification output (tail):~%~A"
+          (tail-of request 1200)
+          (tail-of executor-message 800)
+          (tail-of executor-output 1200)
+          (tail-of diff 800)
+          (tail-of verify-output 1200)))
+
+(defun verify-conformance (decider-port command-port verify-command request
+                           executor-message executor-output)
+  "Decide whether this attempt fulfills the request, by two independent kinds of
+evidence rather than by a model reading its own prose.
+
+Mechanical: VERIFY-COMMAND is the repository's own check (build, tests, lint).
+Its exit code is evidence no model can argue with — see the VP-CONTROL
+measurement that evidence-source diversity is worth 40.9 points against 11.3 for
+model diversity.
+
+Spec: the local decider grades the diff against the frozen REQUEST, never
+against the executor's narrative.
+
+Both must pass. Either one alone is enough when the other is genuinely absent,
+but an attempt backed by neither is rejected: no exit code and no decider means
+nothing was actually checked, and reporting that as success is the failure this
+replaces. Returns (values ok note)."
+  (multiple-value-bind (verify-code verify-output)
+      (run-verification command-port verify-command)
+    (let* ((diff (and command-port
+                      (ignore-errors (execute-command command-port "git diff --stat 2>/dev/null"))))
+           (answers (decide decider-port
+                            (conformance-state request executor-message
+                                               executor-output diff verify-output)
+                            (list (list :question
+                                        "A mudanca de codigo neste attempt atende o pedido congelado acima, sem trabalho nao pedido e sem revertido?"
+                                        :options '("sim" "nao")))))
+           (choice (getf (first answers) :choice))
+           (verdict (and (stringp choice) (string= choice "sim"))))
+      (cond
+       ;; Verification ran and failed: mechanical evidence is decisive.
+       ((and verify-code (not (zerop verify-code)))
+        (values nil (format nil "(verificacao: ~A saiu ~D — a correcao esta no transcript do comando)"
+                            verify-command verify-code)))
+       ;; Decider answered and said no: block even if the command passed,
+       ;; because a green build is not the same as the ask.
+       ((and answers (not verdict))
+        (values nil (format nil "(spec: decider reprova, confianca ~,2F — o comando passou mas o diff nao atende o pedido)"
+                            (or (getf (first answers) :confidence) 0.0d0))))
+       ;; Both gates agree.
+       ((and verdict (eql verify-code 0))
+        (values t (format nil "(spec + verificacao: ~A saiu 0, decider ~,2F — pedido atendido)"
+                          verify-command (or (getf (first answers) :confidence) 0.0d0))))
+       ;; Spec gate only.
+       (verdict
+        (values t (format nil "(spec: decider ~,2F — sem comando de verificacao configurado ou sem exit code)"
+                          (or (getf (first answers) :confidence) 0.0d0))))
+       ;; Mechanical gate only: it ran and exited 0.
+       ((eql verify-code 0)
+        (values t (format nil "(verificacao: ~A saiu 0; sem decider)" verify-command)))
+;; A command port that produced output but no parseable exit marker.
+        ;; Silence is not a pass: the command could not prove anything, so this
+        ;; attempt is rejected and told why.
+        ((and verify-output (not (string= (trim verify-output) "")))
+         (values nil (format nil "(verificacao: ~A; sem exit code observavel, entao sem evidencia — configure :verify-command para um comando com codigo de saida)"
+                             verify-command)))
+        ;; No verdict and no evidence at all. The old fallback accepted any
+        ;; non-empty executor output; that is exactly the unverified claim this
+        ;; gate exists to remove (ADR-0011), so an attempt with nothing behind it
+        ;; is rejected instead.
+        (t
+         (values nil "(sem evidencia: nenhum comando de verificacao com codigo de saida rodou, e o decider nao respondeu — configure :verify-command ou o decider"))))))
+
+;;;; Executor attempts and the final report.
+;;;;
+;;;; The loop lives in RUN-EXECUTOR-ATTEMPTS, separate from this function, so
+;;;; neither one nests deeply enough to hide a paren mistake. That mistake is
+;;;; the defect this file's self-test is here to prevent: the gate and the
+;;;; closing report must see the same ACCEPTED and LAST-NOTE values, so they
+;;;; are returned as multiple values instead of closed over.
+
+(defun run-executor-attempts (mock provider provider-port rules request verify-command
+                              decider-port executor-command-port output-port
+                              notes-port session-port initial-history initial-feedback)
+  "Run the executor until the gate accepts or *max-executor-attempts* is spent.
+Returns two values: ACCEPTED-P and LAST-NOTE."
+  ;; ACCEPTED and LAST-NOTE are bound by a LET, not by LOOP ... WITH: a WITH
+  ;; binding dies with the loop, so the values the caller needs afterwards
+  ;; would be unbound here.
+  (let ((accepted nil)
+        (last-note ""))
+    (loop for attempt from 1 to *max-executor-attempts*
+          with executor-message = ""
+          with executor-output = ""
+          with history = initial-history
+          with feedback = initial-feedback
           do
           ;; Executor — a tool-calling agent in the project dir.
           (multiple-value-setq (executor-message executor-output)
             (run-executor mock provider-port provider rules request history
-                          (notes-text notes-port) feedback executor-command-port session-port))
-          ;; Validate by evidence (git diff, exit codes; local decider if configured)
-          (multiple-value-bind (executor-ok note)
-              (validate-evidence decider-port executor-command-port
-                                 executor-message executor-output)
+                          (notes-text notes-port) feedback executor-command-port
+                          session-port))
+          ;; Conformance: the repo's own command plus the frozen request, never
+          ;; the executor's narrative alone.
+          (multiple-value-bind (executor-ok verdict)
+              (verify-conformance decider-port executor-command-port verify-command
+                                  request executor-message executor-output)
+            (setf last-note verdict)
             (render-turn output-port
                          (format nil "Executor(~A)" (getf provider :label))
                          executor-message "[tool chain]" executor-output)
-            (render-turn output-port "Validation"
+            (render-turn output-port
+                         "Validation"
                          (format nil "executor_ok=~A ~A"
-                                 (if executor-ok "sim" "nao") note)
-                         "" "[no command]")
+                                 (if executor-ok "sim" "nao") verdict)
+                         ""
+                         "[no command]")
             (session-event session-port
                            (format nil "executor (~A)" (getf provider :label))
                            (if (string= (trim executor-message) "")
-                               "(sem mensagem)" executor-message))
+                               "(sem mensagem)"
+                               executor-message))
             (unless (string= (trim executor-output) "")
               (session-event session-port "tool" executor-output))
-            (session-event session-port "validation"
+            (session-event session-port
+                           "validation"
                            (format nil "executor_ok=~A ~A"
-                                   (if executor-ok "sim" "nao") note))
-            (setf history (format nil "~AMy action: ~A~%My command: [tool chain]~%My terminal result:~%~A~%"
-                                  history executor-message executor-output))
+                                   (if executor-ok "sim" "nao") verdict))
+            (setf history
+                  (format nil "~AMy action: ~A~%My command: [tool chain]~%My terminal result:~%~A~%"
+                          history executor-message executor-output))
             (when executor-ok
-              (return)))
-          ;; On failure, feedback to executor for retry
-          (setf feedback "A execucao nao produziu resultado valido. Tente novamente.")))
-    (format t "~&Concluido. Revise com: git diff~%")
-    (session-event session-port "sessao" "concluida."))
+              (setf accepted t)
+              (return (values accepted last-note))))
+          ;; On failure, feed the executor the actual reason plus the failing
+          ;; command's own output, so a retry addresses the defect instead of
+          ;; repeating the same attempt.
+          (setf feedback
+                (format nil "A tentativa anterior foi reprovada: ~A~%~
+    O comando de verificacao do repo roda com~%  ~A~%e o texto abaixo e a sua saida.~
+    Corrija a causa, nao o sintoma.~%~A"
+                        last-note
+                        (if (string= (trim (or verify-command "")) "")
+                          "(nenhum comando de verificacao configurado)"
+                          verify-command)
+                      (tail-of executor-output 1500))))
+    (values accepted last-note)))
+
+(defun run-session (config provider provider-port executor-command-port decider-port
+                    output-port notes-port prompt-port
+                    &key cli mock session-port on-start)
+  (let* ((rules (load-rules))
+         (request (user-prompt prompt-port))
+         (verify-command (verify-command config)))
+    (when (string= (trim (or request "")) "")
+      (error "no user request provided; pass --prompt or pipe it on stdin"))
+    (when mock (setf *mock-step* 0))
+    (unless cli
+      (funcall (notes-port-start notes-port)))
+    (when on-start (funcall on-start))
+    ;; Chat-style Telegram: echo the request.
+    (session-event session-port "voce" request)
+    (session-event session-port
+                   "forgepair"
+                   (format nil "executor=~A" (getf provider :label)))
+    (multiple-value-bind (accepted last-note)
+        (run-executor-attempts mock provider provider-port rules request verify-command
+                              decider-port executor-command-port output-port
+                              notes-port session-port
+                              "No executor action has happened yet." "")
+      ;; Report what actually happened. Reporting success after every attempt
+      ;; was rejected is the one failure mode a coding agent must never have.
+      (if accepted
+          (progn
+            (format t "~&Concluido. Revise com: git diff~%")
+            (session-event session-port "sessao" "concluida."))
+          (progn
+            (format t "~&Nao concluido: nenhuma das ~D tentativas passou na verificacao.~%Ultima reprovacao: ~A~%"
+                    *max-executor-attempts* last-note)
+            (session-event session-port
+                           "sessao"
+                           (format nil "nao concluida: ~A" last-note)))))))

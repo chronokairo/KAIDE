@@ -4,9 +4,26 @@
 
 Forgepair é um orquestrador de agentes escrito em Common Lisp e sem bibliotecas
 de terceiros. Dois modelos de IA de providers distintos trabalham juntos: um
-**executor** faz o que o usuário pediu e um **improver** (meta-agente) observa
-como o executor atende os pedidos e identifica melhorias no próprio coding agent.
-Você acompanha tudo em um terminal e pode enviar observações sem interromper a conversa.
+**executor** faz o que o usuário pediu e um **decider** (meta-agente) decide se
+o resultado responde ao pedido. Você acompanha tudo em um terminal e pode
+enviar observações sem interromper a conversa.
+
+## Por que dois modelos, e não um
+
+A escolha não é estética, e a pesquisa de 2026 sustenta cada cláusula. As
+fontes e os números estão em [`docs/research/two-models-2026.md`](docs/research/two-models-2026.md).
+
+| Decisão | Evidência |
+| --- | --- |
+| O decider **não** pode ser o executor | Em veredictos binários sobre rubricas objetivas, um juiz marca como satisfeitas rubricas que o próprio gerador falhou **>50% mais vezes** do que as de outro modelo (arXiv:2604.06996). O viés *cresce* a cada iteração de auto-refino (ACL 2024, "Pride and Prejudice") — que é exatamente o loop de 3 tentativas. |
+| O comando determinístico vem **primeiro** | Verificação de processo por regras supera verificação só de resultado em 6,5% de F1 (ACL 2026 findings, VPRMs). Verificar é a metade barata: 75 chamadas de busca para resolver contra 18 para verificar (arXiv:2510.06135). |
+| O decider é um **veto**, não o árbitro | Capacidade do verificador satura em problemas fáceis, é linear nos médios e **limitada por limiar nos difíceis** (arXiv:2509.17995). E erros de geradores fortes são mais difíceis de detectar. |
+| Confiança não é probabilidade | Vies de estilo domina o de posição (0,76–0,92 contra ≤0,04) e proxies de confiança por token vêm frequentemente descalibrados (arXiv:2604.23178). |
+| Julgar contra rubrica, não narrativa | Um verificador de reward baseado em rubrica supera juiz-LLM e agente-como-juiz em **12–48% de F1** (ACL 2026 findings, DeepVerifier). |
+
+O que a pesquisa **não** justifica, e que por isso não existe aqui: roteamento
+de modelos, catálogo de providers, troca programada de modelo, nem um segundo
+provider pago no slot do decider. Verificar o porquê em `docs/research/two-models-2026.md`.
 
 ## Como funciona
 
@@ -14,14 +31,21 @@ Você acompanha tudo em um terminal e pode enviar observações sem interromper 
    coding: chama ferramentas (`shell`, `read`, `list`) em sequência, vendo o
    resultado de cada uma, até concluir a tarefa.
 2. Cada ferramenta é executada dentro de um sandbox Bubblewrap.
-3. O trabalho do executor é validado por **evidência real**: `git diff` no
-   diretório do projeto e a cauda do transcript de ferramentas (que carrega os
-   marcadores `[exit N]` de cada comando), não por um modelo narrando um
-   veredito. Se um **decider local** estiver configurado (opcional — veja
-   [Validação local (decider)](#validação-local-decider) abaixo), ele responde
-   uma pergunta tipada sim/não em cima dessa evidência; sem ele, a sessão cai
-   de volta numa checagem simples. Em falha, o executor recebe o feedback e
-   tenta de novo, até 3 tentativas.
+3. O trabalho é validado por **duas fontes de evidência independentes**, e ambas
+   precisam concordar:
+   - o **comando de verificação do próprio repositório** (`:verify-command`) —
+     é a evidência primária, a única que nenhum modelo pode argumentar. Forgepair
+     não tem default: sem `:verify-command` no `config.sexp` do projeto, não há
+     gate, e a sessão termina sem anunciar sucesso;
+   - um **decider local** que julga o diff contra o **pedido congelado** antes de
+     qualquer edição, não contra a narrativa do executor.
+
+   Um build verde não é o mesmo que pedido atendido: o decider reprova um
+   comando que passou, e o comando reprova mesmo sem decider. Falha fechada:
+   saída sem marcador `[exit N]`, ausência de evidência, ou silêncio do decider
+   **não** aprovam. Em falha, o executor recebe a razão e a saída do comando que
+   quebrou, e tenta de novo (até 3 tentativas). Racional:
+   `docs/adr/0011-evidence-gated-conformance.md`.
 
 > Nota: versões anteriores deste README descreviam um terceiro papel
 > (**planner**, validando por narrativa) e seleção automática entre um tier de
@@ -66,7 +90,13 @@ O provider do executor vem de `config.sexp` (copie `config.example.sexp`):
             :key-env "OPENROUTER_API_KEY"
             :model "deepseek/deepseek-v4.1-flash"
             :label "DeepSeek V4.1 Flash"))
+  :verify-command "make test")
 ```
+
+`:verify-command` é o gate primário e **não tem default**: cada projeto declara o
+seu. É a evidência que nenhum modelo pode argumentar, e é por isso que o Forgepair
+não a inventa para você. Sem ela, não existe gate mecânico e a sessão só pode
+terminar sem anunciar sucesso.
 
 Não há mais configuração de turnos: a sessão roda até a evidência validar,
 dentro de limites de segurança internos (até 3 tentativas do executor).
@@ -119,21 +149,37 @@ validação aparecem **no mesmo chat**, como uma conversa.
 
 ## Validação local (decider)
 
-Além da checagem de evidência padrão, Forgepair pode consultar um modelo
-**decider** local (família [Mapika/decider](https://huggingface.co/Mapika/decider-2b),
-fine-tuned de Qwen3.5 para decisões tipadas de uma passagem só) para responder,
-com probabilidade calibrada, se o `git diff` e o transcript mostram trabalho
-real. É opcional e silencioso: sem `llama-server` respondendo em `DECIDER_URL`
-(padrão `http://127.0.0.1:8080/completion`), a sessão usa a checagem simples de
-sempre.
+Metade da validação é um modelo **decider** local (família
+[Mapika/decider](https://huggingface.co/Mapika/decider-2b), fine-tuned de
+Qwen3.5 para decisões tipadas de uma passagem só). Ele responde com
+probabilidade calibrada se a mudança **atende o pedido congelado** — o texto do
+pedido é fixado antes de qualquer edição, então o julgamento é contra uma spec
+que já existia quando o patch foi escrito. Ele não escreve código e não lê a
+narrativa do executor. É opcional e silencioso: sem `llama-server` respondendo em
+`DECIDER_URL` (padrão `http://127.0.0.1:8080/completion`), só o comando de
+verificação decide.
+
+**O decider é um veto, não o árbitro.** Isso não é modéstia de documentação: a
+pesquisa de 2026 mostra que um verificador pequeno **satura** em problemas fáceis
+e fica **limitado por limiar** nos difíceis (arXiv:2509.17995), e que erros de
+geradores fortes são justamente os mais difíceis de pegar. O mesmo vale para a
+confiança: o número que o decider devolve **não é uma probabilidade calibrada**,
+e o projeto não o apresenta como tal. Um verificador de 2B fica mais fraco
+relativamente conforme o executor melhora — é um teto arquitetural, não um
+problema de ajuste. Detalhes: `docs/research/two-models-2026.md`.
 
 ```bash
-llama-server -hf Mapika/decider-2b-GGUF:Q8_0 --port 8080
+llama-server -hf Mapika/decider-2b-GGUF:Q8_0 --port 8080 -ngl 0
 ```
 
-Detalhes de escolha de modelo (recomendado: `decider-2b` Q8_0, 2 GB, para GPUs
-de 4 GB) e como depurar o formato de resposta do seu `llama.cpp`:
-`docs/decider.md`. Racional da decisão: `docs/adr/0010-local-decider-evidence-validation.md`.
+`-ngl 0` mantém o decider na CPU de propósito (0,12–0,31 s por request em 8
+threads, uma vez por tentativa) e deixa a VRAM inteira para o LLM principal —
+numa placa de 4 GB os 2 GB do decider disputariam com ele.
+
+Detalhes de escolha de modelo e como depurar o formato de resposta do seu
+`llama.cpp`: `docs/decider.md`. Racional:
+`docs/adr/0010-local-decider-evidence-validation.md` e
+`docs/adr/0011-evidence-gated-conformance.md`.
 
 ## Autonomia experimental
 
@@ -170,9 +216,13 @@ trate o projeto como software experimental e revise as mudanças antes de aceit�
 Endpoints gratuitos podem responder com `429` ou `503`. Forgepair tenta novamente
 erros transitórios. Respostas de modelos de raciocínio que deixam `content` vazio
 usam o campo `reasoning` como fallback. Texto sem uma ação JSON válida entra
-apenas como mensagem e não executa comandos. O decider local nunca aborta a
-sessão: qualquer falha (servidor fora do ar, resposta inesperada) faz
-`validate-evidence` cair de volta na checagem simples.
+apenas como mensagem e não executa comandos.
+
+O decider local nunca aborta a sessão, mas também nunca a aprova sozinho: se o
+`llama-server` estiver fora do ar ou responder de forma inesperada, a nota
+registra isso e **o comando de verificação decide sozinho**. Não existe mais
+fallback para "houve saída, logo passou" — saída não vazia sem exit code
+observável é reprovação. Ver `docs/adr/0011-evidence-gated-conformance.md`.
 
 ## Estrutura principal
 
@@ -185,10 +235,12 @@ src/ports.lisp            contratos dos adapters (inclui decider-port)
 src/providers.lisp        provider do executor e URL do decider local
 src/adapters.lisp         dotenv, curl, Bubblewrap, Telegram, decider local
 src/forgepair.lisp        implementação legada mantida como referência
-config.sexp               provider do executor
+scripts/                  diagnósticos: reader, lint e balanceadores de parênteses
+config.sexp               provider do executor e :verify-command
 AGENTS.md                 constituição do agente (regras + executor)
 docs/decider.md           validação local por decider: escolha de modelo e setup
-docs/adr/                 decisões de arquitetura (ADR-0001 a 0010)
+docs/research/            pesquisa que decide a forma dos dois modelos
+docs/adr/                 decisões de arquitetura (ADR-0001 a 0011)
 .env                      credenciais locais, ignoradas pelo Git
 ```
 

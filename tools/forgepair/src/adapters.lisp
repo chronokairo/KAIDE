@@ -25,7 +25,8 @@
                                       :error (or error *error-output*))))
     (sb-ext:process-exit-code process)))
 
-(defun load-dotenv (&optional (path (merge-pathnames ".env" *root*)))
+(defun parse-dotenv (path)
+  "Read one .env file into an alist. Returns NIL when PATH does not exist."
   (let ((values nil))
     (when (probe-file path)
       (with-open-file (in path)
@@ -42,6 +43,17 @@
                         (setf value (subseq value 1 (1- (length value)))))
                       (push (cons key value) values)))))))
     values))
+
+(defun load-dotenv (&optional (paths (dotenv-paths)))
+  "Merge .env files from the installation and the project, project winning.
+A PATH-installed Forgepair keeps shared credentials beside itself while each
+project can override or supply its own, instead of one directory silently
+dictating every repository's keys."
+  (let ((merged nil))
+    (dolist (path paths)
+      (dolist (entry (parse-dotenv path))
+        (setf merged (acons (car entry) (cdr entry) merged))))
+    merged))
 
 (defun make-credential-port (&optional (dotenv (load-dotenv)))
   (%make-credential-port
