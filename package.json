@@ -16,6 +16,7 @@
     "start": "next start -p 3010",
     "test": "npx vitest run",
     "typecheck": "tsc --noEmit",
+    "job:commercial:followup": "tsx scripts/execute-commercial-followup.ts",
     "tauri": "tauri",
     "tauri:dev": "tauri dev"
   },
@@ -53,6 +54,7 @@
     "@types/three": "^0.186.0",
     "cross-env": "^10.1.0",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.2",
     "vitest": "^5.0.2"
   }

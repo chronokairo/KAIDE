@@ -126,6 +126,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0031](docs/adr/0031-estilo-pokemon-2d-3d-e-interface-minimalista.md) | Estilo Pokémon 2D/3D em Three.js e Interface Minimalista |
 | [0032](docs/adr/0032-refinamento-sprites-threejs-animacao-uv-e-transparencia.md) | Refinamento de Sprites 2D em Three.js: Animação por UV Offset, Proporções Nativas e Transparência Alpha |
 | [0033](docs/adr/0033-remocao-de-sprites-e-analise-de-gaps-competitivos.md) | Remoção de Sprites 2D, Transição para Geometria 3D Low-Poly Pura e Análise de Gaps Competitivos |
+| [0034](docs/adr/0034-implementacao-job-commercial-followup-e-human-gate.md) | Implementação Real do Job commercial.followup no Control Plane e Human Gate de Outbound |
 
 ### Mapas de código — `docs/maps/`
 

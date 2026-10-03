@@ -1,11 +1,14 @@
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
+import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { AgentEntity, JobEntity, CompanyTelemetry } from '@/domain/company';
+import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
+import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 
 export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePort {
   private snapshot: CompanyStateSnapshot;
   private listeners: Set<(snapshot: CompanyStateSnapshot) => void> = new Set();
 
-  constructor() {
+  constructor(private readonly leadRepository: LeadRepositoryPort = defaultLeadRepository) {
     const agents: AgentEntity[] = [
       {
         id: 'agent-human',
@@ -29,13 +32,12 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
         name: 'AI Comercial',
         title: 'SDR & Qualificação de Leads',
         department: 'Comercial & CRM',
-        status: 'working',
-        currentTask: 'Qualificando lead Audiomed & preparando briefing de reunião',
-        currentJobId: 'job-002',
+        status: 'idle',
+        currentTask: 'Monitorando pipeline de leads e SLA de follow-up',
         tokensProcessed: 142500,
         costUsd: 0.28,
         lastActivity: 'Há 2 min',
-        activeTools: ['crm_search', 'company_due_diligence', 'meeting_notes_extractor'],
+        activeTools: ['crm_search', 'company_due_diligence', 'meeting_notes_extractor', 'followup_composer'],
         coordinates: [-8, 0.4, 6],
         color: '#10b981',
         accentColor: '#059669',
@@ -200,24 +202,6 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
         createdAt: 'Hoje às 11:45',
       },
       {
-        id: 'job-002',
-        title: 'Qualificação Comercial & Due Diligence',
-        client: 'Audiomed Diagnósticos',
-        project: 'Audiomed Cloud',
-        stage: 'commercial',
-        agentRole: 'commercial',
-        status: 'in_progress',
-        prompt: 'Análise de CNAE, perfil de faturamento e geração de proposta consultiva.',
-        toolsUsed: ['crm_search', 'company_due_diligence'],
-        changesSummary: 'Ficha de lead enriquecida no CRM com score 89/100.',
-        testsSummary: 'N/A',
-        evidence: ['Consulta CNPJ OK', 'Compatibilidade técnica confirmada'],
-        costUsd: 0.28,
-        durationSeconds: 120,
-        requiresApproval: false,
-        createdAt: 'Hoje às 11:48',
-      },
-      {
         id: 'job-004',
         title: 'Refactor Hexagonal Ports & Control Plane Hook',
         client: 'Interno',
@@ -253,23 +237,98 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
     return Promise.resolve(this.snapshot);
   }
 
+  async submitJob(job: JobEntity): Promise<void> {
+    const existingIndex = this.snapshot.jobs.findIndex((j) => j.id === job.id);
+    if (existingIndex >= 0) {
+      this.snapshot.jobs[existingIndex] = job;
+    } else {
+      this.snapshot.jobs.unshift(job);
+    }
+
+    // Update corresponding agent status
+    const agent = this.snapshot.agents.find((a) => a.role === job.agentRole);
+    if (agent) {
+      agent.status = job.status === 'waiting_approval' ? 'waiting_approval' : job.status === 'in_progress' ? 'working' : 'idle';
+      agent.currentJobId = job.id;
+      if (job.status === 'waiting_approval') {
+        agent.currentTask = `${job.title} — Aguardando aprovação humana para envio.`;
+      } else {
+        agent.currentTask = job.title;
+      }
+      agent.costUsd += job.costUsd;
+    }
+
+    if (job.status === 'waiting_approval') {
+      this.snapshot.telemetry.pendingApprovalsCount += 1;
+    }
+
+    this.notify();
+  }
+
+  async executeJob(jobName: string, _params?: Record<string, any>): Promise<JobEntity> {
+    if (jobName === 'commercial.followup') {
+      const useCase = new ExecuteCommercialFollowupUseCase(this.leadRepository, this);
+      const result = await useCase.execute();
+      const job = this.snapshot.jobs.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} não encontrado após execução de commercial.followup`);
+      }
+      return job;
+    }
+
+    throw new Error(`Job '${jobName}' não reconhecido pelo Control Plane.`);
+  }
+
   async approveJob(approvalId: string, rationale?: string): Promise<void> {
     const job = this.snapshot.jobs.find((j) => j.approvalGate?.id === approvalId);
     if (!job || !job.approvalGate) return;
 
     job.approvalGate.status = 'approved';
     job.status = 'completed';
-    job.evidence.push(`Aprovado pelo Diretor Técnico às ${new Date().toLocaleTimeString()}: ${rationale || 'Liberado para produção'}`);
+    job.evidence.push(
+      `Aprovado pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}: ${rationale || 'Autorizado pelo Diretor'}`
+    );
 
-    const devopsAgent = this.snapshot.agents.find((a) => a.role === 'devops');
-    if (devopsAgent) {
-      devopsAgent.status = 'working';
-      devopsAgent.currentTask = 'Deploy em Produção executado com sucesso! Monitorando telemetria em tempo real.';
-      setTimeout(() => {
-        devopsAgent.status = 'idle';
-        devopsAgent.currentTask = 'Infraestrutura saudável e operando normalmente em Produção.';
+    // Handle specific gate types
+    if (job.approvalGate.type === 'outbound_contact') {
+      // 1. Mark drafts as dispatched in Lead Repository
+      const drafts = await this.leadRepository.getDraftsByJobId?.(job.id) || [];
+      const dispatchTime = new Date().toISOString();
+      for (const draft of drafts) {
+        await this.leadRepository.updateDraftStatus(draft.id, 'dispatched', dispatchTime);
+        await this.leadRepository.updateLeadStatus(draft.leadId, 'in_dialogue', 'Follow-up transmitido com autorização do Diretor.');
+      }
+
+      job.evidence.push(
+        `Disparo Externo Concluído: Mensagens transmitidas com sucesso aos destinatários autorizados às ${new Date().toLocaleTimeString('pt-BR')}.`
+      );
+
+      // 2. Transition commercial agent
+      const commAgent = this.snapshot.agents.find((a) => a.role === 'commercial');
+      if (commAgent) {
+        commAgent.status = 'working';
+        commAgent.currentTask = 'Despachando mensagens de follow-up aprovadas aos destinatários...';
         this.notify();
-      }, 3000);
+
+        setTimeout(() => {
+          commAgent.status = 'idle';
+          commAgent.currentTask = 'Follow-up de leads despachado com sucesso. Monitorando respostas.';
+          this.notify();
+        }, 2000);
+      }
+    } else if (job.approvalGate.type === 'production_deploy') {
+      const devopsAgent = this.snapshot.agents.find((a) => a.role === 'devops');
+      if (devopsAgent) {
+        devopsAgent.status = 'working';
+        devopsAgent.currentTask = 'Deploy em Produção executado com sucesso! Monitorando telemetria em tempo real.';
+        this.notify();
+
+        setTimeout(() => {
+          devopsAgent.status = 'idle';
+          devopsAgent.currentTask = 'Infraestrutura saudável e operando normalmente em Produção.';
+          this.notify();
+        }, 3000);
+      }
     }
 
     this.snapshot.telemetry.pendingApprovalsCount = Math.max(0, this.snapshot.telemetry.pendingApprovalsCount - 1);
@@ -283,12 +342,24 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     job.approvalGate.status = 'rejected';
     job.status = 'rejected';
-    job.evidence.push(`Rejeitado pelo Diretor Técnico às ${new Date().toLocaleTimeString()}: ${reason}`);
+    job.evidence.push(`Rejeitado pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}: ${reason}`);
 
-    const devopsAgent = this.snapshot.agents.find((a) => a.role === 'devops');
-    if (devopsAgent) {
-      devopsAgent.status = 'idle';
-      devopsAgent.currentTask = `Deploy rejeitado pelo Diretor Técnico: "${reason}". Rollback assegurado.`;
+    if (job.approvalGate.type === 'outbound_contact') {
+      const drafts = await this.leadRepository.getDraftsByJobId?.(job.id) || [];
+      for (const draft of drafts) {
+        await this.leadRepository.updateDraftStatus(draft.id, 'rejected');
+      }
+      const commAgent = this.snapshot.agents.find((a) => a.role === 'commercial');
+      if (commAgent) {
+        commAgent.status = 'idle';
+        commAgent.currentTask = `Envio de follow-up rejeitado pelo Diretor: "${reason}". Mensagens canceladas.`;
+      }
+    } else if (job.approvalGate.type === 'production_deploy') {
+      const devopsAgent = this.snapshot.agents.find((a) => a.role === 'devops');
+      if (devopsAgent) {
+        devopsAgent.status = 'idle';
+        devopsAgent.currentTask = `Deploy rejeitado pelo Diretor Técnico: "${reason}". Rollback assegurado.`;
+      }
     }
 
     this.snapshot.telemetry.pendingApprovalsCount = Math.max(0, this.snapshot.telemetry.pendingApprovalsCount - 1);
