@@ -153,6 +153,7 @@ export const AiChatInterface: React.FC<AiChatInterfaceProps> = ({
 
     if (supabaseConversations && supabaseConversations.length > 0) {
       supabaseConversations.forEach((sc) => {
+        if (!sc || !sc.id) return;
         seenIds.add(sc.id);
         list.push({
           id: sc.id,
