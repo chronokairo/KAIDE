@@ -42,6 +42,7 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0036](./adr/0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md) | Conexão Oficial ao Supabase de Produção, Eliminação de Mocks e Persistência Real do Control Plane | 2026-10-03 | Aceito |
 | [ADR-0037](./adr/0037-implementacao-job-finance-reconcile-e-controladoria.md) | Implementação do Módulo de Finanças & Controladoria (AI Finance / Ops) Conectado ao Supabase de Produção | 2026-10-03 | Aceito |
 | [ADR-0038](./adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control Domain, Dual-Forge Linkage (GitHub & GitLab), Projects v2 Scope Baseline, and Pure-English Domain Transition | 2026-10-03 | Aceito |
+| [ADR-0039](./adr/0039-control-plane-hexagonal-supabase-resend.md) | Rework Hexagonal do Control Plane com Supabase Prod, Resend e Suíte de Testes (idempotência real, fixes de double-encoding e cursor) | 2026-10-03 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.
