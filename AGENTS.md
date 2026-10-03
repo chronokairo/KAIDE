@@ -74,6 +74,16 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 - **Núcleo Rust zero-lib**: **não** está neste repositório. Vive em [`chronokairo/cli`](https://gitlab.com/chronokairo/cli) (`ckc::agent`, `ckc::llm`, `ckc::mcp`, `ckc::tools`, `ckc::repo`, ...) — ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence ao repo `cli`, não a este.
 - Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
+## Source Control & Forge Integration Rules (ADR-0038)
+
+- **Dual-Forge Mirroring**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters sobre `CliRunnerPort` seguro contra shell injection).
+- **Rastreabilidade Fina (Traceability)**: Commits, branches e PRs/MRs devem referenciar tarefas de backlog (`SECP-*`, `AUDIO-ASO-*`, `TSK-*`, etc.) seguindo o padrão *Conventional Commits* (`feat(scope): ...`, `fix(scope): ...`).
+- **Língua Pura nos Domínios e Portas**: Entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
+- **Human Gate em Escopo (`scope_baseline`)**: O job `coder.sync_sprint` submete reconciliações de status de sprint como propostas com evidência fotográfica/textual. Nenhuma alteração em `project_tasks.column_status` ocorre sem aprovação humana explícita no Control Plane.
+- **Human Gate em Comunicações Externas (`outbound_contact`)**: Jobs de prospecção e relacionamento (`commercial.daily`, `commercial.followup`) elaboram rascunhos consultivos retidos em gate; nenhum email é disparado sem autorização do Diretor Técnico. Ao autorizar, o envio real é processado via SDK oficial `resend` com registro de `JobEventType` (`email.sent`, `email.synced`, `email.bounced`) e janela de sync de 24h.
+- **Operações Reais de Suporte**: O módulo de atendimento e suporte (`support.triage_history`) consulta tabelas reais de produção `support_tickets` e `support_incidents` no Supabase prod em conjunto com o histórico de conversas.
+- **Zero Mock / Fallback**: É terminantemente proibido manter repositórios ou adapters em memória / mock em caminhos de produção (`InMemoryPullRequestRepository` foi eliminado e substituído por `ForgePullRequestRepository`). Leituras e escritas comunicam-se diretamente com o Supabase de produção ou com as CLIs oficiais autenticadas.
+
 ## Critérios mínimos
 
 - `GET /health`, `GET /ready` e `GET /version`.
@@ -124,6 +134,14 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0029](docs/adr/0029-implementacao-ui-threejs-e-automacoes-copilot.md) | Implementação da UI Three.js da Empresa Virtual e Automações do Copilot |
 | [0030](docs/adr/0030-ui-2d-threejs-pantone-2026-cloud-dancer-e-8bit-color.md) | Interface 2D em Three.js com Pantone 2026 White (Cloud Dancer) e Estética 8-Bit Colorida |
 | [0031](docs/adr/0031-estilo-pokemon-2d-3d-e-interface-minimalista.md) | Estilo Pokémon 2D/3D em Three.js e Interface Minimalista |
+| [0032](docs/adr/0032-refinamento-sprites-threejs-animacao-uv-e-transparencia.md) | Refinamento de Sprites 2D em Three.js: Animação por UV Offset, Proporções Nativas e Transparência Alpha |
+| [0033](docs/adr/0033-remocao-de-sprites-e-analise-de-gaps-competitivos.md) | Remoção de Sprites 2D, Transição para Geometria 3D Low-Poly Pura e Análise de Gaps Competitivos |
+| [0034](docs/adr/0034-implementacao-job-commercial-followup-e-human-gate.md) | Implementação Real do Job commercial.followup no Control Plane e Human Gate de Outbound |
+| [0035](docs/adr/0035-implementacao-job-qa-review-pr-e-analise-adversarial.md) | Implementação Real do Job qa.review_pr e Análise Adversarial Multidimensional |
+| [0036](docs/adr/0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md) | Conexão Oficial ao Supabase de Produção, Eliminação de Mocks e Persistência Real do Control Plane |
+| [0037](docs/adr/0037-implementacao-job-finance-reconcile-e-controladoria.md) | Implementação do Módulo de Finanças & Controladoria (AI Finance / Ops) Conectado ao Supabase de Produção |
+| [0038](docs/adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control domain, dual-forge linkage (GitHub & GitLab), and pure-English domain transition |
+| [0039](docs/adr/0039-control-plane-hexagonal-supabase-resend.md) | Rework hexagonal do Control Plane com Supabase prod, Resend e suíte de testes (idempotência real, fixes de double-encoding e cursor) |
 
 ### Mapas de código — `docs/maps/`
 

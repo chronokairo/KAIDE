@@ -1,6 +1,6 @@
 /**
- * Entidades e regras de domínio da Empresa Virtual de Agentes da ChronoKairo.
- * Arquitetura Hexagonal: Domínio Puro (sem dependências de frameworks ou React).
+ * Pure domain entities and rules for the ChronoKairo Virtual Agent Company.
+ * Hexagonal Architecture: Pure Domain (no dependencies on frameworks, Next.js, or React).
  */
 
 export type AgentRole =
@@ -36,6 +36,26 @@ export interface AgentEntity {
 
 export type JobStatus = 'queued' | 'in_progress' | 'waiting_approval' | 'completed' | 'rejected' | 'failed';
 
+export type JobEventType =
+  | 'email.sent'
+  | 'email.synced'
+  | 'email.bounced'
+  | 'job.submitted'
+  | 'job.completed'
+  | 'job.failed'
+  | 'gate.opened'
+  | 'gate.approved'
+  | 'gate.rejected'
+  | string;
+
+export interface JobEvent {
+  id: string;
+  jobId: string;
+  eventType: JobEventType;
+  payload: Record<string, any>;
+  createdAt: string;
+}
+
 export interface ApprovalGate {
   id: string;
   jobId: string;
@@ -46,6 +66,7 @@ export interface ApprovalGate {
   requestedAt: string;
   evidence: string[];
   status: 'pending' | 'approved' | 'rejected';
+  metadata?: Record<string, any>;
 }
 
 export interface JobEntity {
