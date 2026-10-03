@@ -6,6 +6,7 @@ import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repos
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
+import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePort {
   private snapshot: CompanyStateSnapshot;
@@ -19,11 +20,11 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
       {
         id: 'agent-human',
         role: 'human_director',
-        name: 'Sócio / Diretor Técnico',
-        title: 'Humano Orquestrador & Aprovador',
-        department: 'Diretoria & Supervisão',
+        name: 'Luan Nery / Riad Makarem',
+        title: 'Sócio-Fundador & CEO / Tech Lead',
+        department: 'Diretoria Executiva ChronoKairo',
         status: 'working',
-        currentTask: 'Supervisão do Control Plane e aprovação de gates críticos',
+        currentTask: 'Supervisão do Control Plane e aprovação de gates críticos (AI → HUMAN)',
         tokensProcessed: 0,
         costUsd: 0,
         lastActivity: 'Ativo agora',
@@ -170,8 +171,8 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
       {
         id: 'job-001',
         title: 'Deploy em Produção v1.2.0 (Módulo ASO)',
-        client: 'WorkMed Medicina Ocupacional',
-        project: 'WorkMed Core',
+        client: 'Audiomed',
+        project: 'Plataforma de Gestão de Saúde Ocupacional (ACTIVE-AUDIOMED)',
         stage: 'devops',
         agentRole: 'devops',
         status: 'waiting_approval',
@@ -265,6 +266,19 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     if (job.status === 'waiting_approval') {
       this.snapshot.telemetry.pendingApprovalsCount += 1;
+    }
+
+    try {
+      await supabaseAdmin.from('ai_tool_executions').insert({
+        organization_id: PROD_ORGANIZATION_ID,
+        tool_name: `control_plane.${job.stage}`,
+        execution_type: 'WRITE',
+        execution_status: job.status === 'failed' || job.status === 'rejected' ? 'Failed' : 'Success',
+        duration_ms: (job.durationSeconds || 1) * 1000,
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      // Non-blocking
     }
 
     this.notify();

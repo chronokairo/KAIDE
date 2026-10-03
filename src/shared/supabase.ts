@@ -1,39 +1,50 @@
-// Supabase Client with safe local offline fallback for ChronoKairo Desktop
+// Supabase Client Oficial de Produção para ChronoKairo AI (chronokairo-prod: your-project-ref)
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const mockSupabaseQuery = () => {
-  const chainable: any = {
-    select: () => chainable,
-    insert: () => chainable,
-    update: () => chainable,
-    delete: () => chainable,
-    eq: () => chainable,
-    neq: () => chainable,
-    order: () => chainable,
-    limit: () => chainable,
-    single: async () => ({ data: null, error: null }),
-    maybeSingle: async () => ({ data: null, error: null }),
-    then: (resolve: any) => resolve({ data: [], error: null }),
-  };
-  return chainable;
-};
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-ref.supabase.co';
 
-export const supabase: any = {
-  from: () => mockSupabaseQuery(),
-  rpc: async () => ({ data: null, error: null }),
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'REDACTED_SUPABASE_JWT';
+
+const SUPABASE_SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  'REDACTED_SUPABASE_JWT';
+
+/** ID da Organização Oficial ChronoKairo no Supabase de Produção */
+export const PROD_ORGANIZATION_ID = '00000000-0000-4000-8000-000000000001';
+
+/** ID do Usuário Sócio / Tech Lead no Supabase de Produção */
+export const PROD_USER_ID = '00000000-0000-4000-8000-000000000002';
+
+/** Cliente Supabase autenticado via Chave Pública (Anon) */
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    getSession: async () => ({ data: { session: null }, error: null }),
-    getUser: async () => ({ data: { user: { id: 'local-user', email: 'dev@chronokairo.local' } }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    persistSession: true,
+    autoRefreshToken: true,
   },
-};
+});
+
+/** Cliente Supabase com Chave de Serviço Administrativa para rotas de backend e auditoria */
+export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 export async function getAuthSession() {
-  return {
-    access_token: 'local-desktop-token',
-    user: {
-      id: 'local-user',
-      email: 'dev@chronokairo.local',
-      user_metadata: { name: 'ChronoKairo Developer' },
-    },
-  };
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
+      return null;
+    }
+    return {
+      access_token: data.session.access_token,
+      user: data.session.user,
+    };
+  } catch {
+    return null;
+  }
 }

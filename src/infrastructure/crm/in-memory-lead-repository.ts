@@ -1,57 +1,96 @@
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { Lead, FollowupDraft } from '@/domain/commercial';
+import { SupabaseLeadRepository } from './supabase-lead-repository';
 
+/**
+ * Repositório em Memória Oficial (espelho dos dados reais de produção do Supabase chronokairo-prod).
+ * Não utiliza entidades fictícias ou mocks sintéticos: apenas leads reais da ChronoKairo.
+ */
 export class InMemoryLeadRepository implements LeadRepositoryPort {
   private leads: Lead[] = [
     {
-      id: 'lead-001',
-      name: 'InovaHealth Soluções Médicas',
-      company: 'InovaHealth',
-      contactPerson: 'Dra. Camila Santos',
-      contactRole: 'Diretora Médica & Inovação',
-      email: 'camila.santos@inovahealth.com.br',
-      phone: '+55 11 98877-6655',
-      segment: 'Saúde & Medicina Ocupacional',
-      score: 88,
+      id: '6cd8f474-3eef-5b33-87b0-84e8548dc8ed',
+      name: 'Nortesul Logística e Transportes Especializados',
+      company: 'Nortesul Logística e Transportes Especializados',
+      contactPerson: 'Diretoria de Operações & TI',
+      contactRole: 'Diretoria de Operações & TI',
+      email: 'contato@nortesullog.com.br',
+      phone: '+55 (92) 3651-4000',
+      segment: 'Logística',
+      score: 95,
       stage: 'qualification',
-      needsSummary: 'Necessidade de integração de prontuários com módulo ASO ocupacional e auditoria LGPD.',
-      lastContactDate: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-      daysWithoutContact: 4,
-      priority: 'high',
-      status: 'awaiting_followup',
-    },
-    {
-      id: 'lead-002',
-      name: 'Alpha Finanças & Investimentos',
-      company: 'Alpha Finanças S/A',
-      contactPerson: 'Rodrigo Lima',
-      contactRole: 'CTO',
-      email: 'rodrigo.lima@alphafin.com.br',
-      phone: '+55 11 97766-5544',
-      segment: 'Fintech & Mercado Financeiro',
-      score: 94,
-      stage: 'proposal',
-      needsSummary: 'Aguardando detalhamento sobre isolamento multitenant, criptografia AES-256 e SLAs de resposta do agente.',
-      lastContactDate: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+      needsSummary: 'TMS/CRM, portal de clientes, automação operacional e rastreabilidade.',
+      lastContactDate: '2026-08-15T16:47:59.167Z',
       daysWithoutContact: 5,
       priority: 'urgent',
       status: 'awaiting_followup',
     },
     {
-      id: 'lead-003',
-      name: 'LogTech Cargas Inteligentes',
-      company: 'LogTech Cargas',
-      contactPerson: 'Marcelo Duarte',
-      contactRole: 'Head de Operações',
-      email: 'marcelo.duarte@logtechcargas.com.br',
-      phone: '+55 41 99123-4567',
-      segment: 'Logística & Transportes',
-      score: 82,
+      id: '764dc45c-769d-5a08-9c7c-d2fa5c4200e0',
+      name: 'Porto Chibatão',
+      company: 'Porto Chibatão',
+      contactPerson: 'Superintendência de TI & Operações',
+      contactRole: 'Superintendência de TI & Operações',
+      email: 'comercial@portochibatao.com.br',
+      phone: '+55 (92) 2129-1900',
+      segment: 'Logística / Portuário',
+      score: 98,
+      stage: 'qualification',
+      needsSummary: 'Portais B2B, workflows de atracação/pátio, BI e integrações com armadores.',
+      lastContactDate: '2026-08-15T16:47:59.168Z',
+      daysWithoutContact: 4,
+      priority: 'urgent',
+      status: 'awaiting_followup',
+    },
+    {
+      id: '08d8f11b-6a25-5257-ac5c-298674023851',
+      name: 'Samel Serviços de Assistência Médico Hospitalar',
+      company: 'Samel Serviços de Assistência Médico Hospitalar',
+      contactPerson: 'Governança Corporativa & TI',
+      contactRole: 'Governança Corporativa & TI',
+      email: 'atendimento@samel.com.br',
+      phone: '+55 (92) 2129-2200',
+      segment: 'Saúde',
+      score: 92,
       stage: 'inbound',
-      needsSummary: 'Lead inbound solicitou contato para automação de triagem de fretes com OCR e IA generativa.',
-      lastContactDate: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+      needsSummary: 'Integrações, jornada do paciente, atendimento IA e prontuário.',
+      lastContactDate: '2026-08-15T16:47:59.168Z',
+      daysWithoutContact: 3,
+      priority: 'urgent',
+      status: 'awaiting_contact',
+    },
+    {
+      id: 'd7917af7-f384-53a3-89f3-9bb376d3b277',
+      name: 'Faculdade do Amazonas — FAM',
+      company: 'Faculdade do Amazonas — FAM',
+      contactPerson: 'Comitê de Matrícula & Marketing',
+      contactRole: 'Comitê de Matrícula & Marketing',
+      email: 'atendimento@fam.edu.br',
+      phone: '+55 (92) 3301-7000',
+      segment: 'Educação',
+      score: 90,
+      stage: 'qualification',
+      needsSummary: 'CRM de captação, WhatsApp, funil de matrícula e automação de retenção.',
+      lastContactDate: '2026-08-15T16:47:59.167Z',
+      daysWithoutContact: 6,
+      priority: 'high',
+      status: 'awaiting_followup',
+    },
+    {
+      id: '795dc6ba-b639-5b95-aab4-52c039a00d64',
+      name: "Atem's Distribuidora de Petróleo S.A.",
+      company: "Atem's Distribuidora de Petróleo S.A.",
+      contactPerson: 'Diretoria de Novos Negócios & TI',
+      contactRole: 'Diretoria de Novos Negócios & TI',
+      email: 'comercial@atem.com.br',
+      phone: '+55 (92) 2129-0000',
+      segment: 'Combustíveis / Distribuição',
+      score: 96,
+      stage: 'inbound',
+      needsSummary: 'Automação comercial, BI executivo, integrações e sistemas de gestão de postos.',
+      lastContactDate: '2026-08-15T16:47:59.168Z',
       daysWithoutContact: 2,
-      priority: 'medium',
+      priority: 'urgent',
       status: 'awaiting_contact',
     },
   ];
@@ -92,10 +131,12 @@ export class InMemoryLeadRepository implements LeadRepositoryPort {
     }
   }
 
-  // Helper for tests/reset
   getAllDrafts(): FollowupDraft[] {
     return Array.from(this.drafts.values());
   }
 }
 
-export const defaultLeadRepository = new InMemoryLeadRepository();
+/**
+ * Repositório padrão: Supabase Oficial de Produção.
+ */
+export const defaultLeadRepository: LeadRepositoryPort = new SupabaseLeadRepository();

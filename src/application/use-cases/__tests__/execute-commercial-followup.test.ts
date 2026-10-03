@@ -22,19 +22,18 @@ describe('ExecuteCommercialFollowupUseCase', () => {
     expect(result.stage).toBe('commercial');
     expect(result.requiresApproval).toBe(true);
 
-    // Verifica conteúdo dos rascunhos
-    const inovaHealthDraft = result.drafts.find((d) => d.companyName === 'InovaHealth');
-    expect(inovaHealthDraft).toBeDefined();
-    expect(inovaHealthDraft?.recipientName).toBe('Dra. Camila Santos');
-    expect(inovaHealthDraft?.subject).toContain('Laudos Ocupacionais');
-    expect(inovaHealthDraft?.complianceCheck.lgpdCompliant).toBe(true);
-    expect(inovaHealthDraft?.complianceCheck.hasOptOut).toBe(true);
-    expect(inovaHealthDraft?.status).toBe('pending_approval');
+    // Verifica conteúdo dos rascunhos para leads reais de produção
+    const chibataoDraft = result.drafts.find((d) => d.companyName.includes('Porto Chibatão'));
+    expect(chibataoDraft).toBeDefined();
+    expect(chibataoDraft?.recipientRole).toContain('Superintendência');
+    expect(chibataoDraft?.complianceCheck.lgpdCompliant).toBe(true);
+    expect(chibataoDraft?.complianceCheck.hasOptOut).toBe(true);
+    expect(chibataoDraft?.status).toBe('pending_approval');
 
-    const alphaDraft = result.drafts.find((d) => d.companyName === 'Alpha Finanças S/A');
-    expect(alphaDraft).toBeDefined();
-    expect(alphaDraft?.recipientRole).toBe('CTO');
-    expect(alphaDraft?.subject).toContain('Segurança');
+    const samelDraft = result.drafts.find((d) => d.companyName.includes('Samel'));
+    expect(samelDraft).toBeDefined();
+    expect(samelDraft?.recipientRole).toContain('Governança');
+    expect(samelDraft?.subject).toContain('ChronoKairo AI');
   });
 
   it('deve registrar o job no Control Plane com status waiting_approval e NÃO enviar mensagens antes da aprovação', async () => {
