@@ -124,6 +124,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0029](docs/adr/0029-implementacao-ui-threejs-e-automacoes-copilot.md) | Implementação da UI Three.js da Empresa Virtual e Automações do Copilot |
 | [0030](docs/adr/0030-ui-2d-threejs-pantone-2026-cloud-dancer-e-8bit-color.md) | Interface 2D em Three.js com Pantone 2026 White (Cloud Dancer) e Estética 8-Bit Colorida |
 | [0031](docs/adr/0031-estilo-pokemon-2d-3d-e-interface-minimalista.md) | Estilo Pokémon 2D/3D em Three.js e Interface Minimalista |
+| [0032](docs/adr/0032-refinamento-sprites-threejs-animacao-uv-e-transparencia.md) | Refinamento de Sprites 2D em Three.js: Animação por UV Offset, Proporções Nativas e Transparência Alpha |
 
 ### Mapas de código — `docs/maps/`
 
