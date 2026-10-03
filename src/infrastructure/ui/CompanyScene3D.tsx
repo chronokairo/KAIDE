@@ -22,11 +22,16 @@ export function CompanyScene3D({ agents, selectedAgent, onSelectAgent }: Company
     const container = mountRef.current;
     if (!container) return;
 
-    // --- Scene Setup ---
+    // --- Scene Setup (Minimalist 8-Bit Monochrome Black & White) ---
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    scene.background = new THREE.Color('#0a0d14');
-    scene.fog = new THREE.FogExp2('#0a0d14', 0.025);
+    scene.background = new THREE.Color('#030303');
+    scene.fog = new THREE.FogExp2('#030303', 0.02);
+
+    const textureLoader = new THREE.TextureLoader();
+    const animeSpriteTexture = textureLoader.load('/anime_8bit_sprites.jpg');
+    animeSpriteTexture.magFilter = THREE.NearestFilter;
+    animeSpriteTexture.minFilter = THREE.NearestFilter;
 
     // --- Camera ---
     const width = container.clientWidth;
@@ -263,41 +268,52 @@ export function CompanyScene3D({ agents, selectedAgent, onSelectAgent }: Company
 
       group.add(avatarGroup);
 
-      // 4. Floating Agent Label (Canvas Texture)
+      // 4. Retro 8-Bit Anime Character Sprite Billboard
+      const charSpriteMat = new THREE.SpriteMaterial({
+        map: animeSpriteTexture,
+        transparent: true,
+      });
+      const charSprite = new THREE.Sprite(charSpriteMat);
+      charSprite.position.set(0, isHuman ? 3.4 : 3.0, 0);
+      charSprite.scale.set(1.4, 1.4, 1);
+      group.add(charSprite);
+
+      // 5. Floating Agent Label (8-bit Pixel Terminal Style)
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 80;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        ctx.strokeStyle = agent.color;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.roundRect(4, 4, 248, 72, 12);
-        ctx.fill();
-        ctx.stroke();
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = '#050505';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(4, 4, 248, 72);
+        ctx.fillRect(6, 6, 244, 68);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 24px Inter, sans-serif';
+        ctx.font = 'bold 20px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(agent.name, 128, 36);
+        ctx.fillText(agent.name.toUpperCase(), 128, 34);
 
-        ctx.fillStyle = agent.color;
-        ctx.font = '16px Inter, sans-serif';
+        ctx.fillStyle = agent.status === 'waiting_approval' ? '#f59e0b' : '#aaaaaa';
+        ctx.font = 'bold 13px "Courier New", monospace';
         const statusText =
           agent.status === 'waiting_approval'
-            ? '⚠ AGUARDANDO APROVAÇÃO'
+            ? '[! APROVACAO !]'
             : agent.status === 'working'
-            ? '● PROCESSANDO'
-            : '○ OCIOSO';
-        ctx.fillText(statusText, 128, 60);
+            ? '[> PROCESSANDO]'
+            : '[  OCIOSO    ]';
+        ctx.fillText(statusText, 128, 58);
       }
 
       const texture = new THREE.CanvasTexture(canvas);
+      texture.magFilter = THREE.NearestFilter;
+      texture.minFilter = THREE.NearestFilter;
       const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.position.set(0, isHuman ? 3.0 : 2.5, 0);
-      sprite.scale.set(3.2, 1.0, 1);
+      sprite.position.set(0, isHuman ? 2.3 : 2.0, 0);
+      sprite.scale.set(3.0, 0.9, 1);
       group.add(sprite);
 
       scene.add(group);

@@ -101,3 +101,6 @@ next-env.d.ts
 # Rust target
 target/
 src-tauri/target/
+
+# Supabase CLI temp files
+supabase/.temp/
