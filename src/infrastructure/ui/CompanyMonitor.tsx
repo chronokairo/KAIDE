@@ -106,6 +106,25 @@ export function CompanyMonitor() {
     }
   };
 
+  const handleTriggerFinanceReconcile = async () => {
+    setIsExecutingJob(true);
+    try {
+      const job = await executeJob('finance.reconcile');
+      const finAgent = agents.find((a) => a.role === 'finance');
+      if (finAgent) setSelectedAgent(finAgent);
+      setSelectedJob(job);
+      if (job.requiresApproval && job.approvalGate) {
+        setShowApprovalModal(true);
+      } else {
+        setShowDetailsPanel(true);
+      }
+    } catch (err) {
+      console.error('Erro ao disparar finance.reconcile:', err);
+    } finally {
+      setIsExecutingJob(false);
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#F0EEE9] text-neutral-800 font-sans select-none">
       {/* Pure 3D Low-Poly Office View in Three.js (Pantone 2026 Cloud Dancer Background) */}
@@ -180,6 +199,17 @@ export function CompanyMonitor() {
           >
             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
             <span>{isExecutingJob ? 'Auditando...' : 'Job: qa.review_pr'}</span>
+          </button>
+
+          {/* Finance Reconcile Trigger Button */}
+          <button
+            onClick={handleTriggerFinanceReconcile}
+            disabled={isExecutingJob}
+            className="flex items-center space-x-1.5 bg-[#F0EEE9]/90 hover:bg-neutral-200/80 text-neutral-800 px-3.5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm transition text-xs font-semibold cursor-pointer"
+            title="Executar conciliação de faturas a receber, MRR e contratos"
+          >
+            <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+            <span>{isExecutingJob ? 'Conciliando...' : 'Job: finance.reconcile'}</span>
           </button>
 
           {telemetry.pendingApprovalsCount > 0 ? (
@@ -356,6 +386,8 @@ export function CompanyMonitor() {
                 <span className="font-medium text-emerald-700">
                   {pendingJob.agentRole === 'commercial'
                     ? 'AI Comercial (SDR)'
+                    : pendingJob.agentRole === 'finance'
+                    ? 'AI Finance / Ops (Controladoria)'
                     : pendingJob.agentRole === 'devops'
                     ? 'AI DevOps'
                     : pendingJob.agentRole}
@@ -396,6 +428,8 @@ export function CompanyMonitor() {
                     ? 'Processando...'
                     : pendingJob.approvalGate?.type === 'outbound_contact'
                     ? 'Aprovar & Despachar Mensagens'
+                    : pendingJob.approvalGate?.type === 'payment_release'
+                    ? 'Aprovar & Liberar Cobrança/Conciliação'
                     : 'Aprovar & Executar Ação'}
                 </span>
               </button>

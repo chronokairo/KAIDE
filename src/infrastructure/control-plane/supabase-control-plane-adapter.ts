@@ -1,11 +1,16 @@
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
+import { FinanceRepositoryPort } from '@/application/ports/finance-repository-port';
 import { AgentEntity, JobEntity, CompanyTelemetry, ApprovalGate } from '@/domain/company';
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
+import { SupabaseFinanceRepository } from '@/infrastructure/finance/supabase-finance-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
+import { ExecuteFinanceReconciliationUseCase } from '@/application/use-cases/execute-finance-reconciliation';
+import { ExecuteFinanceCashFlowUseCase } from '@/application/use-cases/execute-finance-cash-flow';
+import { ExecuteFinanceNfeAllocationUseCase } from '@/application/use-cases/execute-finance-nfe-allocation';
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
@@ -22,7 +27,8 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
   constructor(
     private readonly leadRepository: LeadRepositoryPort = new SupabaseLeadRepository(),
-    private readonly prRepository: PullRequestRepositoryPort = defaultPullRequestRepository
+    private readonly prRepository: PullRequestRepositoryPort = defaultPullRequestRepository,
+    private readonly financeRepository: FinanceRepositoryPort = new SupabaseFinanceRepository()
   ) {}
 
   async getSnapshot(): Promise<CompanyStateSnapshot> {
@@ -201,7 +207,11 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
         name: 'AI Finance / Ops',
         title: 'Controladoria & Conciliação Bancária',
         department: 'Finanças & Compliance',
-        status: 'working',
+        status: this.activeJobsCache.some((j) => j.agentRole === 'finance' && j.status === 'waiting_approval')
+          ? 'waiting_approval'
+          : this.activeJobsCache.some((j) => j.agentRole === 'finance' && j.status === 'in_progress')
+          ? 'working'
+          : 'idle',
         currentTask: 'Conciliação bancária das contas a receber no Supabase de produção',
         tokensProcessed: 120800,
         costUsd: 0.24,
@@ -372,6 +382,36 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
       return job;
     }
 
+    if (jobName === 'finance.reconcile') {
+      const useCase = new ExecuteFinanceReconciliationUseCase(this.financeRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} não encontrado após execução de finance.reconcile`);
+      }
+      return job;
+    }
+
+    if (jobName === 'finance.cash_flow') {
+      const useCase = new ExecuteFinanceCashFlowUseCase(this.financeRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} não encontrado após execução de finance.cash_flow`);
+      }
+      return job;
+    }
+
+    if (jobName === 'finance.nfe_allocation') {
+      const useCase = new ExecuteFinanceNfeAllocationUseCase(this.financeRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} não encontrado após execução de finance.nfe_allocation`);
+      }
+      return job;
+    }
+
     throw new Error(`Job '${jobName}' não reconhecido pelo Control Plane.`);
   }
 
@@ -422,6 +462,12 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
       );
     }
 
+    if (job.approvalGate.type === 'payment_release') {
+      job.evidence.push(
+        `Cobrança Autorizada: Notificação de cobrança e conciliação financeira liberadas pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}.`
+      );
+    }
+
     await this.notify();
   }
 
@@ -458,6 +504,12 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
       for (const draft of drafts) {
         await this.leadRepository.updateDraftStatus(draft.id, 'rejected');
       }
+    }
+
+    if (job.approvalGate.type === 'payment_release') {
+      job.evidence.push(
+        `Cobrança Sustada: Emissão de cobrança e baixa contábil canceladas pelo Diretor Técnico.`
+      );
     }
 
     await this.notify();
