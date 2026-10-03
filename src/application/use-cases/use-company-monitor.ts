@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
-import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
+import { httpCompanyMonitor } from '@/infrastructure/control-plane/http-company-monitor-adapter';
 import { AgentEntity, JobEntity, CompanyTelemetry } from '@/domain/company';
 
-export function useCompanyMonitor(port: CompanyControlPlanePort = defaultCompanyControlPlane) {
+export function useCompanyMonitor(port: CompanyControlPlanePort = httpCompanyMonitor) {
   const [snapshot, setSnapshot] = useState<CompanyStateSnapshot | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<AgentEntity | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobEntity | null>(null);

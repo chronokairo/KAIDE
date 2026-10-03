@@ -104,3 +104,6 @@ src-tauri/target/
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Control Plane file store (dados locais de jobs/aprovações)
+.data/
