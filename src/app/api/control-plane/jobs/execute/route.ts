@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/in-memory-control-plane';
 import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
+import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
+import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const jobName = body.jobName || 'commercial.followup';
+    const jobName = body.jobName || 'qa.review_pr';
 
     if (jobName === 'commercial.followup') {
       const useCase = new ExecuteCommercialFollowupUseCase(defaultLeadRepository, defaultCompanyControlPlane);
@@ -26,6 +28,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (jobName === 'qa.review_pr') {
+      const useCase = new ExecuteQaPrReviewUseCase(defaultPullRequestRepository, defaultCompanyControlPlane);
+      const result = await useCase.execute();
+
+      return NextResponse.json({
+        success: true,
+        message: "Job 'qa.review_pr' executado com sucesso no Control Plane.",
+        jobId: result.jobId,
+        stage: 'qa',
+        prsScannedCount: result.prsScannedCount,
+        reports: result.reports,
+        overallSummary: result.overallSummary,
+      });
+    }
+
     return NextResponse.json(
       { error: `Job '${jobName}' não reconhecido pelo harness do Control Plane.` },
       { status: 400 }
@@ -39,20 +56,37 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const jobName = searchParams.get('job') || 'qa.review_pr';
+
   try {
-    const useCase = new ExecuteCommercialFollowupUseCase(defaultLeadRepository, defaultCompanyControlPlane);
+    if (jobName === 'commercial.followup') {
+      const useCase = new ExecuteCommercialFollowupUseCase(defaultLeadRepository, defaultCompanyControlPlane);
+      const result = await useCase.execute();
+      return NextResponse.json({
+        success: true,
+        message: "Job 'commercial.followup' executado com sucesso no Control Plane.",
+        jobId: result.jobId,
+        status: 'waiting_approval',
+        requiresApproval: true,
+        approvalGateId: result.approvalGateId,
+        leadsCheckedCount: result.leadsScannedCount,
+        draftsGenerated: result.drafts,
+      });
+    }
+
+    const useCase = new ExecuteQaPrReviewUseCase(defaultPullRequestRepository, defaultCompanyControlPlane);
     const result = await useCase.execute();
 
     return NextResponse.json({
       success: true,
-      message: "Job 'commercial.followup' executado com sucesso no Control Plane.",
+      message: "Job 'qa.review_pr' executado com sucesso no Control Plane.",
       jobId: result.jobId,
-      status: 'waiting_approval',
-      requiresApproval: true,
-      approvalGateId: result.approvalGateId,
-      leadsCheckedCount: result.leadsScannedCount,
-      draftsGenerated: result.drafts,
+      stage: 'qa',
+      prsScannedCount: result.prsScannedCount,
+      reports: result.reports,
+      overallSummary: result.overallSummary,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 });

@@ -17,6 +17,7 @@
     "test": "npx vitest run",
     "typecheck": "tsc --noEmit",
     "job:commercial:followup": "tsx scripts/execute-commercial-followup.ts",
+    "job:qa:review_pr": "tsx scripts/execute-qa-pr-review.ts",
     "tauri": "tauri",
     "tauri:dev": "tauri dev"
   },
