@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ExecuteCommercialFollowupUseCase } from '../execute-commercial-followup';
-import { InMemoryLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
-import { InMemoryCompanyControlPlaneAdapter } from '@/infrastructure/control-plane/in-memory-control-plane';
+import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
+import { SupabaseCompanyControlPlaneAdapter } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 
 describe('ExecuteCommercialFollowupUseCase', () => {
-  let leadRepo: InMemoryLeadRepository;
-  let controlPlane: InMemoryCompanyControlPlaneAdapter;
+  let leadRepo: SupabaseLeadRepository;
+  let controlPlane: SupabaseCompanyControlPlaneAdapter;
   let useCase: ExecuteCommercialFollowupUseCase;
 
   beforeEach(() => {
-    leadRepo = new InMemoryLeadRepository();
-    controlPlane = new InMemoryCompanyControlPlaneAdapter(leadRepo);
+    leadRepo = new SupabaseLeadRepository();
+    controlPlane = new SupabaseCompanyControlPlaneAdapter(leadRepo);
     useCase = new ExecuteCommercialFollowupUseCase(leadRepo, controlPlane);
   });
 
@@ -77,7 +77,7 @@ describe('ExecuteCommercialFollowupUseCase', () => {
     // Rascunhos devem estar marcados como despachados
     const drafts = leadRepo.getAllDrafts();
     expect(drafts.every((d) => d.status === 'dispatched')).toBe(true);
-  });
+  }, 15000);
 
   it('quando o Diretor rejeitar o gate, o job deve ser rejeitado e as mensagens NÃO despachadas', async () => {
     const result = await useCase.execute();
@@ -93,5 +93,5 @@ describe('ExecuteCommercialFollowupUseCase', () => {
 
     const drafts = leadRepo.getAllDrafts();
     expect(drafts.some((d) => d.status === 'dispatched')).toBe(false);
-  });
+  }, 15000);
 });

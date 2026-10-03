@@ -356,18 +356,32 @@ export function CompanyMonitor() {
 
       {/* Minimalist Human Approval Gate Modal (ADR-0028) */}
       {showApprovalModal && pendingJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/30 backdrop-blur-md animate-fadeIn">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowApprovalModal(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/30 backdrop-blur-md animate-fadeIn"
+        >
           <div className="w-full max-w-xl bg-[#F0EEE9] border border-neutral-300 rounded-3xl shadow-2xl p-6 space-y-4">
-            <div className="flex items-center space-x-3 pb-3 border-b border-neutral-200">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
-                <ShieldCheck className="w-5 h-5" />
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-neutral-900">Gate de Aprovação Humana</h2>
+                  <p className="text-xs text-neutral-500">
+                    Modelo AI → AI → AI → HUMAN (ADR-0028). Ações com impacto externo ou produção exigem aprovação explícita.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-semibold text-neutral-900">Gate de Aprovação Humana</h2>
-                <p className="text-xs text-neutral-500">
-                  Modelo AI → AI → AI → HUMAN (ADR-0028). Ações com impacto externo ou produção exigem aprovação explícita.
-                </p>
-              </div>
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="text-neutral-400 hover:text-neutral-700 p-1.5 rounded-xl hover:bg-neutral-200/60 transition cursor-pointer"
+                title="Fechar (decidir depois)"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="bg-white p-3.5 rounded-2xl border border-neutral-200/80 space-y-1.5 text-xs">
@@ -409,30 +423,38 @@ export function CompanyMonitor() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-2">
+            <div className="flex items-center justify-between pt-2">
               <button
-                disabled={isProcessingApproval}
-                onClick={handleReject}
-                className="px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 font-medium text-xs transition cursor-pointer"
+                onClick={() => setShowApprovalModal(false)}
+                className="px-3.5 py-2 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-200/50 font-medium text-xs transition cursor-pointer"
               >
-                Rejeitar & Solicitar Ajustes
+                Decidir Depois
               </button>
-              <button
-                disabled={isProcessingApproval}
-                onClick={handleApprove}
-                className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>
-                  {isProcessingApproval
-                    ? 'Processando...'
-                    : pendingJob.approvalGate?.type === 'outbound_contact'
-                    ? 'Aprovar & Despachar Mensagens'
-                    : pendingJob.approvalGate?.type === 'payment_release'
-                    ? 'Aprovar & Liberar Cobrança/Conciliação'
-                    : 'Aprovar & Executar Ação'}
-                </span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  disabled={isProcessingApproval}
+                  onClick={handleReject}
+                  className="px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 font-medium text-xs transition cursor-pointer"
+                >
+                  Rejeitar & Solicitar Ajustes
+                </button>
+                <button
+                  disabled={isProcessingApproval}
+                  onClick={handleApprove}
+                  className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>
+                    {isProcessingApproval
+                      ? 'Processando...'
+                      : pendingJob.approvalGate?.type === 'outbound_contact'
+                      ? 'Aprovar & Despachar Mensagens'
+                      : pendingJob.approvalGate?.type === 'payment_release'
+                      ? 'Aprovar & Liberar Cobrança/Conciliação'
+                      : 'Aprovar & Executar Ação'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

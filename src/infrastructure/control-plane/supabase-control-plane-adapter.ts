@@ -93,6 +93,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
           ? 'waiting_approval'
           : 'idle',
         currentTask: 'Monitorando 13 leads no banco Supabase prod e SLA de follow-up',
+        currentJobId: this.activeJobsCache.find((j) => j.agentRole === 'commercial')?.id,
         tokensProcessed: 142500,
         costUsd: 0.28,
         lastActivity: 'Há 2 min',
@@ -447,16 +448,18 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // Processa disparos e transições de acordo com o gate
     if (job.approvalGate.type === 'outbound_contact') {
-      const drafts = await this.leadRepository.getDraftsByJobId?.(job.id) || [];
+      const drafts = (await this.leadRepository.getDraftsByJobId?.(job.id)) || [];
       const dispatchTime = new Date().toISOString();
-      for (const draft of drafts) {
-        await this.leadRepository.updateDraftStatus(draft.id, 'dispatched', dispatchTime);
-        await this.leadRepository.updateLeadStatus(
-          draft.leadId,
-          'in_dialogue',
-          'Follow-up transmitido com autorização do Diretor.'
-        );
-      }
+      await Promise.all(
+        drafts.map(async (draft) => {
+          await this.leadRepository.updateDraftStatus(draft.id, 'dispatched', dispatchTime);
+          await this.leadRepository.updateLeadStatus(
+            draft.leadId,
+            'in_dialogue',
+            'Follow-up transmitido com autorização do Diretor.'
+          );
+        })
+      );
       job.evidence.push(
         `Disparo Externo Concluído: Mensagens transmitidas com sucesso aos destinatários autorizados às ${new Date().toLocaleTimeString('pt-BR')}.`
       );
