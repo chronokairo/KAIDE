@@ -521,6 +521,37 @@ export function PokemonOfficeScene({ agents, selectedAgent, onSelectAgent }: Pok
     };
     window.addEventListener('resize', handleResize);
 
+    // Camera action event listener (zoom-in, zoom-out, reset)
+    const handleCameraAction = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!camera || !container) return;
+      if (detail.action === 'zoom-in') {
+        const factor = 0.82;
+        camera.left *= factor;
+        camera.right *= factor;
+        camera.top *= factor;
+        camera.bottom *= factor;
+        camera.updateProjectionMatrix();
+      } else if (detail.action === 'zoom-out') {
+        const factor = 1.22;
+        camera.left *= factor;
+        camera.right *= factor;
+        camera.top *= factor;
+        camera.bottom *= factor;
+        camera.updateProjectionMatrix();
+      } else if (detail.action === 'reset') {
+        const asp = container.clientWidth / container.clientHeight;
+        camera.left = (-frustumSize * asp) / 2;
+        camera.right = (frustumSize * asp) / 2;
+        camera.top = frustumSize / 2;
+        camera.bottom = -frustumSize / 2;
+        camera.position.set(16, 20, 16);
+        camera.lookAt(0, 0, 0);
+        camera.updateProjectionMatrix();
+      }
+    };
+    window.addEventListener('office-camera-action', handleCameraAction);
+
     // --- 4. Master 3D Animation Loop ---
     let animId: number;
     const clock = new THREE.Clock();
@@ -578,6 +609,7 @@ export function PokemonOfficeScene({ agents, selectedAgent, onSelectAgent }: Pok
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('office-camera-action', handleCameraAction);
       domElement.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);

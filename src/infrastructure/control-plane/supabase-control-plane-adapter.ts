@@ -2,15 +2,27 @@ import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/por
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
 import { FinanceRepositoryPort } from '@/application/ports/finance-repository-port';
+import { LegalRepositoryPort } from '@/application/ports/legal-repository-port';
+import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
+import { SupportRepositoryPort } from '@/application/ports/support-repository-port';
 import { AgentEntity, JobEntity, CompanyTelemetry, ApprovalGate } from '@/domain/company';
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
 import { SupabaseFinanceRepository } from '@/infrastructure/finance/supabase-finance-repository';
+import { SupabaseLegalRepository } from '@/infrastructure/legal/supabase-legal-repository';
+import { SupabaseEngineeringRepository } from '@/infrastructure/engineering/supabase-engineering-repository';
+import { SupabaseSupportRepository } from '@/infrastructure/support/supabase-support-repository';
+import { TaskSyncProposal } from '@/domain/engineering';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 import { ExecuteFinanceReconciliationUseCase } from '@/application/use-cases/execute-finance-reconciliation';
 import { ExecuteFinanceCashFlowUseCase } from '@/application/use-cases/execute-finance-cash-flow';
 import { ExecuteFinanceNfeAllocationUseCase } from '@/application/use-cases/execute-finance-nfe-allocation';
+import { ExecuteLegalCaseAuditUseCase } from '@/application/use-cases/execute-legal-case-audit';
+import { ExecuteLegalContractReviewUseCase } from '@/application/use-cases/execute-legal-contract-review';
+import { ExecuteCoderSprintSyncUseCase } from '@/application/use-cases/execute-coder-sprint-sync';
+import { ExecuteProductMilestoneSpecUseCase } from '@/application/use-cases/execute-product-milestone-spec';
+import { ExecuteSupportTriageUseCase } from '@/application/use-cases/execute-support-triage';
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
@@ -24,11 +36,20 @@ const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech
 export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePort {
   private activeJobsCache: JobEntity[] = [];
   private listeners: Set<(snapshot: CompanyStateSnapshot) => void> = new Set();
+  /**
+   * Propostas de status de `project_tasks` pendentes de aprovação. Só são
+   * aplicadas em `approveJob` quando o gate `scope_baseline` é aprovado —
+   * é o mecanismo que garante AI → AI → AI → HUMAN na escrita no backlog.
+   */
+  private pendingSprintSync = new Map<string, TaskSyncProposal[]>();
 
   constructor(
     private readonly leadRepository: LeadRepositoryPort = new SupabaseLeadRepository(),
     private readonly prRepository: PullRequestRepositoryPort = defaultPullRequestRepository,
-    private readonly financeRepository: FinanceRepositoryPort = new SupabaseFinanceRepository()
+    private readonly financeRepository: FinanceRepositoryPort = new SupabaseFinanceRepository(),
+    private readonly legalRepository: LegalRepositoryPort = new SupabaseLegalRepository(),
+    private readonly engineeringRepository: EngineeringRepositoryPort = new SupabaseEngineeringRepository(),
+    private readonly supportRepository: SupportRepositoryPort = new SupabaseSupportRepository()
   ) {}
 
   async getSnapshot(): Promise<CompanyStateSnapshot> {
