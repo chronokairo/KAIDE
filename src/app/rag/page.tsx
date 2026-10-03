@@ -1,5 +1,5 @@
-import RagApp from '@/modules/rag/RagApp';
+import { AppShell } from '@/infrastructure/ui';
 
 export default function RagPage() {
-  return <RagApp />;
+  return <AppShell initialTab="chat" />;
 }
