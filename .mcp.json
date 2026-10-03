@@ -1,0 +1,134 @@
+{
+  "name": "chronokairo-ai",
+  "version": "1.0.0",
+  "description": "MCP server for ChronoKairo AI - exposes jobs, approval gates, email outreach, and other agent capabilities",
+  "tools": [
+    {
+      "name": "runCommercialDaily",
+      "description": "Executa o job comercial.daily: escaneia leads novos, realiza análise corporativa, pontua leads, cria gates de aprovação para leads qualificados (envio de e-mail requer aprovação humana)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "runCommercialFollowup",
+      "description": "Executa o job comercial.followup: identifica leads contatados fora da cadência de 7 dias e cria rascunhos de follow-up personalizados (envio requer aprovação humana)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getApprovalGate",
+      "description": "Recupera os detalhes e status de um gate de aprovação específico pelo seu ID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "approvalId": {
+            "type": "string",
+            "description": "ID do gate de aprovação a ser consultado"
+          }
+        },
+        "required": ["approvalId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "resolveApproval",
+      "description": "Resolve um gate de aprovação (aprova ou rejeita). Se aprovado e o Resend estiver configurado, envia o e-mail automaticamente. Se rejeitado, registra a decisão no CRM.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "approvalId": {
+            "type": "string",
+            "description": "ID do gate de aprovação a ser resolvido"
+          },
+          "decision": {
+            "type": "string",
+            "enum": ["approved", "rejected"],
+            "description": "Decisão de aprovação: 'approved' para autorizar envio, 'rejected' para bloquear"
+          },
+          "resolvedBy": {
+            "type": "string",
+            "description": "Identificador do usuário ou agente que está resolvendo o gate (ex: 'diretor-tecnico')"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Motivo da decisão (obrigatório ao rejeitar, opcional ao aprovar)"
+          }
+        },
+        "required": ["approvalId", "decision", "resolvedBy"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "syncEmailOutreach",
+      "description": "Sincroniza status de e-mails do Resend para o Supabase (verifica e-mails das últimas 24h e atualiza registros de outreach)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getLead",
+      "description": "Recupera informações detalhadas sobre um lead específico pelo seu ID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "leadId": {
+            "type": "string",
+            "description": "ID do lead a ser consultado"
+          }
+        },
+        "required": ["leadId"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "listLeads",
+      "description": "Lista leads com filtros opcionais por status, limite e offset",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de status para filtrar (ex: ['new', 'qualified', 'awaiting_contact_approval'])"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Número máximo de leads a retornar (padrão: 50)",
+            "default": 50
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Número de leads para pular antes de começar a retornar (padrão: 0)",
+            "default": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getJobEvents",
+      "description": "Recupera o log de eventos (append-only) para um job específico",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "description": "ID do job cujos eventos devem ser recuperados"
+          }
+        },
+        "required": ["jobId"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
