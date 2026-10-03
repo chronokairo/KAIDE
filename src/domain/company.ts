@@ -36,6 +36,26 @@ export interface AgentEntity {
 
 export type JobStatus = 'queued' | 'in_progress' | 'waiting_approval' | 'completed' | 'rejected' | 'failed';
 
+export type JobEventType =
+  | 'email.sent'
+  | 'email.synced'
+  | 'email.bounced'
+  | 'job.submitted'
+  | 'job.completed'
+  | 'job.failed'
+  | 'gate.opened'
+  | 'gate.approved'
+  | 'gate.rejected'
+  | string;
+
+export interface JobEvent {
+  id: string;
+  jobId: string;
+  eventType: JobEventType;
+  payload: Record<string, any>;
+  createdAt: string;
+}
+
 export interface ApprovalGate {
   id: string;
   jobId: string;

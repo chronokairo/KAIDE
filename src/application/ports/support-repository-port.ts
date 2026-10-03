@@ -1,12 +1,19 @@
-import { ConversationThread, FaqEntry } from '@/domain/support';
+import {
+  ConversationThread,
+  FaqEntry,
+  SupportIncident,
+  SupportTicket,
+} from '@/domain/support';
 
 /**
- * Driven port for the Support & Knowledge Base Repository.
+ * Driven port for the Support, Incidents & Knowledge Base Repository.
  *
- * The AI Support agent analyzes past conversations to identify recurring questions
- * and proposes draft FAQ entries. Publishing articles remains a human curation task.
+ * Provides access to real support tickets, incidents, and historical conversations
+ * to enable automated triage, recurrence analysis, and proactive FAQ generation.
  */
 export interface SupportRepositoryPort {
+  listTickets(): Promise<SupportTicket[]>;
+  listIncidents(): Promise<SupportIncident[]>;
   listConversations(): Promise<ConversationThread[]>;
   saveFaqEntry?(entry: FaqEntry): Promise<void>;
 }

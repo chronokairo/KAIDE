@@ -8,14 +8,16 @@ import { SupportRepositoryPort } from '@/application/ports/support-repository-po
 import { SourceControlPort } from '@/application/ports/source-control-port';
 import { AgentEntity, JobEntity, CompanyTelemetry, ApprovalGate } from '@/domain/company';
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
-import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
+import { defaultPullRequestRepository } from '@/infrastructure/qa/forge-pull-request-repository';
 import { SupabaseFinanceRepository } from '@/infrastructure/finance/supabase-finance-repository';
 import { SupabaseLegalRepository } from '@/infrastructure/legal/supabase-legal-repository';
 import { SupabaseEngineeringRepository } from '@/infrastructure/engineering/supabase-engineering-repository';
 import { SupabaseSupportRepository } from '@/infrastructure/support/supabase-support-repository';
-import { GhGlabSourceControlAdapter } from '@/infrastructure/git/gh-glab-source-control';
+import { ForgeSourceControlAdapter } from '@/infrastructure/git/forge-source-control-adapter';
+import { defaultResendEmailService } from '@/infrastructure/email/resend-email-service';
 import { TaskSyncProposal } from '@/domain/engineering';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
+import { ExecuteCommercialDailyUseCase } from '@/application/use-cases/execute-commercial-daily';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 import { ExecuteFinanceReconciliationUseCase } from '@/application/use-cases/execute-finance-reconciliation';
 import { ExecuteFinanceCashFlowUseCase } from '@/application/use-cases/execute-finance-cash-flow';
@@ -51,7 +53,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
     private readonly legalRepository: LegalRepositoryPort = new SupabaseLegalRepository(),
     private readonly engineeringRepository: EngineeringRepositoryPort = new SupabaseEngineeringRepository(),
     private readonly supportRepository: SupportRepositoryPort = new SupabaseSupportRepository(),
-    private readonly sourceControl: SourceControlPort = new GhGlabSourceControlAdapter()
+    private readonly sourceControl: SourceControlPort = new ForgeSourceControlAdapter()
   ) {}
 
   registerPendingSprintSync(approvalId: string, proposals: TaskSyncProposal[]): void {
@@ -400,6 +402,16 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
       return job;
     }
 
+    if (jobName === 'commercial.daily') {
+      const useCase = new ExecuteCommercialDailyUseCase(this.leadRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing commercial.daily`);
+      }
+      return job;
+    }
+
     if (jobName === 'qa.review_pr') {
       const useCase = new ExecuteQaPrReviewUseCase(this.prRepository, this);
       const result = await useCase.execute();
@@ -535,10 +547,20 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
             'in_dialogue',
             'Follow-up message dispatched with Director authorization.'
           );
+
+          if (draft.recipientEmail) {
+            await defaultResendEmailService.sendFollowupEmail({
+              to: draft.recipientEmail,
+              subject: draft.subject,
+              body: `${draft.body}\n\n${draft.callToAction}`,
+              jobId: job.id,
+              draftId: draft.id,
+            });
+          }
         })
       );
       job.evidence.push(
-        `Disparo Externo Concluído / External Dispatch Completed: Messages successfully transmitted to recipients at ${new Date().toLocaleTimeString('en-US')}.`
+        `Disparo Externo Concluído / External Dispatch Completed: Messages successfully transmitted to recipients via Resend at ${new Date().toLocaleTimeString('en-US')}.`
       );
     }
 

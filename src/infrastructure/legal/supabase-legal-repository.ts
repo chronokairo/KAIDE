@@ -161,7 +161,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
       organization_id: PROD_ORGANIZATION_ID,
       action: 'LEGAL_CONTRACT_REVIEWED',
       target: `contracts/${report.contractNumber}`,
-      success: report.verdict !== 'bloqueado' && report.verdict !== 'blocked',
+      success: report.verdict !== 'blocked',
       details: {
         verdict: report.verdict,
         score: report.score,

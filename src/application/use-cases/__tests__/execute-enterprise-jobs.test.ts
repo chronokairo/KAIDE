@@ -312,6 +312,8 @@ describe('Enterprise AI Agent Jobs (ADR-0038)', () => {
     ];
 
     const mockSupportRepo: SupportRepositoryPort = {
+      listTickets: vi.fn().mockResolvedValue([]),
+      listIncidents: vi.fn().mockResolvedValue([]),
       listConversations: vi.fn().mockResolvedValue(sampleConversations),
       saveFaqEntry: vi.fn().mockResolvedValue(undefined),
     };
@@ -397,7 +399,7 @@ describe('Enterprise AI Agent Jobs (ADR-0038)', () => {
 
     expect(result.stage).toBe('analyst');
     expect(result.contractsScannedCount).toBe(1);
-    expect(result.reports[0].verdict).toBe('bloqueado');
+    expect(result.reports[0].verdict).toBe('blocked');
     expect(result.reports[0].blockingIssues.length).toBeGreaterThan(0);
   });
 });

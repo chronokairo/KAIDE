@@ -1,33 +1,59 @@
 /**
- * Pure domain rules shared by the GitHub and GitLab integrations.
+ * Pure domain entities and utilities for multi-forge source control integration.
  *
- * Both forges describe change requests, branches and commits, so the rules
- * that bind them to the backlog live here once and are reused by both
- * adapters. Nothing in this file performs I/O: it is pure domain, which is
- * what keeps the parsing rules testable and prevents them from drifting apart
- * between the two forges.
+ * ChronoKairo mirrors its codebases across both GitHub and GitLab:
+ *   - GitHub: https://github.com/chronokairo/ai.git
+ *   - GitLab: https://gitlab.com/chronokairo/ai.git
+ *
+ * This domain model unifies task code extraction, conventional commit parsing,
+ * and forge-agnostic change request abstractions across both remotes.
+ *
+ * Hexagonal architecture: pure domain, decoupled from SDKs, child processes, and I/O.
  */
 
+export type ForgeProvider = 'github' | 'gitlab';
+
+export type ForgeChangeState = 'open' | 'merged' | 'closed' | 'draft';
+
+export type ForgeReviewVerdict = 'approved' | 'changes_requested' | 'pending' | 'none';
+
 /**
- * Backlog task codes as they appear in branch names, change request titles
- * and commit subjects, for example `SECP-01`, `TSK-4EC62792`, `AUDIO-ASO-01`.
+ * Backlog task code pattern matching standard identifiers such as:
+ * SECP-01, TSK-4EC62792, AUDIO-ASO-01
  */
-const TASK_CODE_PATTERN = /\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)\b/g;
-
-/** `type(scope): subject`, with an optional `!` breaking marker. */
-const CONVENTIONAL_COMMIT_PATTERN =
-  /^(?<type>[a-z]+)(?<breaking>!)?(?:\((?<scope>[^)]+)\))?:\s*(?<subject>.+)$/;
+export const TASK_CODE_PATTERN = /\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)\b/g;
 
 /**
- * Prefixes that appear in this code base but are not backlog task codes.
- * Without this filter the evidence index would fill up with ADR references.
+ * Prefixes and identifiers that match the pattern syntax but represent documentation
+ * or system artifacts rather than backlog tasks.
  */
-const NON_TASK_CODE_PREFIXES = new Set(['ADR']);
+export const RESERVED_CODES = new Set([
+  'ADR-0038',
+  'ADR-0037',
+  'ADR-0036',
+  'ADR-0035',
+  'ADR-0034',
+  'ADR-0033',
+  'ADR-0032',
+  'ADR-0031',
+  'ADR-0030',
+  'ADR-0029',
+  'ADR-0028',
+  'ADR-0027',
+]);
 
 /**
- * A conventional commit, parsed from a GitHub or GitLab commit subject. The
- * repository follows `type(scope): subject`, for example
- * `feat(finance): implement real finance jobs (ADR-0037)`.
+ * Extracts unique backlog task codes from arbitrary text (branch names, PR titles, commits).
+ */
+export function extractTaskCodes(text: string): string[] {
+  if (!text) return [];
+  const found = text.toUpperCase().match(TASK_CODE_PATTERN) ?? [];
+  return [...new Set(found)].filter((code) => !RESERVED_CODES.has(code));
+}
+
+/**
+ * Conventional commit structure.
+ * Example: `feat(finance): implement real finance jobs with Supabase prod data (ADR-0037)`
  */
 export interface ConventionalCommit {
   type: string;
@@ -38,40 +64,115 @@ export interface ConventionalCommit {
   raw: string;
 }
 
-/**
- * Extracts the backlog task codes referenced by a piece of forge text.
- *
- * Duplicates are collapsed and ADR references are dropped, so the result is
- * always a set of real task links.
- */
-export function extractTaskCodes(text: string): string[] {
-  const found = text.toUpperCase().match(TASK_CODE_PATTERN) ?? [];
-  return [...new Set(found)].filter((code) => !NON_TASK_CODE_PREFIXES.has(code.split('-')[0]));
-}
+const CONVENTIONAL_COMMIT_REGEX =
+  /^(?<type>[a-z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?:\s*(?<subject>.+)$/;
 
-/** Parses a conventional commit subject. Returns null when it is not one. */
-export function parseConventionalCommit(raw: string): ConventionalCommit | null {
-  const match = CONVENTIONAL_COMMIT_PATTERN.exec(raw.trim());
+/**
+ * Parses a commit subject line into a structured ConventionalCommit, or returns null.
+ */
+export function parseConventionalCommit(subject: string): ConventionalCommit | null {
+  if (!subject) return null;
+  const match = CONVENTIONAL_COMMIT_REGEX.exec(subject.trim());
   if (!match?.groups) return null;
-  const { type, scope, subject } = match.groups;
+
+  const { type, scope, subject: parsedSubject } = match.groups;
   return {
     type,
     scope,
-    subject: subject ?? '',
+    subject: parsedSubject ?? '',
     breaking: match.groups.breaking === '!',
-    references: subject?.match(/\((?:ADR-\d+|[A-Z]+-\d+)\)/g) ?? [],
-    raw,
+    references: parsedSubject?.match(/\((?:ADR-\d+|[A-Z]+-\d+)\)/g) ?? [],
+    raw: subject,
   };
 }
 
-/** Truncates long text from a forge payload so evidence stays readable. */
-export function excerpt(value: unknown, maxLength = 400): string {
-  const text = typeof value === 'string' ? value : '';
-  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+/**
+ * Represents a branch on a forge repository.
+ */
+export interface ForgeBranch {
+  provider: ForgeProvider;
+  name: string;
+  headSha: string;
+  taskCodes: string[];
+  isDefault: boolean;
 }
 
-/** First line of a multi-line commit message. */
-export function firstLine(message: unknown): string {
-  const text = typeof message === 'string' ? message : '';
-  return text.split('\n')[0];
+/**
+ * Represents a normalized Pull Request (GitHub) or Merge Request (GitLab).
+ */
+export interface ForgeChangeRequest {
+  provider: ForgeProvider;
+  id: string;
+  number: number;
+  title: string;
+  state: ForgeChangeState;
+  headBranch: string;
+  baseBranch: string;
+  author: string;
+  isDraft: boolean;
+  reviewVerdict: ForgeReviewVerdict;
+  taskCodes: string[];
+  url: string;
+  updatedAt: string;
+}
+
+/**
+ * Represents a commit on a forge repository.
+ */
+export interface ForgeCommit {
+  provider: ForgeProvider;
+  sha: string;
+  subject: string;
+  author: string;
+  committedAt: string;
+  taskCodes: string[];
+}
+
+/**
+ * Authentication and identity status for a forge CLI client.
+ */
+export interface ForgeAuthStatus {
+  provider: ForgeProvider;
+  authenticated: boolean;
+  account: string;
+  host: string;
+}
+
+/**
+ * Verifiable evidence gathered for a specific backlog task code.
+ */
+export interface TaskForgeEvidence {
+  taskCode: string;
+  branches: string[];
+  changeRequests: ForgeChangeRequest[];
+  commits: ForgeCommit[];
+  conventionalCommits: ConventionalCommit[];
+  isLinked: boolean;
+}
+
+/**
+ * Aggregated activity across both remotes for the Control Plane.
+ */
+export interface ForgeActivity {
+  providers: ForgeProvider[];
+  branches: ForgeBranch[];
+  changeRequests: ForgeChangeRequest[];
+  commits: ForgeCommit[];
+  authStatus: ForgeAuthStatus[];
+  taskEvidence: Record<string, TaskForgeEvidence>;
+  collectedAt: string;
+  warnings: string[];
+}
+
+/**
+ * Comprehensive linkage report for sprint synchronization.
+ */
+export interface ForgeLinkageReport {
+  activity: ForgeActivity;
+  linkedTaskCodes: string[];
+  unlinkedTaskCodes: string[];
+  totalBranches: number;
+  totalChangeRequests: number;
+  totalCommits: number;
+  generatedAt: string;
 }

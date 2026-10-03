@@ -55,6 +55,34 @@
   - `coder.sync_sprint`, `product.spec_milestones`, `legal.audit_case`, `legal.review_contracts`, `support.triage_history`.
 - **Validação de Testes**: 28/28 testes passando com dados reais do Supabase prod e TypeScript limpo.
 
+### Registro de Mudanças (Changelog ADR-0038 Refactor, Dual-Forge & Resend) — 2026-10-03
+- **Eliminação Total de Adapters Mock / In-Memory**:
+  - Remoção definitiva de `src/infrastructure/qa/in-memory-pr-repository.ts` e do adapter monolítico `src/infrastructure/git/gh-glab-source-control.ts`.
+  - Implementação de `ForgePullRequestRepository` (`src/infrastructure/qa/forge-pull-request-repository.ts`) conectado diretamente ao forge GitHub via `GitHubPort`.
+- **Desacoplamento e Domínio Puro Multi-Forge**:
+  - `src/domain/forge.ts`: Extração do domínio compartilhado para task codes (`extractTaskCodes`) e commits convencionais (`parseConventionalCommit`, `ConventionalCommit`).
+  - `src/domain/github.ts` e `src/application/ports/github-port.ts`: Domínio e porta nativa do GitHub.
+  - `src/domain/gitlab.ts` e `src/application/ports/gitlab-port.ts`: Domínio e porta nativa do GitLab.
+  - `src/application/ports/cli-runner-port.ts` e `src/infrastructure/cli/node-cli-runner.ts`: Porta e runner de execução de processos com proteção contra command injection.
+  - `src/infrastructure/git/gh-cli-github-adapter.ts`: Adapter para o CLI autenticado `gh` (leitura de PR/branches/commits/files/checks e submissão de reviews).
+  - `src/infrastructure/git/glab-cli-gitlab-adapter.ts`: Adapter para o CLI autenticado `glab` (leitura de MR/branches/commits/changes/pipeline e criação de notas).
+  - `src/infrastructure/git/forge-source-control-adapter.ts`: Unificação dos forges com coletor de warnings resiliente (`safeFetch`).
+- **Suporte Real Conectado a `support_tickets` e `support_incidents`**:
+  - `src/domain/support.ts`, `src/application/ports/support-repository-port.ts` e `SupabaseSupportRepository` atualizados para consumir as tabelas de produção `support_tickets` e `support_incidents`.
+  - `ExecuteSupportTriageUseCase` reescrito em inglês puro, sem conteúdo fabricado nem union types bilíngues.
+- **Integração Oficial com Resend SDK & Eventos de Job**:
+  - Adição do SDK oficial `resend` (`npm i resend`).
+  - Configuração do serviço de email `ResendEmailService` com chave de API `REMOVED_EXPOSED_CREDENTIAL` e janela de sincronização de 24h.
+  - Adição dos tipos `JobEventType` (`'email.sent'`, `'email.synced'`, `'email.bounced'`) e persistência de eventos no Supabase.
+  - Disparo real de emails via Resend ativado no Control Plane ao aprovar o gate humano `outbound_contact`.
+- **Implementação do Job `commercial.daily` (AI Comercial / SDR)**:
+  - Criação do caso de uso `ExecuteCommercialDailyUseCase` (`src/application/use-cases/execute-commercial-daily.ts`) e script `scripts/execute-commercial-daily.ts` (`npm run job:commercial:daily`).
+  - Auditoria e due diligence corporativa dos 13 leads qualificados reais do Supabase produção (`leads`), enriquecimento de notas de CRM e elaboração de rascunhos consultivos mantidos sob Human Approval Gate.
+- **Revisão e Limpeza em Inglês Puro**:
+  - Módulos Legal, Support e Engineering sem tipos em português ou validações artificiais.
+- **Validação de Testes e Typecheck**:
+  - 35/35 testes passando no Vitest em 8 suítes de teste; TypeScript compilando com zero erros.
+
 ---
 
 ## P0 — Coding agent de mercado (fundação) — CONCLUÍDO
