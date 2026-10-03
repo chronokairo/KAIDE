@@ -36,6 +36,16 @@ export function useCompanyMonitor(port: CompanyControlPlanePort = httpCompanyMon
     [port]
   );
 
+  const executeJob = useCallback(
+    async (jobName: string, params?: Record<string, any>) => {
+      if (port.executeJob) {
+        return await port.executeJob(jobName, params);
+      }
+      throw new Error(`Porta do Control Plane não suporta executeJob`);
+    },
+    [port]
+  );
+
   return {
     agents: snapshot?.agents ?? [],
     jobs: snapshot?.jobs ?? [],
@@ -53,5 +63,6 @@ export function useCompanyMonitor(port: CompanyControlPlanePort = httpCompanyMon
     setSelectedJob,
     approveGate,
     rejectGate,
+    executeJob,
   };
 }

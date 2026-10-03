@@ -31,6 +31,18 @@ Decisões arquiteturais do produto de IA (RAG, MCP, integrações, chat, desktop
 | [ADR-0025](./adr/0025-ckc-modo-edit-aider-para-llms-pequenos.md) | Modo edit (aider-like) no `ckc` CLI para LLMs pequenos: editar/autocompletar apenas o arquivo aberto, em vez de agent | 2026-09-26 | Aceito (débito aberto) |
 | [ADR-0026](./adr/0026-debito-implementacao-p1s-mercado.md) | Débito: implementação dos 15 P1s de mercado com testes e validação via NVIDIA NIM | 2026-09-26 | Proposto (débito) |
 | [ADR-0027](./adr/0027-extracao-core-ckc-para-repo-cli.md) | Extração do núcleo `ckc` para o repo próprio `chronokairo/cli` (binário `ck`, consumo por git tag) | 2026-09-27 | Aceito |
+| [ADR-0028](./adr/0028-empresa-virtual-de-agentes-control-plane.md) | Empresa virtual de agentes (AI-first): Control Plane, evidência e aprovação, UI Three.js | 2026-10-03 | Proposto |
+| [ADR-0029](./adr/0029-implementacao-ui-threejs-e-automacoes-copilot.md) | Implementação da UI Three.js da Empresa Virtual e Automações do Copilot | 2026-10-03 | Aceito |
+| [ADR-0030](./adr/0030-ui-2d-threejs-pantone-2026-cloud-dancer-e-8bit-color.md) | Interface 2D em Three.js com Pantone 2026 White (Cloud Dancer) e Estética 8-Bit Colorida | 2026-10-03 | Aceito |
+| [ADR-0031](./adr/0031-estilo-pokemon-2d-3d-e-interface-minimalista.md) | Estilo Pokémon 2D/3D em Three.js e Interface Minimalista | 2026-10-03 | Aceito |
+| [ADR-0032](./adr/0032-refinamento-sprites-threejs-animacao-uv-e-transparencia.md) | Refinamento de Sprites 2D em Three.js: Animação por UV Offset, Proporções Nativas e Transparência Alpha | 2026-10-03 | Aceito |
+| [ADR-0033](./adr/0033-remocao-de-sprites-e-analise-de-gaps-competitivos.md) | Remoção de Sprites 2D e Transição para Geometria 3D Low-Poly Pura | 2026-10-03 | Aceito |
+| [ADR-0034](./adr/0034-implementacao-job-commercial-followup-e-human-gate.md) | Implementação Real do Job commercial.followup no Control Plane e Human Gate de Outbound | 2026-10-03 | Aceito |
+| [ADR-0035](./adr/0035-implementacao-job-qa-review-pr-e-analise-adversarial.md) | Implementação Real do Job qa.review_pr e Análise Adversarial Multidimensional | 2026-10-03 | Aceito |
+| [ADR-0036](./adr/0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md) | Conexão Oficial ao Supabase de Produção, Eliminação de Mocks e Persistência Real do Control Plane | 2026-10-03 | Aceito |
+| [ADR-0037](./adr/0037-implementacao-job-finance-reconcile-e-controladoria.md) | Implementação do Módulo de Finanças & Controladoria (AI Finance / Ops) Conectado ao Supabase de Produção | 2026-10-03 | Aceito |
+| [ADR-0038](./adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control Domain, Dual-Forge Linkage (GitHub & GitLab), Projects v2 Scope Baseline, and Pure-English Domain Transition | 2026-10-03 | Aceito |
+| [ADR-0039](./adr/0039-control-plane-hexagonal-supabase-resend.md) | Rework Hexagonal do Control Plane com Supabase Prod, Resend e Suíte de Testes (idempotência real, fixes de double-encoding e cursor) | 2026-10-03 | Aceito |
 
 ## Débitos técnicos abertos
 - **`mcp/` e telas legadas kairos** (2026-09-23): recebidos de vendas/crm; integrar como capacidade MCP e portar o design de chat das telas (`src/modules/ai/legacy-kairos-screens` → REPL/Doctor/ResumeConversation) sem reintroduzir código do fork Claude Code.
