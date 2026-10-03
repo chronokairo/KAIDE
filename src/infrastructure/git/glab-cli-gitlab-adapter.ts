@@ -65,8 +65,7 @@ export class GlabCliGitLabAdapter implements GitLabPort {
       'glab',
       [
         'api',
-        `projects/${this.encodedRepo()}/repository/branches`,
-        '--paginate',
+        `projects/${this.encodedRepo()}/repository/branches?per_page=${limit}`,
       ],
       { timeoutMs: this.timeoutMs }
     );
@@ -181,8 +180,7 @@ export class GlabCliGitLabAdapter implements GitLabPort {
       'glab',
       [
         'api',
-        `projects/${this.encodedRepo()}/repository/commits`,
-        '--paginate',
+        `projects/${this.encodedRepo()}/repository/commits?per_page=${limit}`,
       ],
       { timeoutMs: this.timeoutMs }
     );
