@@ -8,7 +8,7 @@
  * 4. Isolamento Multitenant & RBAC (cross-tenant spoofing e escalada de privilégio)
  */
 
-import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
+import { defaultPullRequestRepository } from '@/infrastructure/qa/forge-pull-request-repository';
 import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 

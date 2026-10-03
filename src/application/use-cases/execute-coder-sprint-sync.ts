@@ -1,7 +1,7 @@
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import { SourceControlPort } from '@/application/ports/source-control-port';
-import { GhGlabSourceControlAdapter } from '@/infrastructure/git/gh-glab-source-control';
+import { ForgeSourceControlAdapter } from '@/infrastructure/git/forge-source-control-adapter';
 import {
   ProjectTask,
   TaskColumnStatus,
@@ -32,7 +32,7 @@ export class ExecuteCoderSprintSyncUseCase {
   constructor(
     private readonly engineeringRepo: EngineeringRepositoryPort,
     private readonly controlPlane: CompanyControlPlanePort,
-    private readonly sourceControl: SourceControlPort = new GhGlabSourceControlAdapter()
+    private readonly sourceControl: SourceControlPort = new ForgeSourceControlAdapter()
   ) {}
 
   async execute(): Promise<SprintSyncJobResult> {

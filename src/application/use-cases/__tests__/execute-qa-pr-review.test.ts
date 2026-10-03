@@ -1,15 +1,53 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ExecuteQaPrReviewUseCase } from '../execute-qa-pr-review';
-import { InMemoryPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
+import { ForgePullRequestRepository } from '@/infrastructure/qa/forge-pull-request-repository';
 import { SupabaseCompanyControlPlaneAdapter } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
+import { PullRequest } from '@/domain/qa';
+
+const samplePrs: PullRequest[] = [
+  {
+    id: 'PR-104',
+    title: 'feat(aso): Módulo de Emissão de ASO com Isolamento Multitenant e Validação de CRM',
+    branch: 'feature/aso-occupational-engine',
+    baseBranch: 'main',
+    author: 'AI Coder',
+    changesSummary: 'Implementa caso de uso EmitAsoUseCase com validação de assinatura médica, hash SHA-256 e RBAC por organizationId.',
+    filesChanged: [
+      'src/domain/aso.ts',
+      'src/application/use-cases/emit-aso.ts',
+      'src/application/ports/aso-repository-port.ts',
+      'src/infrastructure/http/aso-controller.ts',
+      'src/application/use-cases/__tests__/emit-aso.test.ts',
+    ],
+    stage: 'qa',
+    status: 'open',
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'PR-105',
+    title: 'fix(auth): Refresh Token Endpoint e Validação de Sessão',
+    branch: 'fix/auth-session-rotation',
+    baseBranch: 'main',
+    author: 'AI Coder',
+    changesSummary: 'Atualização do endpoint de renovação de sessão com suporte a rotação de tokens JWT e verificação de expiração.',
+    filesChanged: [
+      'src/app/api/auth/refresh/route.ts',
+      'src/infrastructure/auth/token-service.ts',
+      'src/domain/auth.ts',
+    ],
+    stage: 'qa',
+    status: 'open',
+    createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
+  },
+];
 
 describe('ExecuteQaPrReviewUseCase', () => {
-  let prRepo: InMemoryPullRequestRepository;
+  let prRepo: ForgePullRequestRepository;
   let controlPlane: SupabaseCompanyControlPlaneAdapter;
   let useCase: ExecuteQaPrReviewUseCase;
 
   beforeEach(() => {
-    prRepo = new InMemoryPullRequestRepository();
+    prRepo = new ForgePullRequestRepository({ initialPrs: samplePrs });
     controlPlane = new SupabaseCompanyControlPlaneAdapter(undefined, prRepo);
     useCase = new ExecuteQaPrReviewUseCase(prRepo, controlPlane);
   });

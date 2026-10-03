@@ -1,473 +1,230 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
+import { GitLabPort } from '@/application/ports/gitlab-port';
+import { CliRunnerPort } from '@/application/ports/cli-runner-port';
+import { defaultCliRunner } from '@/infrastructure/cli/node-cli-runner';
 import {
-  GitlabPort,
-  GitlabCommitQuery,
-  GitlabMergeRequestQuery,
-  GitlabPipelineQuery,
-} from '@/application/ports/gitlab-port';
-import {
-  GitlabActivity,
-  GitlabApproval,
-  GitlabApprovalState,
-  GitlabBoardList,
-  GitlabBranch,
-  GitlabCommitRef,
-  GitlabConventionalCommit,
-  GitlabMergeRequest,
-  GitlabMergeRequestDiff,
-  GitlabMergeRequestNote,
-  GitlabPipeline,
-  GitlabPipelineJob,
-  GitlabProjectRef,
+  GitLabAuthStatus,
+  GitLabBranch,
+  GitLabCommit,
+  GitLabMergeRequest,
+  GitLabMergeRequestChange,
+  GitLabNoteInput,
+  GitLabPipeline,
+  toGitLabMergeRequest,
 } from '@/domain/gitlab';
+import { extractTaskCodes } from '@/domain/forge';
+import { safeJsonParse } from './forge-utils';
 
-const execFileAsync = promisify(execFile);
+export const DEFAULT_GITLAB_REPO = 'chronokairo/ai';
 
-/** The ChronoKairo GitLab group and its canonical project. */
-export const CHRONOKAIRO_GITLAB_GROUP = 'chronokairo';
-export const CHRONOKAIRO_GITLAB_PROJECT = `${CHRONOKAIRO_GITLAB_GROUP}/ai`;
+export interface GlabCliGitLabAdapterOptions {
+  repo?: string;
+  cliRunner?: CliRunnerPort;
+  timeoutMs?: number;
+}
 
-const DEFAULT_TIMEOUT_MS = 25_000;
-const MAX_BUFFER_BYTES = 24 * 1024 * 1024;
+export class GlabCliGitLabAdapter implements GitLabPort {
+  private readonly repo: string;
+  private readonly runner: CliRunnerPort;
+  private readonly timeoutMs?: number;
 
-/** Backlog task codes, for example `SECP-01` or `TSK-4EC62792`. */
-const TASK_CODE_PATTERN = /\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)\b/g;
-
-/** `type(scope): subject`, with an optional `!` breaking marker. */
-const CONVENTIONAL_COMMIT =
-  /^(?<type>[a-z]+)(?<breaking>!)?(?:\((?<scope>[^)]+)\))?:\s*(?<subject>.+)$/;
-
-/** Prefixes that are not backlog task codes. */
-const NON_TASK_CODE_PREFIXES = new Set(['ADR']);
-
-/**
- * Secondary adapter: real GitLab access through the authenticated `glab` CLI.
- *
- * GitLab capabilities that have no GitHub counterpart and are therefore
- * modelled explicitly: approvals-before-merge, merge gates, CI pipelines and
- * their jobs, conflict detection, diff refs and project boards.
- *
- * Contract enforced by this adapter:
- *  - no seed data. An unreachable or unauthenticated GitLab yields empty
- *    results plus a warning, never simulated data;
- *  - every field comes from a GitLab API response;
- *  - `createMergeRequestNote` is the only write, used to deliver the AI QA
- *    verdict on the forge instead of mirroring it into the business database;
- *  - arguments are passed as an array with `shell: false`.
- */
-export class GlabCliGitlabAdapter implements GitlabPort {
-  constructor(private readonly options: { projectPath?: string; timeoutMs?: number } = {}) {}
-
-  async getViewer(): Promise<string | null> {
-    const result = await this.exec('glab', ['api', 'user']);
-    if (!result.ok) return null;
-    const parsed = this.parse(result.stdout);
-    const username = (parsed as Record<string, any> | null)?.username;
-    return typeof username === 'string' && username ? username : null;
+  constructor(options: GlabCliGitLabAdapterOptions = {}) {
+    this.repo = options.repo ?? DEFAULT_GITLAB_REPO;
+    this.runner = options.cliRunner ?? defaultCliRunner;
+    this.timeoutMs = options.timeoutMs;
   }
 
-  async getProject(path = this.projectPath()): Promise<GitlabProjectRef> {
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}`);
-    const project = (raw ?? {}) as Record<string, any>;
+  private encodedRepo(): string {
+    return encodeURIComponent(this.repo);
+  }
+
+  async getAuthStatus(): Promise<GitLabAuthStatus> {
+    const res = await this.runner.exec('glab', ['auth', 'status'], {
+      timeoutMs: this.timeoutMs,
+    });
+
+    if (!res.ok && !res.stdout.includes('Logged in to')) {
+      return {
+        authenticated: false,
+        account: '',
+        host: 'gitlab.com',
+      };
+    }
+
+    const text = `${res.stdout}\n${res.stderr}`;
+    const accountMatch = text.match(/as\s+([A-Za-z0-9_-]+)/i);
+
     return {
-      pathWithNamespace: String(project.path_with_namespace ?? path),
-      name: String(project.name ?? path.split('/')[1] ?? path),
-      defaultBranch: String(project.default_branch ?? 'main'),
-      visibility: String(project.visibility ?? 'private'),
+      authenticated: true,
+      account: accountMatch?.[1] ?? '',
+      host: 'gitlab.com',
     };
   }
 
-  async listBranches(path = this.projectPath()): Promise<GitlabBranch[]> {
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}/repository/branches`);
-    if (!Array.isArray(raw)) return [];
-    return raw.map((entry) => {
-      const branch = entry as Record<string, any>;
-      const name = String(branch.name ?? '');
-      return {
-        name,
-        commitSha: String(branch.commit?.id ?? ''),
-        taskCodes: extractTaskCodes(name),
-        isDefault: name === 'main' || name === 'master',
-        isProtected: branch.protected === true,
-      };
-    });
+  async listBranches(limit = 50): Promise<GitLabBranch[]> {
+    const res = await this.runner.exec(
+      'glab',
+      [
+        'api',
+        `projects/${this.encodedRepo()}/repository/branches`,
+        '--paginate',
+      ],
+      { timeoutMs: this.timeoutMs }
+    );
+
+    if (!res.ok) return [];
+
+    const parsed = safeJsonParse<any[]>(res.stdout);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.slice(0, limit).map((b) => ({
+      name: b.name ?? '',
+      commitSha: b.commit?.id ?? '',
+      isDefault: Boolean(b.default),
+      taskCodes: extractTaskCodes(b.name ?? ''),
+    }));
   }
 
   async listMergeRequests(
-    options: GitlabMergeRequestQuery = {},
-    path = this.projectPath()
-  ): Promise<GitlabMergeRequest[]> {
-    const state = options.state ?? 'opened';
-    const limit = options.limit ?? 30;
+    state: 'opened' | 'closed' | 'merged' | 'all' = 'all',
+    limit = 30
+  ): Promise<GitLabMergeRequest[]> {
+    const args = [
+      'mr',
+      'list',
+      '--repo',
+      this.repo,
+      '--per-page',
+      String(limit),
+      '--output',
+      'json',
+    ];
 
-    const raw = await this.apiGet(
-      `projects/${encodeURIComponent(path)}/merge_requests`,
-      state === 'all' ? {} : { state }
-    );
-    if (!Array.isArray(raw)) return [];
+    if (state === 'all') {
+      args.push('--all');
+    } else if (state === 'opened') {
+      args.push('--opened');
+    } else if (state === 'closed') {
+      args.push('--closed');
+    } else if (state === 'merged') {
+      args.push('--merged');
+    }
 
-    return raw
-      .slice(0, limit)
-      .map((entry) => this.toMergeRequest(entry as Record<string, any>, path));
+    const res = await this.runner.exec('glab', args, { timeoutMs: this.timeoutMs });
+    if (!res.ok) return [];
+
+    const parsed = safeJsonParse<any[]>(res.stdout);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item) => toGitLabMergeRequest(item));
   }
 
-  async getMergeRequest(iid: number, path = this.projectPath()): Promise<GitlabMergeRequest | null> {
-    const raw = await this.apiGet(
-      `projects/${encodeURIComponent(path)}/merge_requests/${iid}`
+  async getMergeRequest(iid: number): Promise<GitLabMergeRequest | null> {
+    const res = await this.runner.exec(
+      'glab',
+      ['mr', 'view', String(iid), '--repo', this.repo, '--output', 'json'],
+      { timeoutMs: this.timeoutMs }
     );
-    if (!raw || typeof raw !== 'object') return null;
-    return this.toMergeRequest(raw as Record<string, any>, path);
+
+    if (!res.ok) return null;
+
+    const parsed = safeJsonParse<any>(res.stdout);
+    if (!parsed || (!parsed.id && !parsed.iid)) return null;
+
+    return toGitLabMergeRequest(parsed);
   }
 
-  async getMergeRequestDiffs(
-    iid: number,
-    path = this.projectPath()
-  ): Promise<GitlabMergeRequestDiff[]> {
-    const raw = await this.apiGet(
-      `projects/${encodeURIComponent(path)}/merge_requests/${iid}/diffs`,
-      { access_raw_diffs: 'true' }
+  async listMergeRequestChanges(iid: number): Promise<GitLabMergeRequestChange[]> {
+    const res = await this.runner.exec(
+      'glab',
+      ['api', `projects/${this.encodedRepo()}/merge_requests/${iid}/changes`],
+      { timeoutMs: this.timeoutMs }
     );
-    if (!Array.isArray(raw)) return [];
-    return raw.map((entry) => {
-      const diff = entry as Record<string, any>;
-      return {
-        oldPath: String(diff.old_path ?? ''),
-        newPath: String(diff.new_path ?? ''),
-        newFile: diff.new_file === true,
-        renamedFile: diff.renamed_file === true,
-        deletedFile: diff.deleted_file === true,
-        diff: typeof diff.diff === 'string' ? diff.diff : undefined,
-      };
-    });
+
+    if (!res.ok) return [];
+
+    const parsed = safeJsonParse<{ changes?: any[] }>(res.stdout);
+    if (!parsed?.changes || !Array.isArray(parsed.changes)) return [];
+
+    return parsed.changes.map((c) => ({
+      oldPath: c.old_path ?? '',
+      newPath: c.new_path ?? '',
+      newFile: Boolean(c.new_file),
+      renamedFile: Boolean(c.renamed_file),
+      deletedFile: Boolean(c.deleted_file),
+    }));
   }
 
-  async getApprovals(iid: number, path = this.projectPath()): Promise<GitlabApproval[]> {
-    const raw = await this.apiGet(
-      `projects/${encodeURIComponent(path)}/merge_requests/${iid}/approvals`
+  async getLatestPipeline(ref?: string): Promise<GitLabPipeline | null> {
+    const query = ref ? `?ref=${encodeURIComponent(ref)}` : '';
+    const res = await this.runner.exec(
+      'glab',
+      ['api', `projects/${this.encodedRepo()}/pipelines/latest${query}`],
+      { timeoutMs: this.timeoutMs }
     );
-    const approvals = (raw as Record<string, any> | null)?.approvals;
-    if (!Array.isArray(approvals)) return [];
-    return approvals.map((entry) => {
-      const approval = entry as Record<string, any>;
-      return {
-        id: Number(approval.id ?? 0),
-        approver: String(approval.user?.username ?? approval.user?.name ?? ''),
-        state: approval.state ?? null,
-      };
-    });
-  }
 
-  async getApprovalState(iid: number, path = this.projectPath()): Promise<GitlabApprovalState | null> {
-    const raw = await this.apiGet(
-      `projects/${encodeURIComponent(path)}/merge_requests/${iid}/approvals`
-    );
-    const approvals = (raw as Record<string, any> | null);
-    if (!approvals) return null;
+    if (!res.ok) return null;
+
+    const parsed = safeJsonParse<any>(res.stdout);
+    if (!parsed || !parsed.id) return null;
+
     return {
-      approvalsRequired: Number(approvals.approvals_required ?? 0),
-      approvalsLeft: Number(approvals.approvals_left ?? 0),
-      approvedBy: Array.isArray(approvals.approved_by) ? approvals.approved_by.length : 0,
-      mergeableWhenPipelineSucceeds: approvals.mergeable_when_pipeline_succeeds !== false,
-      hasApprovalRules: Boolean(approvals.approvals_required),
+      id: parsed.id,
+      status: parsed.status,
+      ref: parsed.ref,
+      sha: parsed.sha,
+      webUrl: parsed.web_url,
     };
   }
 
-  async listPipelines(
-    options: GitlabPipelineQuery = {},
-    path = this.projectPath()
-  ): Promise<GitlabPipeline[]> {
-    const query: Record<string, string> = options.ref ? { ref: options.ref } : {};
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}/pipelines`, query);
-    if (!Array.isArray(raw)) return [];
-    return raw.slice(0, options.limit ?? 20).map((entry) => {
-      const pipeline = entry as Record<string, any>;
+  async listCommits(limit = 50): Promise<GitLabCommit[]> {
+    const res = await this.runner.exec(
+      'glab',
+      [
+        'api',
+        `projects/${this.encodedRepo()}/repository/commits`,
+        '--paginate',
+      ],
+      { timeoutMs: this.timeoutMs }
+    );
+
+    if (!res.ok) return [];
+
+    const parsed = safeJsonParse<any[]>(res.stdout);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.slice(0, limit).map((commit) => {
+      const title = commit.title ?? commit.message?.split('\n')[0] ?? '';
       return {
-        id: Number(pipeline.id ?? 0),
-        iid: Number(pipeline.iid ?? 0),
-        status: pipeline.status ?? 'created',
-        source: String(pipeline.source ?? ''),
-        ref: String(pipeline.ref ?? ''),
-        sha: String(pipeline.sha ?? ''),
-        webUrl: String(pipeline.web_url ?? ''),
-        createdAt: String(pipeline.created_at ?? ''),
-        updatedAt: String(pipeline.updated_at ?? ''),
+        id: commit.id ?? '',
+        shortId: commit.short_id ?? (commit.id ? commit.id.slice(0, 8) : ''),
+        title,
+        message: commit.message ?? title,
+        authorName: commit.author_name ?? commit.committer_name ?? 'unknown',
+        createdAt: commit.created_at ?? commit.committed_date ?? '',
+        taskCodes: extractTaskCodes(title),
       };
     });
   }
 
-  async getPipelineJobs(pipelineId: number, path = this.projectPath()): Promise<GitlabPipelineJob[]> {
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}/pipelines/${pipelineId}/jobs`);
-    if (!Array.isArray(raw)) return [];
-    return raw.map((entry) => {
-      const job = entry as Record<string, any>;
-      return {
-        id: Number(job.id ?? 0),
-        name: String(job.name ?? ''),
-        stage: String(job.stage ?? ''),
-        status: job.status ?? 'created',
-        webUrl: String(job.web_url ?? ''),
-      };
-    });
-  }
+  async createMergeRequestNote(input: GitLabNoteInput): Promise<void> {
+    const res = await this.runner.exec(
+      'glab',
+      [
+        'mr',
+        'note',
+        String(input.mergeRequestIid),
+        '--repo',
+        this.repo,
+        '--message',
+        input.body,
+      ],
+      { timeoutMs: this.timeoutMs }
+    );
 
-  async listCommits(options: GitlabCommitQuery = {}, path = this.projectPath()): Promise<GitlabCommitRef[]> {
-    const query: Record<string, string> = options.refName ? { ref_name: options.refName } : {};
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}/repository/commits`, query);
-    if (!Array.isArray(raw)) return [];
-    return raw.slice(0, options.limit ?? 50).map((entry) => {
-      const commit = entry as Record<string, any>;
-      return {
-        id: String(commit.id ?? ''),
-        shortId: String(commit.short_id ?? ''),
-        title: String(commit.title ?? ''),
-        message: String(commit.message ?? ''),
-        authorName: String(commit.author_name ?? ''),
-        authorEmail: String(commit.author_email ?? ''),
-        committedDate: String(commit.committed_date ?? ''),
-      };
-    });
-  }
-
-  async listBoards(path = this.projectPath()): Promise<GitlabBoardList[]> {
-    const raw = await this.apiGet(`projects/${encodeURIComponent(path)}/boards`);
-    if (!Array.isArray(raw)) return [];
-    return raw.map((entry) => {
-      const board = entry as Record<string, any>;
-      return {
-        id: Number(board.id ?? 0),
-        name: String(board.name ?? ''),
-      };
-    });
-  }
-
-  /**
-   * Publishes the AI QA verdict as an internal merge request note. Internal
-   * notes do not trigger notification emails, which matches the governance
-   * requirement that only the human gate reaches the outside world.
-   */
-  async createMergeRequestNote(
-    note: GitlabMergeRequestNote,
-    path = this.projectPath()
-  ): Promise<void> {
-    const result = await this.exec('glab', [
-      'api',
-      '--method',
-      'POST',
-      `-f`,
-      `body=${note.body}`,
-      `projects/${encodeURIComponent(path)}/merge_requests/${note.mergeRequestIid}/notes`,
-    ]);
-    if (!result.ok) {
+    if (!res.ok) {
       throw new Error(
-        `GitLab note submission failed for merge request !${note.mergeRequestIid}: ${result.error}`
+        `Failed to create GitLab MR note on MR !${input.mergeRequestIid}: ${res.error || res.stderr}`
       );
     }
   }
-
-  async collectActivity(taskCodes: string[]): Promise<GitlabActivity> {
-    const warnings: string[] = [];
-    const viewer = await this.guard(() => this.getViewer(), null, warnings, 'viewer');
-    const project = await this.guard(() => this.getProject(), null, warnings, 'project');
-    const branches = await this.guard(
-      () => this.listBranches(),
-      [] as GitlabBranch[],
-      warnings,
-      'branches'
-    );
-    const mergeRequests = await this.guard(
-      () => this.listMergeRequests({ state: 'all', limit: 30 }),
-      [] as GitlabMergeRequest[],
-      warnings,
-      'merge requests'
-    );
-    const commits = await this.guard(
-      () => this.listCommits({ limit: 50 }),
-      [] as GitlabCommitRef[],
-      warnings,
-      'commits'
-    );
-    const boards = await this.guard(
-      () => this.listBoards(),
-      [] as GitlabBoardList[],
-      warnings,
-      'boards'
-    );
-
-    const observedCodes = new Set<string>([
-      ...branches.flatMap((b) => b.taskCodes),
-      ...mergeRequests.flatMap((mr) => mr.taskCodes),
-      ...commits.flatMap((c) => extractTaskCodes(c.title)),
-    ]);
-    for (const code of taskCodes) {
-      const upper = code.toUpperCase();
-      if (!observedCodes.has(upper)) {
-        warnings.push(
-          `gitlab: no branch, merge request or commit references task ${upper}. The task has no forge evidence.`
-        );
-      }
-    }
-
-    if (boards.length === 0) {
-      warnings.push(
-        'gitlab: the project has no board, so backlog status is read from the business database instead.'
-      );
-    }
-
-    return {
-      project: project ?? {
-        pathWithNamespace: this.projectPath(),
-        name: this.projectPath().split('/')[1] ?? '',
-        defaultBranch: 'main',
-        visibility: 'private',
-      },
-      branches,
-      mergeRequests,
-      commits,
-      boards,
-      authenticatedAccount: viewer,
-      collectedAt: new Date().toISOString(),
-      warnings,
-    };
-  }
-
-  private toMergeRequest(mr: Record<string, any>, path: string): GitlabMergeRequest {
-    const sourceBranch = String(mr.source_branch ?? '');
-    const title = String(mr.title ?? '');
-
-    return {
-      id: Number(mr.id ?? 0),
-      iid: Number(mr.iid ?? 0),
-      projectPathWithNamespace: String(mr.references?.full ?? path),
-      title,
-      description: String(mr.description ?? ''),
-      state: mr.state ?? 'opened',
-      isDraft: Boolean(mr.draft ?? mr.work_in_progress),
-      hasConflicts: mr.has_conflicts === true,
-      sourceBranch,
-      targetBranch: String(mr.target_branch ?? ''),
-      sha: String(mr.sha ?? ''),
-      author: String(mr.author?.username ?? mr.author?.name ?? ''),
-      changesCount: mr.changes_count === undefined ? null : String(mr.changes_count),
-      diffRefsSha: mr.diff_refs?.head_sha ?? null,
-      labels: Array.isArray(mr.labels) ? mr.labels.map((l: unknown) => String(l)) : [],
-      milestone: mr.milestone?.title ?? null,
-      taskCodes: extractTaskCodes(`${sourceBranch} ${title}`),
-      upvotes: Number(mr.upvotes ?? 0),
-      downvotes: Number(mr.downvotes ?? 0),
-      approvals: [],
-      approvalState: null,
-      pipeline: mr.pipeline
-        ? {
-            id: Number(mr.pipeline.id ?? 0),
-            iid: Number(mr.pipeline.iid ?? 0),
-            status: mr.pipeline.status ?? 'created',
-            source: String(mr.pipeline.source ?? ''),
-            ref: String(mr.pipeline.ref ?? ''),
-            sha: String(mr.pipeline.sha ?? ''),
-            webUrl: String(mr.pipeline.web_url ?? ''),
-            createdAt: String(mr.pipeline.created_at ?? ''),
-            updatedAt: String(mr.pipeline.updated_at ?? ''),
-          }
-        : null,
-      webUrl: String(mr.web_url ?? ''),
-      createdAt: String(mr.created_at ?? ''),
-      updatedAt: String(mr.updated_at ?? ''),
-      warnings: [],
-    };
-  }
-
-  /** Calls the GitLab REST API through `glab api`. */
-  private async apiGet(endpoint: string, query: Record<string, string> = {}): Promise<unknown> {
-    const args = ['api', endpoint];
-    for (const [key, value] of Object.entries(query)) {
-      args.push('-f', `${key}=${value}`);
-    }
-    const result = await this.exec('glab', args);
-    if (!result.ok) {
-      throw new Error(result.error ?? `glab exited with a non-zero status for ${endpoint}`);
-    }
-    return this.parse(result.stdout);
-  }
-
-  private parse(stdout: string): unknown {
-    const trimmed = stdout.trim();
-    if (!trimmed) return null;
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      return trimmed;
-    }
-  }
-
-  private async guard<T>(
-    fn: () => Promise<T>,
-    fallback: T,
-    warnings: string[],
-    what: string
-  ): Promise<T> {
-    try {
-      return await fn();
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      warnings.push(
-        `gitlab: could not read ${what} (${detail}). Evidence from this source is absent, not simulated.`
-      );
-      return fallback;
-    }
-  }
-
-  private projectPath(): string {
-    return this.options.projectPath ?? CHRONOKAIRO_GITLAB_PROJECT;
-  }
-
-  private async exec(
-    cli: string,
-    args: string[]
-  ): Promise<{ ok: boolean; stdout: string; stderr: string; error?: string }> {
-    try {
-      const { stdout, stderr } = await execFileAsync(cli, args, {
-        timeout: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-        maxBuffer: MAX_BUFFER_BYTES,
-        windowsHide: true,
-        shell: false,
-      });
-      return { ok: true, stdout: String(stdout), stderr: String(stderr) };
-    } catch (error) {
-      const stderr =
-        error && typeof error === 'object' && 'stderr' in error
-          ? String((error as { stderr?: string }).stderr ?? '')
-          : '';
-      return {
-        ok: false,
-        stdout: '',
-        stderr,
-        error: stderr.trim() || (error instanceof Error ? error.message : String(error)),
-      };
-    }
-  }
 }
-
-/** Extracts backlog task codes from any GitLab text. */
-export function extractTaskCodes(text: string): string[] {
-  const found = text.toUpperCase().match(TASK_CODE_PATTERN) ?? [];
-  return [...new Set(found)].filter((code) => !NON_TASK_CODE_PREFIXES.has(code.split('-')[0]));
-}
-
-/** Parses a conventional commit title. Returns null when it is not one. */
-export function parseConventionalCommit(raw: string): GitlabConventionalCommit | null {
-  const match = CONVENTIONAL_COMMIT.exec(raw.trim());
-  if (!match?.groups) return null;
-  const { type, scope, subject } = match.groups;
-  return {
-    type,
-    scope,
-    subject: subject ?? '',
-    breaking: match.groups.breaking === '!',
-    references: subject?.match(/\((?:ADR-\d+|[A-Z]+-\d+)\)/g) ?? [],
-    raw,
-  };
-}
-
-export default GlabCliGitlabAdapter;
