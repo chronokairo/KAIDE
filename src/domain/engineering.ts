@@ -97,7 +97,7 @@ export interface MilestoneSpecReport {
 export interface SprintSyncJobResult {
   jobId: string;
   stage: 'coder';
-  requiresApproval: true;
+  requiresApproval: boolean;
   approvalGateId: string;
   report: SprintSyncReport;
   createdAt: string;

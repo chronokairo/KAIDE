@@ -164,7 +164,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
 
   async updateLeadStatus(leadId: string, status: Lead['status'], notes?: string): Promise<void> {
     const dbStatus =
-      status === 'in_dialogue' ? 'Em Andamento' : status === 'awaiting_followup' ? 'Qualificado' : 'Novo';
+      status === 'in_dialogue' || status === 'awaiting_followup' ? 'Qualificado' : 'Novo';
 
     const payload: Record<string, any> = {
       status: dbStatus,
@@ -184,5 +184,9 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
     if (error) {
       console.warn(`[SupabaseLeadRepository] Erro ao atualizar status do lead ${leadId}:`, error.message);
     }
+  }
+
+  getAllDrafts(): FollowupDraft[] {
+    return Array.from(this.draftsCache.values());
   }
 }

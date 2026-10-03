@@ -1,4 +1,10 @@
-// Supabase Client Oficial de Produção para ChronoKairo AI (chronokairo-prod: your-project-ref)
+/**
+ * Cliente Supabase Oficial de Produção (chronokairo-prod: your-project-ref).
+ * 
+ * ATENÇÃO: Este módulo NÃO é mock nem fallback offline.
+ * Ele conecta diretamente ao banco PostgreSQL gerenciado da ChronoKairo no AWS sa-east-1.
+ * Todas as leituras e escritas são executadas em produção oficial.
+ */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL =

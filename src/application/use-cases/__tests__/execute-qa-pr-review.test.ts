@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ExecuteQaPrReviewUseCase } from '../execute-qa-pr-review';
 import { InMemoryPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
-import { InMemoryCompanyControlPlaneAdapter } from '@/infrastructure/control-plane/in-memory-control-plane';
+import { SupabaseCompanyControlPlaneAdapter } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 
 describe('ExecuteQaPrReviewUseCase', () => {
   let prRepo: InMemoryPullRequestRepository;
-  let controlPlane: InMemoryCompanyControlPlaneAdapter;
+  let controlPlane: SupabaseCompanyControlPlaneAdapter;
   let useCase: ExecuteQaPrReviewUseCase;
 
   beforeEach(() => {
     prRepo = new InMemoryPullRequestRepository();
-    controlPlane = new InMemoryCompanyControlPlaneAdapter(undefined, prRepo);
+    controlPlane = new SupabaseCompanyControlPlaneAdapter(undefined, prRepo);
     useCase = new ExecuteQaPrReviewUseCase(prRepo, controlPlane);
   });
 
