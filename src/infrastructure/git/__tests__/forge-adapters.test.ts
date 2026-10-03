@@ -226,4 +226,77 @@ describe('Forge Domain & Adapters', () => {
     expect(prs[0].branch).toBe('feature/aso');
     expect(prs[0].filesChanged).toContain('src/domain/aso.ts');
   });
+
+  it('GhCliGitHubAdapter: listCommits formats query string and extracts task codes', async () => {
+    let capturedArgs: string[] = [];
+    const mockRunner: CliRunnerPort = {
+      exec: vi.fn().mockImplementation(async (_cmd: string, args: string[]) => {
+        capturedArgs = args;
+        return {
+          ok: true,
+          stdout: JSON.stringify([
+            {
+              sha: 'abc1234',
+              commit: {
+                message: 'feat(auth): SECP-01 add token refresh rotation',
+                author: { name: 'Coder', date: '2026-10-03T12:00:00Z' },
+              },
+              author: { login: 'ai-coder' },
+            },
+          ]),
+          stderr: '',
+        };
+      }),
+    };
+
+    const adapter = new GhCliGitHubAdapter({ cliRunner: mockRunner, repo: 'chronokairo/ai' });
+    const commits = await adapter.listCommits(10);
+
+    expect(capturedArgs).toContain('repos/chronokairo/ai/commits?per_page=10');
+    expect(commits.length).toBe(1);
+    expect(commits[0].oid).toBe('abc1234');
+    expect(commits[0].taskCodes).toContain('SECP-01');
+    expect(commits[0].author).toBe('ai-coder');
+  });
+
+  it('GhCliGitHubAdapter: submitPullRequestReview throws on CLI failure', async () => {
+    const mockRunner: CliRunnerPort = {
+      exec: vi.fn().mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: 'GraphQL: Cannot review own pull request',
+        exitCode: 1,
+        error: 'Cannot review own pull request',
+      }),
+    };
+
+    const adapter = new GhCliGitHubAdapter({ cliRunner: mockRunner });
+    await expect(
+      adapter.submitPullRequestReview({
+        pullRequestNumber: 104,
+        event: 'APPROVE',
+        body: 'LGTM',
+      })
+    ).rejects.toThrow('Failed to submit GitHub PR review on PR #104');
+  });
+
+  it('GlabCliGitLabAdapter: createMergeRequestNote throws on CLI failure', async () => {
+    const mockRunner: CliRunnerPort = {
+      exec: vi.fn().mockResolvedValue({
+        ok: false,
+        stdout: '',
+        stderr: '404 Not Found',
+        exitCode: 1,
+        error: '404 Not Found',
+      }),
+    };
+
+    const adapter = new GlabCliGitLabAdapter({ cliRunner: mockRunner });
+    await expect(
+      adapter.createMergeRequestNote({
+        mergeRequestIid: 201,
+        body: 'Adversarial QA Audit Passed',
+      })
+    ).rejects.toThrow('Failed to create GitLab MR note on MR !201');
+  });
 });

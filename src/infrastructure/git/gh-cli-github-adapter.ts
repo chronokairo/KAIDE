@@ -191,9 +191,7 @@ export class GhCliGitHubAdapter implements GitHubPort {
       'gh',
       [
         'api',
-        `repos/${this.repo}/commits`,
-        '-F',
-        `per_page=${limit}`,
+        `repos/${this.repo}/commits?per_page=${limit}`,
       ],
       { timeoutMs: this.timeoutMs }
     );
