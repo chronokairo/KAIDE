@@ -17,28 +17,43 @@
   - Consumir tabela `service_invoices` (6 notas fiscais emitidas) e mapear através de `service_invoice_receivable_allocations` (7 alocações).
   - Verificar se todas as faturas recebidas possuem NFS-e correspondente e apontar divergências fiscais.
 
-### 2. Jurídico, Due Diligence & Propriedade Intelectual (`AI Analista / Jurídico`)
-- [ ] **Job `legal.audit_case`** (Auditoria de Casos Jurídicos e B.O.):
+### 2. Jurídico, Due Diligence & Propriedade Intelectual (`AI Analista / Jurídico`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `legal.audit_case`** (Auditoria de Casos Jurídicos e B.O.):
   - Consumir tabela `legal_cases` (Processo/B.O. `00215674/2026-A01` do 22º DIP / Polícia Civil AM envolvendo o Instituto WD Educacional e CIESA).
   - Auditar narrativa de apropriação indébita de códigos-fonte, site institucional do CIESA e RP Educacional.
   - Varrer o histórico dos repositórios locais para emitir relatório técnico pericial de conformidade e autoria de software.
-- [ ] **Job `legal.review_contracts`** (Auditoria de Minutas e Conformidade Contratual):
+- [x] **Job `legal.review_contracts`** (Auditoria de Minutas e Conformidade Contratual):
   - Analisar minutas em `contracts` com status `Draft` (ex: `MINUTA-CIESA-VLM-2025-10`).
   - Apontar cláusulas faltantes: ausência de assinaturas, falta de testemunhas, dados incompletos da contratada e ausência de comprovante de pagamento.
 
-### 3. Engenharia de Software, Backlog & Sprints (`AI Coder` & `AI Product`)
-- [ ] **Job `coder.sync_sprint`** (Sincronização de Tarefas do Banco com Git):
+### 3. Engenharia de Software, Backlog & Sprints (`AI Coder` & `AI Product`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `coder.sync_sprint`** (Sincronização de Tarefas do Banco com Git):
   - Consumir tabela `project_tasks` (10 tarefas reais: `AUDIO-ASO-01`, `SECP-01` a `SECP-07`, `TSK-4EC62792`).
-  - Vincular os códigos de tarefas aos commits do repositório e branches (`feature/aso-*`).
-  - Atualizar automaticamente `column_status` (`In Progress` -> `Done`) na tabela `project_tasks` após aprovação de PRs pelo AI QA.
-- [ ] **Job `product.spec_milestones`** (Refinamento de Backlog e Requisitos):
+  - Vincular os códigos de tarefas aos commits do repositório e branches (`feature/aso-*`) via `gh` e `glab`.
+  - Atualizar atomicamente `column_status` (`In Progress` -> `In Review` / `Done`) na tabela `project_tasks` após aprovação do Human Approval Gate (`scope_baseline`) pelo Diretor.
+- [x] **Job `product.spec_milestones`** (Refinamento de Backlog e Requisitos):
   - Consumir tarefas com status `To Do` em `project_tasks` (ex: `SECP-PHASE2-TOTVS` — integração com TOTVS não executada).
   - Gerar especificação técnica detalhada com critérios de aceite em YAML e arquitetura hexagonal pura.
 
-### 4. Suporte & Base de Conhecimento (`AI Support`)
-- [ ] **Job `support.triage_history`** (Triagem de Conversas e Geração de FAQ):
+### 4. Suporte & Base de Conhecimento (`AI Support`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `support.triage_history`** (Triagem de Conversas e Geração de FAQ):
   - Varrer as 14 conversas em `ai_conversations` e 27 mensagens em `ai_messages`.
   - Classificar dúvidas e chamados recorrentes dos usuários, gerando artigos de base de conhecimento para o `AI Support`.
+
+---
+
+### Registro de Mudanças (Changelog ADR-0038) — 2026-10-03
+- **Domínio & Porta de Controle de Versão (Source Control)**:
+  - Criação de `src/domain/source-control.ts` e `src/application/ports/source-control-port.ts` em inglês puro.
+  - Implementação de `src/infrastructure/git/gh-glab-source-control.ts` conectando os CLIs autenticados `gh` (GitHub) e `glab` (GitLab) limitados à organização e grupo `chronokairo`.
+- **Sincronização Real de Sprint com Evidência de Git**:
+  - `coder.sync_sprint` vinculado a branches, commits convencionais e pull/merge requests reais.
+  - Gravação atômica em `project_tasks.column_status` no Supabase prod ativada sob o gate humano `scope_baseline`.
+- **Transição Completa para Inglês Puro**:
+  - Módulos Legal, Support, Engineering, Finance e Control Plane reescritos em inglês puro em todas as tipagens, docstrings e contratos.
+- **5 Novos Jobs Conectados no Control Plane**:
+  - `coder.sync_sprint`, `product.spec_milestones`, `legal.audit_case`, `legal.review_contracts`, `support.triage_history`.
+- **Validação de Testes**: 28/28 testes passando com dados reais do Supabase prod e TypeScript limpo.
 
 ---
 

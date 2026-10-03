@@ -9,8 +9,10 @@ import {
 } from '@/domain/finance';
 
 /**
- * Porta Secundária (Driven Port) do Repositório Financeiro.
- * Define os contratos para consulta e persistência de dados de faturamento, conciliação e fluxo de caixa.
+ * Driven port for the Financial & Billing Repository.
+ *
+ * Defines contracts for querying and updating receivables, payables, accounts,
+ * contracts, and service invoices (NFS-e) from official production data sources.
  */
 export interface FinanceRepositoryPort {
   listReceivables(): Promise<Receivable[]>;

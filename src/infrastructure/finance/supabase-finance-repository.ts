@@ -11,10 +11,11 @@ import {
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
- * Adaptador Secundário Real do Supabase para o Repositório Financeiro.
- * Conectado diretamente ao Supabase de Produção (chronokairo-prod / your-project-ref).
- * Consome e persiste em `accounts_receivable`, `accounts_payable`, `financial_accounts`,
- * `contracts`, `service_invoices` e `service_invoice_receivable_allocations`.
+ * Production secondary adapter for the Financial Repository backed by Supabase.
+ *
+ * Connected directly to official production database (`chronokairo-prod`).
+ * Interacts with `accounts_receivable`, `accounts_payable`, `financial_accounts`,
+ * `contracts`, `service_invoices`, and `service_invoice_receivable_allocations`.
  */
 export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   async listReceivables(): Promise<Receivable[]> {
@@ -25,7 +26,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .order('due_date', { ascending: true });
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar contas a receber:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list accounts receivable:', error?.message);
       return [];
     }
 
@@ -55,7 +56,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .order('due_date', { ascending: true });
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar contas a pagar:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list accounts payable:', error?.message);
       return [];
     }
 
@@ -78,7 +79,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .eq('organization_id', PROD_ORGANIZATION_ID);
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar contas financeiras:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list financial accounts:', error?.message);
       return [];
     }
 
@@ -102,7 +103,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .order('created_at', { ascending: false });
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar contratos:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list contracts:', error?.message);
       return [];
     }
 
@@ -127,7 +128,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .order('issued_at', { ascending: false });
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar NFS-e:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list service invoices:', error?.message);
       return [];
     }
 
@@ -156,7 +157,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .eq('organization_id', PROD_ORGANIZATION_ID);
 
     if (error || !data) {
-      console.warn('[SupabaseFinanceRepository] Falha ao listar alocações de NFS-e:', error?.message);
+      console.warn('[SupabaseFinanceRepository] Failed to list receivable allocations:', error?.message);
       return [];
     }
 
@@ -193,7 +194,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       .eq('organization_id', PROD_ORGANIZATION_ID);
 
     if (error) {
-      throw new Error(`Erro ao atualizar conta a receber ${id}: ${error.message}`);
+      throw new Error(`Failed to update receivable ${id}: ${error.message}`);
     }
   }
 }

@@ -3,11 +3,11 @@ import { ProjectTask, Project, TaskColumnStatus, TaskPriority } from '@/domain/e
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
- * Adaptador Secundário Real do Supabase para o Repositório de Engenharia.
+ * Production secondary adapter for the Engineering Repository backed by Supabase.
  *
- * Conectado ao Supabase de Produção (chronokairo-prod / your-project-ref).
- * Consome `project_tasks` e `projects`. A única escrita — `column_status` —
- * só ocorre quando o Control Plane já marcou o gate como `approved`.
+ * Connected directly to official production database (`chronokairo-prod`).
+ * Queries `project_tasks` and `projects`. Status updates to `column_status`
+ * occur only after the Control Plane human approval gate has been formally approved.
  */
 export class SupabaseEngineeringRepository implements EngineeringRepositoryPort {
   async listTasks(): Promise<ProjectTask[]> {
@@ -18,7 +18,7 @@ export class SupabaseEngineeringRepository implements EngineeringRepositoryPort 
       .order('created_at', { ascending: false });
 
     if (error || !data) {
-      console.warn('[SupabaseEngineeringRepository] Falha ao listar tarefas:', error?.message);
+      console.warn('[SupabaseEngineeringRepository] Failed to query tasks:', error?.message);
       return [];
     }
 
@@ -42,7 +42,7 @@ export class SupabaseEngineeringRepository implements EngineeringRepositoryPort 
       .order('code', { ascending: true });
 
     if (error || !data) {
-      console.warn('[SupabaseEngineeringRepository] Falha ao listar projetos:', error?.message);
+      console.warn('[SupabaseEngineeringRepository] Failed to query projects:', error?.message);
       return [];
     }
 
@@ -66,7 +66,7 @@ export class SupabaseEngineeringRepository implements EngineeringRepositoryPort 
       .eq('organization_id', PROD_ORGANIZATION_ID);
 
     if (error) {
-      throw new Error(`Falha ao sincronizar status da tarefa ${id}: ${error.message}`);
+      throw new Error(`Failed to update task ${id} status: ${error.message}`);
     }
   }
 }

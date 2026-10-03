@@ -1,11 +1,11 @@
 /**
- * Entidades e tipos de domínio do Módulo de Controladoria & Faturamento (AI Finance / Ops).
+ * Pure domain entities and types for the Financial Control & Invoicing Module (AI Finance / Ops).
  *
- * Mapeiam, em forma pura, as tabelas reais do Supabase de produção:
- * accounts_receivable, accounts_payable, contracts, financial_accounts,
- * bank_statement_entries, service_invoices e service_invoice_receivable_allocations.
+ * Directly mirrors the production schema from Supabase:
+ * `accounts_receivable`, `accounts_payable`, `contracts`, `financial_accounts`,
+ * `bank_statement_entries`, `service_invoices`, and `service_invoice_receivable_allocations`.
  *
- * Arquitetura Hexagonal: Domínio Puro (sem Supabase, Next, React ou SDKs).
+ * Hexagonal Architecture: pure domain models completely independent of Supabase, Next.js, or SDKs.
  */
 
 export type ReceivableStatus = 'Pendente' | 'Pago' | 'Atrasado' | 'Cancelado';
@@ -46,7 +46,7 @@ export interface FinancialAccount {
   currentBalanceBrl: number;
   initialBalanceBrl: number;
   status: string;
-  /** Natureza da conta para segregação PJ/PF exigida pelo relatório de fluxo de caixa. */
+  /** Entity nature for corporate (PJ) vs personal (PF) balance segregation. */
   entityNature: 'pj' | 'pf';
 }
 
@@ -106,7 +106,7 @@ export type DivergenceKind =
   | 'parcela_sem_contrato'
   | 'alerta_fiscal';
 
-export type DivergenceSeverity = 'baixa' | 'media' | 'alta' | 'critica';
+export type DivergenceSeverity = 'baixa' | 'media' | 'alta' | 'critica' | 'low' | 'medium' | 'high' | 'critical';
 
 export interface BillingDivergence {
   kind: DivergenceKind;
@@ -127,7 +127,7 @@ export interface DelinquencyForecast {
 export interface CashFlowLine {
   category: string;
   amountBrl: number;
-  nature: 'entrada' | 'saida';
+  nature: 'entrada' | 'saida' | 'inflow' | 'outflow';
 }
 
 export interface ReconciliationReport {
@@ -162,7 +162,7 @@ export interface NfeAllocationReport {
   allocationsScannedCount: number;
   divergences: BillingDivergence[];
   fiscalExposureBrl: number;
-  conformity: 'conforme' | 'divergente';
+  conformity: 'conforme' | 'divergente' | 'compliant' | 'divergent';
   generatedAt: string;
 }
 

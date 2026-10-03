@@ -5,6 +5,7 @@ import { FinanceRepositoryPort } from '@/application/ports/finance-repository-po
 import { LegalRepositoryPort } from '@/application/ports/legal-repository-port';
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { SupportRepositoryPort } from '@/application/ports/support-repository-port';
+import { SourceControlPort } from '@/application/ports/source-control-port';
 import { AgentEntity, JobEntity, CompanyTelemetry, ApprovalGate } from '@/domain/company';
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
@@ -12,6 +13,7 @@ import { SupabaseFinanceRepository } from '@/infrastructure/finance/supabase-fin
 import { SupabaseLegalRepository } from '@/infrastructure/legal/supabase-legal-repository';
 import { SupabaseEngineeringRepository } from '@/infrastructure/engineering/supabase-engineering-repository';
 import { SupabaseSupportRepository } from '@/infrastructure/support/supabase-support-repository';
+import { GhGlabSourceControlAdapter } from '@/infrastructure/git/gh-glab-source-control';
 import { TaskSyncProposal } from '@/domain/engineering';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
@@ -28,18 +30,17 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
 
 /**
- * Adaptador Real de Banco de Dados do Control Plane da Empresa Virtual.
- * Conectado diretamente ao Supabase de Produção (chronokairo-prod / your-project-ref).
- * Não utiliza dados falsos ou mocks estáticos: consome e persiste em `employees`, `project_tasks`,
- * `projects`, `ai_tool_executions`, `audit_logs`, `leads` e `crm_activities`.
+ * Production Control Plane Adapter for the Virtual Agent Company.
+ * Directly connected to official Supabase production (chronokairo-prod / your-project-ref).
+ * Consumes and mutates `employees`, `project_tasks`, `projects`, `ai_tool_executions`,
+ * `audit_logs`, `leads` and `crm_activities` strictly under Human Approval Gates.
  */
 export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePort {
   private activeJobsCache: JobEntity[] = [];
   private listeners: Set<(snapshot: CompanyStateSnapshot) => void> = new Set();
   /**
-   * Propostas de status de `project_tasks` pendentes de aprovação. Só são
-   * aplicadas em `approveJob` quando o gate `scope_baseline` é aprovado —
-   * é o mecanismo que garante AI → AI → AI → HUMAN na escrita no backlog.
+   * Pending task status synchronization proposals held behind the scope_baseline gate.
+   * Applied only in approveJob when the gate is authorized by the Human Director.
    */
   private pendingSprintSync = new Map<string, TaskSyncProposal[]>();
 
@@ -49,8 +50,13 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
     private readonly financeRepository: FinanceRepositoryPort = new SupabaseFinanceRepository(),
     private readonly legalRepository: LegalRepositoryPort = new SupabaseLegalRepository(),
     private readonly engineeringRepository: EngineeringRepositoryPort = new SupabaseEngineeringRepository(),
-    private readonly supportRepository: SupportRepositoryPort = new SupabaseSupportRepository()
+    private readonly supportRepository: SupportRepositoryPort = new SupabaseSupportRepository(),
+    private readonly sourceControl: SourceControlPort = new GhGlabSourceControlAdapter()
   ) {}
+
+  registerPendingSprintSync(approvalId: string, proposals: TaskSyncProposal[]): void {
+    this.pendingSprintSync.set(approvalId, proposals);
+  }
 
   async getSnapshot(): Promise<CompanyStateSnapshot> {
     // 1. Carrega colaboradores reais do Supabase oficial
@@ -429,12 +435,62 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
       const result = await useCase.execute();
       const job = this.activeJobsCache.find((j) => j.id === result.jobId);
       if (!job) {
-        throw new Error(`Job ${result.jobId} não encontrado após execução de finance.nfe_allocation`);
+        throw new Error(`Job ${result.jobId} not found after executing finance.nfe_allocation`);
       }
       return job;
     }
 
-    throw new Error(`Job '${jobName}' não reconhecido pelo Control Plane.`);
+    if (jobName === 'coder.sync_sprint' || jobName === 'coder.sprint_sync') {
+      const useCase = new ExecuteCoderSprintSyncUseCase(this.engineeringRepository, this, this.sourceControl);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing coder.sync_sprint`);
+      }
+      return job;
+    }
+
+    if (jobName === 'product.spec_milestones' || jobName === 'product.milestone_spec') {
+      const useCase = new ExecuteProductMilestoneSpecUseCase(this.engineeringRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing product.spec_milestones`);
+      }
+      return job;
+    }
+
+    if (jobName === 'legal.audit_case' || jobName === 'legal.case_audit') {
+      const useCase = new ExecuteLegalCaseAuditUseCase(this.legalRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing legal.audit_case`);
+      }
+      return job;
+    }
+
+    if (jobName === 'legal.review_contracts' || jobName === 'legal.contract_review') {
+      const useCase = new ExecuteLegalContractReviewUseCase(this.legalRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing legal.review_contracts`);
+      }
+      return job;
+    }
+
+    if (jobName === 'support.triage_history' || jobName === 'support.ticket_triage') {
+      const useCase = new ExecuteSupportTriageUseCase(this.supportRepository, this);
+      const result = await useCase.execute();
+      const job = this.activeJobsCache.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} not found after executing support.triage_history`);
+      }
+      return job;
+    }
+
+    throw new Error(`Job '${jobName}' not recognized by Control Plane.`);
   }
 
   async approveJob(approvalId: string, rationale?: string): Promise<void> {
@@ -444,10 +500,10 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
     job.approvalGate.status = 'approved';
     job.status = 'completed';
     job.evidence.push(
-      `Aprovado pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}: ${rationale || 'Autorizado pelo Diretor'}`
+      `Approved by Technical Director at ${new Date().toLocaleTimeString('en-US')}: ${rationale || 'Authorized by Director'}`
     );
 
-    // Persiste aprovação humana real no Supabase
+    // Persist real human approval to Supabase audit log
     try {
       await supabaseAdmin.from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
@@ -458,16 +514,16 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
         details: {
           approvalId,
           jobId: job.id,
-          rationale: rationale || 'Autorizado pelo Diretor',
+          rationale: rationale || 'Authorized by Director',
           supervisor: 'Luan Nery / Riad Makarem',
         },
         created_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('[SupabaseControlPlane] Erro ao gravar auditoria de aprovação:', err);
+      console.warn('[SupabaseControlPlane] Error persisting approval audit log:', err);
     }
 
-    // Processa disparos e transições de acordo com o gate
+    // Process dispatches and mutations based on approval gate type
     if (job.approvalGate.type === 'outbound_contact') {
       const drafts = (await this.leadRepository.getDraftsByJobId?.(job.id)) || [];
       const dispatchTime = new Date().toISOString();
@@ -477,19 +533,44 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
           await this.leadRepository.updateLeadStatus(
             draft.leadId,
             'in_dialogue',
-            'Follow-up transmitido com autorização do Diretor.'
+            'Follow-up message dispatched with Director authorization.'
           );
         })
       );
       job.evidence.push(
-        `Disparo Externo Concluído: Mensagens transmitidas com sucesso aos destinatários autorizados às ${new Date().toLocaleTimeString('pt-BR')}.`
+        `Disparo Externo Concluído / External Dispatch Completed: Messages successfully transmitted to recipients at ${new Date().toLocaleTimeString('en-US')}.`
       );
     }
 
     if (job.approvalGate.type === 'payment_release') {
       job.evidence.push(
-        `Cobrança Autorizada: Notificação de cobrança e conciliação financeira liberadas pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}.`
+        `Billing Authorized: Collection notifications and financial ledger postings released by Director at ${new Date().toLocaleTimeString('en-US')}.`
       );
+    }
+
+    if (job.approvalGate.type === 'scope_baseline') {
+      const proposals: TaskSyncProposal[] =
+        this.pendingSprintSync.get(approvalId) ??
+        job.approvalGate.metadata?.proposals ??
+        [];
+
+      let updatedCount = 0;
+      for (const proposal of proposals) {
+        try {
+          await this.engineeringRepository.updateTaskStatus(
+            proposal.taskId,
+            proposal.proposedStatus
+          );
+          updatedCount++;
+        } catch (err) {
+          console.warn(`[SupabaseControlPlane] Error updating task ${proposal.code} status:`, err);
+        }
+      }
+
+      job.evidence.push(
+        `Scope Baseline Written: ${updatedCount} task(s) updated in project_tasks with Director authorization.`
+      );
+      this.pendingSprintSync.delete(approvalId);
     }
 
     await this.notify();
@@ -501,9 +582,9 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     job.approvalGate.status = 'rejected';
     job.status = 'rejected';
-    job.evidence.push(`Rejeitado pelo Diretor Técnico às ${new Date().toLocaleTimeString('pt-BR')}: ${reason}`);
+    job.evidence.push(`Rejected by Technical Director at ${new Date().toLocaleTimeString('en-US')}: ${reason}`);
 
-    // Persiste rejeição humana real no Supabase
+    // Persist real human rejection to Supabase audit log
     try {
       await supabaseAdmin.from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
@@ -520,11 +601,11 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
         created_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('[SupabaseControlPlane] Erro ao gravar auditoria de rejeição:', err);
+      console.warn('[SupabaseControlPlane] Error persisting rejection audit log:', err);
     }
 
     if (job.approvalGate.type === 'outbound_contact') {
-      const drafts = await this.leadRepository.getDraftsByJobId?.(job.id) || [];
+      const drafts = (await this.leadRepository.getDraftsByJobId?.(job.id)) || [];
       for (const draft of drafts) {
         await this.leadRepository.updateDraftStatus(draft.id, 'rejected');
       }
@@ -532,8 +613,15 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     if (job.approvalGate.type === 'payment_release') {
       job.evidence.push(
-        `Cobrança Sustada: Emissão de cobrança e baixa contábil canceladas pelo Diretor Técnico.`
+        'Billing Suspended: Collection notifications and ledger postings cancelled by Technical Director.'
       );
+    }
+
+    if (job.approvalGate.type === 'scope_baseline') {
+      job.evidence.push(
+        'Scope Baseline Rejected: No task statuses updated in project_tasks by order of the Director.'
+      );
+      this.pendingSprintSync.delete(approvalId);
     }
 
     await this.notify();

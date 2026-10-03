@@ -1,25 +1,22 @@
 /**
- * Entidades e tipos de domínio do Módulo Jurídico e Due Diligence (AI Analista).
+ * Pure domain entities and types for the Legal & Due Diligence Module
+ * (AI Analyst / Legal Role).
  *
- * Mapeiam, em forma pura, as tabelas reais do Supabase de produção:
- * legal_cases e contracts.
+ * Directly mirrors the production schema from Supabase:
+ * `legal_cases` and `contracts`.
  *
- * O módulo existe para instruir a defesa técnica da ChronoKairo em casos de
- * apropriação indébita de propriedade intelectual, reunindo evidências
- * verificáveis (commits, contratos, NFS-e, logs). O agente não redige peça
- * jurídica nem comunicação externa — produz apenas relatório técnico para
- * revisão do Diretor Jurídico (AI → AI → AI → HUMAN, ADR-0028).
+ * This module equips ChronoKairo with technical evidence audits (e.g. intellectual
+ * property disputes, software authorship verification, contract compliance).
+ * The AI Analyst does not draft legal court pleadings or contact authorities;
+ * it strictly generates verified technical fact reports for review by the Legal Director
+ * in adherence to ADR-0028 (AI -> AI -> AI -> HUMAN).
  *
- * Arquitetura Hexagonal: Domínio Puro (sem Supabase, Next, React ou SDKs).
+ * Hexagonal Architecture: pure domain models with zero dependencies on database or SDKs.
  */
 
 /**
- * Contrato comercial read-only para o módulo jurídico.
- *
- * Deliberadamente declarado aqui (e não importado de `@/domain/finance`) para
- * manter o módulo jurídico autocontido e independente do módulo de
- * controladoria: os dois leem `contracts`, mas cada um projeta apenas o que
- * precisa, e o jurídico não deve acoplar em relatório financeiro.
+ * Commercial contract projection for legal compliance reviews.
+ * Kept autonomous in the legal domain to avoid tight coupling with the finance domain.
  */
 export interface LegalContract {
   id: string;
@@ -32,22 +29,20 @@ export interface LegalContract {
   startDate?: string;
   endDate?: string;
   notes?: string;
-  /** `notes` já parseado, quando o registro traz JSON estruturado. */
   structuredNotes?: LegalContractNotes;
 }
 
 export interface LegalCaseKindMap {
-  PoliceReport: 'B.O. / Polícia Civil';
-  CivilLawsuit: 'Ação Civil';
-  LaborClaim: 'Reclamação Trabalhista';
-  TaxAudit: 'Auditoria Fiscal';
-  Other: 'Outro';
+  PoliceReport: 'Police Report / Civil Police';
+  CivilLawsuit: 'Civil Lawsuit';
+  LaborClaim: 'Labor Claim';
+  TaxAudit: 'Tax Audit';
+  Other: 'Other';
 }
 
 /**
- * Pessoa citada em documento oficial. No banco esses campos são JSONB
- * (`reporting_party`, `involved_parties`, `witnesses`), por isso o domínio
- * tipa a estrutura em vez de assumir texto livre.
+ * Party cited in official proceedings or police reports.
+ * Structured from JSONB fields (`reporting_party`, `involved_parties`, `witnesses`).
  */
 export interface LegalPartyReference {
   name: string;
@@ -94,9 +89,8 @@ export interface LegalCase {
 }
 
 /**
- * bloco estruturado encontrado em `contracts.notes` (JSON serializado como
- * texto nas minutas em rascunho). É a fonte primária dos desvios de
- * conformidade da revisão contratual.
+ * Structured document metadata extracted from `contracts.notes` JSON.
+ * Serves as the primary evidence source for draft contract compliance.
  */
 export interface LegalContractNotes {
   signatureStatus?: string;
@@ -119,9 +113,15 @@ export interface LegalContractNotes {
   reviewFlags?: string[];
 }
 
-/** Evidência técnica juntada ao caso. Sempre referencia uma fonte local rastreável. */
+/** Technical evidence item cited in case reports. */
 export type LegalEvidenceKind =
   | 'commit'
+  | 'delivery_report'
+  | 'contract'
+  | 'invoice'
+  | 'api_log'
+  | 'technical_note'
+  | 'witness_statement'
   | 'relatorio_entrega'
   | 'contrato'
   | 'nota_fiscal'
@@ -136,16 +136,44 @@ export interface LegalEvidenceItem {
   source: string;
   author?: string;
   timestamp?: string;
-  /** Indica se a evidência sustenta a defesa da ChronoKairo neste caso. */
+  /** Indicates whether the evidence substantiates the defense. */
   supportsDefense: boolean;
 }
 
-export type LegalAuditVerdict = 'defensavel' | 'risco_alto' | 'risco_critico';
+export type LegalAuditVerdict =
+  | 'defensible'
+  | 'high_risk'
+  | 'critical_risk'
+  | 'defensavel'
+  | 'risco_alto'
+  | 'risco_critico';
+
+export type FindingDimension =
+  | 'software_authorship'
+  | 'contract_scope'
+  | 'billing_revenue'
+  | 'probative_evidence'
+  | 'statute_deadline'
+  | 'autoria_software'
+  | 'escopo_contratual'
+  | 'faturamento'
+  | 'prova_probatoria'
+  | 'prazo';
+
+export type FindingStatus =
+  | 'confirmed'
+  | 'partial'
+  | 'missing'
+  | 'contradictory'
+  | 'confirmado'
+  | 'parcial'
+  | 'ausente'
+  | 'contraditorio';
 
 export interface LegalTechnicalFinding {
-  dimension: 'autoria_software' | 'escopo_contratual' | 'faturamento' | 'prova_probatoria' | 'prazo';
+  dimension: FindingDimension;
   title: string;
-  status: 'confirmado' | 'parcial' | 'ausente' | 'contraditorio';
+  status: FindingStatus;
   detail: string;
   evidenceIds: string[];
 }
@@ -159,19 +187,24 @@ export interface LegalAuditReport {
   defenseThesis: string;
   evidence: LegalEvidenceItem[];
   findings: LegalTechnicalFinding[];
-  /** Lacunas probatórias que o jurídico precisa preencher antes de contestar. */
   evidenceGaps: string[];
   verdict: LegalAuditVerdict;
   confidenceScore: number;
   recommendations: string[];
 }
 
-export type ContractReviewVerdict = 'conformidade_pendente' | 'apto_para_assinatura' | 'bloqueado';
+export type ContractReviewVerdict =
+  | 'compliance_pending'
+  | 'ready_for_signature'
+  | 'blocked'
+  | 'conformidade_pendente'
+  | 'apto_para_assinatura'
+  | 'bloqueado';
 
 export interface ContractClauseCheck {
   clause: string;
-  status: 'presente' | 'parcial' | 'ausente';
-  severity: 'baixa' | 'media' | 'alta' | 'critica';
+  status: 'present' | 'partial' | 'missing' | 'presente' | 'parcial' | 'ausente';
+  severity: 'low' | 'medium' | 'high' | 'critical' | 'baixa' | 'media' | 'alta' | 'critica';
   detail: string;
   recommendation: string;
 }

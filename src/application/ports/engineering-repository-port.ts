@@ -1,11 +1,12 @@
 import { ProjectTask, Project } from '@/domain/engineering';
 
 /**
- * Porta Secundária (Driven Port) do Repositório de Engenharia.
+ * Driven port for the Engineering & Project Repository.
  *
- * A leitura é livre; a escrita em `project_tasks.column_status` é a única
- * mutação autorizada e continua sendo gated por aprovação humana no Control
- * Plane (ADR-0028) — a porta não decide, apenas persiste o que foi aprovado.
+ * Reading tasks and projects is open to authorized agents; mutations to
+ * `project_tasks.column_status` are restricted and strictly gated by
+ * Human Approval Gates in the Control Plane (ADR-0028). The repository
+ * does not make decisions; it strictly persists authorized status updates.
  */
 export interface EngineeringRepositoryPort {
   listTasks(): Promise<ProjectTask[]>;

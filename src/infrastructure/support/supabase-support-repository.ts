@@ -8,12 +8,11 @@ import {
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
- * Adaptador Secundário Real do Supabase para o Repositório de Suporte.
+ * Production secondary adapter for the Support Repository backed by Supabase.
  *
- * Conectado ao Supabase de Produção (chronokairo-prod / your-project-ref).
- * Consome `ai_conversations` e `ai_messages` para reconstruir o histórico de
- * suporte. As entradas de FAQ propostas são registradas como rascunho no
- * `audit_logs`; a publicação do artigo é ação humana.
+ * Connected directly to official production database (`chronokairo-prod`).
+ * Queries `ai_conversations` and `ai_messages` to reconstruct user interactions.
+ * Proposed FAQ entries are recorded in `audit_logs` for human curation and publication.
  */
 export class SupabaseSupportRepository implements SupportRepositoryPort {
   async listConversations(): Promise<ConversationThread[]> {
@@ -24,7 +23,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
       .order('created_at', { ascending: false });
 
     if (error || !conversations) {
-      console.warn('[SupabaseSupportRepository] Falha ao listar conversas:', error?.message);
+      console.warn('[SupabaseSupportRepository] Failed to query conversations:', error?.message);
       return [];
     }
 
@@ -39,7 +38,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
       .order('created_at', { ascending: true });
 
     if (msgError) {
-      console.warn('[SupabaseSupportRepository] Falha ao listar mensagens:', msgError.message);
+      console.warn('[SupabaseSupportRepository] Failed to query messages:', msgError.message);
       return [];
     }
 
@@ -60,7 +59,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
 
     return conversations.map((c) => ({
       id: c.id,
-      title: c.title || 'Sem título',
+      title: c.title || 'Untitled conversation',
       status: c.status || 'active',
       contractVersion: c.contract_version || undefined,
       createdAt: c.created_at || '',

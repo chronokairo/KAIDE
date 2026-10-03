@@ -1,11 +1,10 @@
-import { ConversationThread } from '@/domain/support';
-import { FaqEntry } from '@/domain/support';
+import { ConversationThread, FaqEntry } from '@/domain/support';
 
 /**
- * Porta Secundária (Driven Port) do Repositório de Suporte.
+ * Driven port for the Support & Knowledge Base Repository.
  *
- * O AI Support apenas lê o histórico de conversas e propõe entradas de FAQ.
- * A curadoria e a publicação dos artigos são ações humanas.
+ * The AI Support agent analyzes past conversations to identify recurring questions
+ * and proposes draft FAQ entries. Publishing articles remains a human curation task.
  */
 export interface SupportRepositoryPort {
   listConversations(): Promise<ConversationThread[]>;

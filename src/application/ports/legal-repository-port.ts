@@ -1,11 +1,11 @@
 import { LegalCase, LegalContract, LegalAuditReport, ContractComplianceReport } from '@/domain/legal';
 
 /**
- * Porta Secundária (Driven Port) do Repositório Jurídico.
+ * Driven port for the Legal & Due Diligence Repository.
  *
- * Somente leitura: o módulo jurídico nunca grava em `legal_cases` nem em
- * `contracts`. A revisão contratual e a auditoria de caso produzem relatórios,
- * e a decisão sobre minuta ou contestação é sempre do Diretor Jurídico.
+ * Strictly read-only for production legal records: the AI Analyst never mutates
+ * `legal_cases` or `contracts`. Case audits and contract reviews generate factual
+ * evidence reports for the Human Legal Director's formal decision.
  */
 export interface LegalRepositoryPort {
   listCases(): Promise<LegalCase[]>;

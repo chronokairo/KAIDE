@@ -11,6 +11,15 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
 
+/**
+ * Job `finance.reconcile` — AI Finance / Ops Role.
+ *
+ * Reconciles customer receivables (`accounts_receivable`) with active customer contracts
+ * (`contracts`) from official Supabase production.
+ *
+ * Detects delinquent / overdue invoices, maps fiscal compliance warnings, forecasts cash flow,
+ * and requests human authorization (`payment_release` gate) prior to issuing collection notices.
+ */
 export class ExecuteFinanceReconciliationUseCase {
   constructor(
     private readonly financeRepo: FinanceRepositoryPort,
@@ -20,7 +29,7 @@ export class ExecuteFinanceReconciliationUseCase {
   async execute(referenceDateStr: string = '2026-10-03'): Promise<FinanceReconcileJobResult> {
     const referenceDate = new Date(referenceDateStr);
 
-    // 1. Consulta faturas e contratos no repositório real
+    // 1. Query receivables and contracts from official repository
     const [receivables, contracts] = await Promise.all([
       this.financeRepo.listReceivables(),
       this.financeRepo.listContracts(),
@@ -41,7 +50,7 @@ export class ExecuteFinanceReconciliationUseCase {
           divergences.push({
             kind: 'alerta_fiscal',
             severity: 'media',
-            description: `Fatura paga ${r.invoiceNumber} possui alerta de conformidade fiscal`,
+            description: `Settled receivable ${r.invoiceNumber} carries tax compliance alert`,
             evidence: r.fiscalAlert,
             references: [r.invoiceNumber],
             exposureBrl: r.amountBrl,
@@ -61,8 +70,8 @@ export class ExecuteFinanceReconciliationUseCase {
           divergences.push({
             kind: 'fatura_sem_nfse',
             severity: 'alta',
-            description: `Fatura vencida ${r.invoiceNumber} (${r.description}) com ${daysOverdue} dias de atraso`,
-            evidence: `Vencimento em ${r.dueDate}. Valor pendente: R$ ${r.amountBrl.toFixed(2)}.`,
+            description: `Overdue invoice ${r.invoiceNumber} (${r.description}) with ${daysOverdue} days past due`,
+            evidence: `Due date was ${r.dueDate}. Overdue amount: R$ ${r.amountBrl.toFixed(2)}.`,
             references: [r.invoiceNumber],
             exposureBrl: r.amountBrl,
           });
@@ -101,27 +110,27 @@ export class ExecuteFinanceReconciliationUseCase {
       generatedAt: timestamp,
     };
 
-    // 2. Monta evidências detalhadas para a governança e auditoria
+    // 2. Build detailed evidence for governance and auditability
     const evidenceList: string[] = [
-      `Varredura de Controladoria concluída: ${receivables.length} contas a receber auditadas no Supabase prod.`,
-      `Total Recebido Realizado: R$ ${receivedAmountBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em faturas quitadas.`,
-      `Total Pendente: ${pendingCount} faturas aguardando pagamento.`,
+      `Financial controllership scan completed: ${receivables.length} receivables audited from Supabase prod.`,
+      `Total Realized Inflows: R$ ${receivedAmountBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} across settled invoices.`,
+      `Pending Receivables: ${pendingCount} invoices awaiting settlement.`,
       ...(overdueCount > 0
         ? [
-            `ALERTA DE INADIMPLÊNCIA: ${overdueCount} fatura(s) vencida(s) totalizando R$ ${overdueAmountBrl.toFixed(2)}.`,
-            ...overdueInvoices.map((inv) => `   - Fatura em atraso: [${inv}]`),
+            `DELINQUENCY ALERT: ${overdueCount} overdue invoice(s) totaling R$ ${overdueAmountBrl.toFixed(2)}.`,
+            ...overdueInvoices.map((inv) => `   - Overdue item: [${inv}]`),
           ]
-        : ['Nenhuma fatura em atraso identificada.']),
-      `Contratos Auditados: ${contracts.length} contratos mapeados no banco de dados.`,
-      `Governança AI-first (ADR-0028): Notificações de cobrança e conciliação contábil requerem autorização humana prévia.`,
+        : ['No overdue receivables identified.']),
+      `Contracts Audited: ${contracts.length} active customer contracts mapped in database.`,
+      `AI-first Governance (ADR-0028): Debt collection notifications and ledger write-offs require prior Human Director approval.`,
     ];
 
     const approvalGate: ApprovalGate = {
       id: approvalId,
       jobId,
       type: 'payment_release',
-      title: 'Aprovação de Cobrança & Conciliação de MRR (Audiomed)',
-      details: `O AI Finance identificou fatura vencida da Audiomed (${overdueInvoices.join(', ')}) no valor de R$ ${overdueAmountBrl.toFixed(2)}. Solicita autorização do Diretor para emissão do lembrete de cobrança via WhatsApp/E-mail financeiro.`,
+      title: 'Collection Authorization & MRR Reconciliation (Audiomed)',
+      details: `The AI Finance agent identified an overdue invoice for Audiomed (${overdueInvoices.join(', ')}) in the amount of R$ ${overdueAmountBrl.toFixed(2)}. Requests Director authorization before dispatching reminders via official financial channels.`,
       requestedBy: 'finance',
       requestedAt: timestamp,
       evidence: evidenceList,
@@ -130,31 +139,31 @@ export class ExecuteFinanceReconciliationUseCase {
 
     const jobEntity: JobEntity = {
       id: jobId,
-      title: 'Conciliação Financeira de Contas a Receber & Contratos (MRR)',
-      client: 'Controladoria ChronoKairo Corp',
-      project: 'Gestão Financeira & Faturamento',
+      title: 'Financial Reconciliation of Accounts Receivable & Contracts (MRR)',
+      client: 'ChronoKairo Corp Financial Operations',
+      project: 'Financial Management & Invoicing',
       stage: 'finance',
       agentRole: 'finance',
       status: 'waiting_approval',
       prompt:
-        'Auditar contas a receber, cruzar com contratos ativos no Supabase prod, detectar inadimplência e projetar fluxo de caixa. Requer aprovação humana prévia para emissão de cobranças.',
+        'Audit receivables, cross-reference active contracts in Supabase prod, detect delinquencies and project cash flow. Requires human approval gate prior to collection dispatch.',
       toolsUsed: ['billing_reconciliation', 'cash_flow_analyzer', 'contract_cross_checker', 'supabase_db'],
-      changesSummary: `Conciliação concluída: R$ ${receivedAmountBrl.toFixed(2)} realizados, R$ ${overdueAmountBrl.toFixed(2)} em atraso (${overdueCount} faturas).`,
-      testsSummary: 'Validação de integridade contábil e cruzamento de competências com contratos ativos.',
+      changesSummary: `Reconciliation completed: R$ ${receivedAmountBrl.toFixed(2)} realized, R$ ${overdueAmountBrl.toFixed(2)} overdue (${overdueCount} invoices).`,
+      testsSummary: 'Validation of accounting integrity and accrual cross-referencing with active contracts.',
       evidence: evidenceList,
       costUsd: 0.16,
       durationSeconds: 18,
       requiresApproval: true,
       approvalGate,
-      createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // 3. Submete o Job ao Control Plane
+    // 3. Submit Job to Control Plane
     if (this.controlPlane.submitJob) {
       await this.controlPlane.submitJob(jobEntity);
     }
 
-    // 4. Persiste auditoria no Supabase oficial
+    // 4. Record audit entry in Supabase production
     try {
       await supabaseAdmin.from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
@@ -182,7 +191,7 @@ export class ExecuteFinanceReconciliationUseCase {
         created_at: new Date().toISOString(),
       });
     } catch {
-      // Supabase non-blocking
+      // non-blocking
     }
 
     return {
