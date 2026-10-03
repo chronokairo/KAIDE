@@ -121,6 +121,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0026](docs/adr/0026-debito-implementacao-p1s-mercado.md) | Débito: implementação dos 15 P1s de mercado com testes e validação via NVIDIA NIM |
 | [0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md) | Extração do núcleo `ckc` para o repo próprio `chronokairo/cli` |
 | [0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md) | Empresa virtual de agentes (AI-first): Control Plane, evidência e aprovação, UI Three.js de acompanhamento |
+| [0029](docs/adr/0029-implementacao-ui-threejs-e-automacoes-copilot.md) | Implementação da UI Three.js da Empresa Virtual e Automações do Copilot |
 
 ### Mapas de código — `docs/maps/`
 

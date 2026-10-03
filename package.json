@@ -41,7 +41,8 @@
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "systeminformation": "^5.33.13"
+    "systeminformation": "^5.33.13",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -49,6 +50,7 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/three": "^0.186.0",
     "cross-env": "^10.1.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.2",
