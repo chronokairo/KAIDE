@@ -46,6 +46,15 @@ Horários em `America/New_York` ou o fuso que você escolher no app. Ajuste no a
 4. Comece com uma só (sugestão: **QA on PR**) e valide antes de habilitar as demais.
 5. Mantenha dinheiro e produção sempre com aprovação humana.
 
-## Pendências do harness
+## Estado da implementação (ADR-0039)
 
-A automação só é útil quando o harness expõe o job. Ainda falta implementar (ver ADR-0028): entidade `Job` e event log, caso de uso "criar/executar job por tipo", persistência em PostgreSQL e endpoints/MCP para o agente consultar o job.
+O harness já expõe o Control Plane real (ver [ADR-0039](./adr/0039-control-plane-hexagonal-supabase-resend.md)):
+
+- **Entidade `Job` + event log append-only** persistidos no Supabase prod (`cp_jobs`, `cp_job_events`).
+- **Caso de uso por tipo de job**: `POST /api/control-plane/jobs` com `{"type":"commercial.daily"}` (idempotente por período — reexecutar no mesmo dia não duplica).
+- **CRM real**: leitura/escrita nas tabelas `leads` e `crm_activities` do prod.
+- **E-mail transacional via Resend** com sync de status (janela 24h) e match por lead.
+- **Gate humano**: `GET /api/control-plane/approvals` e `POST /api/control-plane/approvals/{id}/resolve` — nenhum contato externo sai sem aprovação explícita do Diretor Técnico.
+- Endpoints de consulta: `GET /api/control-plane/jobs`, `GET /api/control-plane/leads`.
+
+Configuração necessária (ver `.env.example`): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CONTROL_PLANE_ORGANIZATION_ID`, `CONTROL_PLANE_ACTOR_USER_ID` além das credenciais Supabase.
