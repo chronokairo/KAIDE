@@ -34,6 +34,61 @@
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-silkscreen: 'Silkscreen', monospace;
+
+  --color-pantone-2026: #F0EEE9;
+  --color-pantone-cloud-dancer: #F0EEE9;
+}
+
+/* 8-Bit Retro Gaming & Pixel Art Styles */
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-silkscreen {
+  font-family: 'Silkscreen', monospace;
+}
+
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-box {
+  background-color: #F0EEE9;
+  box-shadow: 
+    -4px 0 0 0 #1A1A1A,
+    4px 0 0 0 #1A1A1A,
+    0 -4px 0 0 #1A1A1A,
+    0 4px 0 0 #1A1A1A;
+}
+
+.pixel-box-dark {
+  background-color: #1A1A1A;
+  color: #F0EEE9;
+  box-shadow: 
+    -4px 0 0 0 #F0EEE9,
+    4px 0 0 0 #F0EEE9,
+    0 -4px 0 0 #F0EEE9,
+    0 4px 0 0 #F0EEE9;
+}
+
+.pixel-btn {
+  border: 3px solid #1A1A1A;
+  box-shadow: 3px 3px 0 #1A1A1A;
+  transition: all 0.05s ease-in-out;
+}
+
+.pixel-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #1A1A1A;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #1A1A1A;
 }
 
 /* Design tokens ChronoKairo — dark (padrão) e light, alternados via .dark/.light no <html> */
