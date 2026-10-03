@@ -25,6 +25,7 @@
     "@ai-sdk/react": "^4.0.93",
     "@assistant-ui/react": "^0.15.15",
     "@chronokairo/platform": "github:chronokairo/platform#master",
+    "@supabase/supabase-js": "^2.117.0",
     "@tauri-apps/api": "^2.0.0",
     "ai": "^7.0.90",
     "chart.js": "^4.5.1",

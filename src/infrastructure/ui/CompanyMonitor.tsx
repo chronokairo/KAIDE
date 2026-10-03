@@ -129,7 +129,7 @@ export function CompanyMonitor() {
           <div className="flex items-center space-x-2">
             <span className="font-semibold text-xs tracking-tight text-neutral-900">CHRONOKAIRO AI</span>
             <span className="text-[10px] text-neutral-400 font-normal">|</span>
-            <span className="text-[11px] text-neutral-600 font-medium">Empresa Virtual</span>
+            <span className="text-[11px] text-neutral-600 font-medium">Supabase Prod Oficial (chronokairo-prod)</span>
           </div>
         </div>
 

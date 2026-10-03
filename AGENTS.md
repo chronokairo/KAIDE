@@ -128,6 +128,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0033](docs/adr/0033-remocao-de-sprites-e-analise-de-gaps-competitivos.md) | Remoção de Sprites 2D, Transição para Geometria 3D Low-Poly Pura e Análise de Gaps Competitivos |
 | [0034](docs/adr/0034-implementacao-job-commercial-followup-e-human-gate.md) | Implementação Real do Job commercial.followup no Control Plane e Human Gate de Outbound |
 | [0035](docs/adr/0035-implementacao-job-qa-review-pr-e-analise-adversarial.md) | Implementação Real do Job qa.review_pr e Análise Adversarial Multidimensional |
+| [0036](docs/adr/0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md) | Conexão Oficial ao Supabase de Produção, Eliminação de Mocks e Persistência Real do Control Plane |
 
 ### Mapas de código — `docs/maps/`
 

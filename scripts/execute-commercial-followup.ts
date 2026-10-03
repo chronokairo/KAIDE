@@ -5,23 +5,24 @@
  * Nenhuma mensagem externa é transmitida sem aprovação humana explícita no Control Plane.
  */
 
-import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
-import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/in-memory-control-plane';
+import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
+import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 
 async function main() {
   console.log('='.repeat(80));
-  console.log('CHRONOKAIRO AI - CONTROL PLANE / HARNESS');
+  console.log('CHRONOKAIRO AI - CONTROL PLANE / HARNESS (SUPABASE PROD OFICIAL)');
   console.log("Executando Job: 'commercial.followup' (AI Comercial - SDR & Qualificação)");
   console.log('='.repeat(80));
 
+  const leadRepository = new SupabaseLeadRepository();
   const useCase = new ExecuteCommercialFollowupUseCase(
-    defaultLeadRepository,
+    leadRepository,
     defaultCompanyControlPlane
   );
 
-  console.log('\n[1/4] Varrendo leads que aguardam contato ou follow-up no CRM...');
-  const leads = await defaultLeadRepository.listLeadsAwaitingFollowup();
+  console.log('\n[1/4] Varrendo leads que aguardam contato ou follow-up no Supabase de Produção...');
+  const leads = await leadRepository.listLeadsAwaitingFollowup();
   console.log(`-> Encontrados ${leads.length} leads com SLA de contato pendente:\n`);
 
   leads.forEach((lead, i) => {

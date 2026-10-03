@@ -9,12 +9,12 @@
  */
 
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
-import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/in-memory-control-plane';
+import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 
 async function main() {
   console.log('='.repeat(80));
-  console.log('CHRONOKAIRO AI - CONTROL PLANE / HARNESS');
+  console.log('CHRONOKAIRO AI - CONTROL PLANE / HARNESS (SUPABASE PROD OFICIAL)');
   console.log("Executando Job: 'qa.review_pr' (AI QA - Auditoria Adversarial de PRs)");
   console.log('='.repeat(80));
 

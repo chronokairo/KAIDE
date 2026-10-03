@@ -1,39 +1,50 @@
-// Supabase Client with safe local offline fallback for ChronoKairo Desktop
+// Supabase Client Oficial de Produção para ChronoKairo AI (chronokairo-prod: eufyppwpnxmxeinabwyi)
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const mockSupabaseQuery = () => {
-  const chainable: any = {
-    select: () => chainable,
-    insert: () => chainable,
-    update: () => chainable,
-    delete: () => chainable,
-    eq: () => chainable,
-    neq: () => chainable,
-    order: () => chainable,
-    limit: () => chainable,
-    single: async () => ({ data: null, error: null }),
-    maybeSingle: async () => ({ data: null, error: null }),
-    then: (resolve: any) => resolve({ data: [], error: null }),
-  };
-  return chainable;
-};
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eufyppwpnxmxeinabwyi.supabase.co';
 
-export const supabase: any = {
-  from: () => mockSupabaseQuery(),
-  rpc: async () => ({ data: null, error: null }),
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1ZnlwcHdwbnhteGVpbmFid3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMTI1MjIsImV4cCI6MjEwMTg4ODUyMn0.CoOa4ofKbscoQ20JAHlo4cw6cg-YAs9BSy0doy72DO4';
+
+const SUPABASE_SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1ZnlwcHdwbnhteGVpbmFid3lpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjMxMjUyMiwiZXhwIjoyMTAxODg4NTIyfQ.aYkt-ZBSSKfeMqCLL6s64XwVOG1nNo6CtnaSmtJwMEU';
+
+/** ID da Organização Oficial ChronoKairo no Supabase de Produção */
+export const PROD_ORGANIZATION_ID = 'e0f6b749-d7b9-5ea8-9b80-c1d919bf7aaf';
+
+/** ID do Usuário Sócio / Tech Lead no Supabase de Produção */
+export const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b';
+
+/** Cliente Supabase autenticado via Chave Pública (Anon) */
+export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    getSession: async () => ({ data: { session: null }, error: null }),
-    getUser: async () => ({ data: { user: { id: 'local-user', email: 'dev@chronokairo.local' } }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    persistSession: true,
+    autoRefreshToken: true,
   },
-};
+});
+
+/** Cliente Supabase com Chave de Serviço Administrativa para rotas de backend e auditoria */
+export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 export async function getAuthSession() {
-  return {
-    access_token: 'local-desktop-token',
-    user: {
-      id: 'local-user',
-      email: 'dev@chronokairo.local',
-      user_metadata: { name: 'ChronoKairo Developer' },
-    },
-  };
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
+      return null;
+    }
+    return {
+      access_token: data.session.access_token,
+      user: data.session.user,
+    };
+  } catch {
+    return null;
+  }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/in-memory-control-plane';
-import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
+import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
+import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
 import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const jobName = body.jobName || 'qa.review_pr';
 
     if (jobName === 'commercial.followup') {
-      const useCase = new ExecuteCommercialFollowupUseCase(defaultLeadRepository, defaultCompanyControlPlane);
+      const useCase = new ExecuteCommercialFollowupUseCase(new SupabaseLeadRepository(), defaultCompanyControlPlane);
       const result = await useCase.execute();
 
       return NextResponse.json({
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 
   try {
     if (jobName === 'commercial.followup') {
-      const useCase = new ExecuteCommercialFollowupUseCase(defaultLeadRepository, defaultCompanyControlPlane);
+      const useCase = new ExecuteCommercialFollowupUseCase(new SupabaseLeadRepository(), defaultCompanyControlPlane);
       const result = await useCase.execute();
       return NextResponse.json({
         success: true,

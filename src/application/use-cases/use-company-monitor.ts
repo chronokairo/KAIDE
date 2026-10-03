@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
-import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/in-memory-control-plane';
+import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 import { AgentEntity, JobEntity, CompanyTelemetry } from '@/domain/company';
 
 export function useCompanyMonitor(port: CompanyControlPlanePort = defaultCompanyControlPlane) {
