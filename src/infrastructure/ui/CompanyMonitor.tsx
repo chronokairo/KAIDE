@@ -16,6 +16,7 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
+  Send,
 } from 'lucide-react';
 
 export function CompanyMonitor() {
@@ -29,17 +30,19 @@ export function CompanyMonitor() {
     setSelectedJob,
     approveGate,
     rejectGate,
+    executeJob,
   } = useCompanyMonitor();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessingApproval, setIsProcessingApproval] = useState(false);
+  const [isExecutingJob, setIsExecutingJob] = useState(false);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
 
-  // Set default selected agent to Coder on mount
+  // Set default selected agent to Commercial or Coder on mount
   useEffect(() => {
     if (agents.length > 0 && !selectedAgent) {
-      const defaultAgent = agents.find((a) => a.role === 'coder') || agents[0];
+      const defaultAgent = agents.find((a) => a.role === 'commercial') || agents.find((a) => a.role === 'coder') || agents[0];
       setSelectedAgent(defaultAgent);
       const agentJob = jobs.find((j) => j.agentRole === defaultAgent.role);
       if (agentJob) setSelectedJob(agentJob);
@@ -52,7 +55,10 @@ export function CompanyMonitor() {
     if (!pendingJob?.approvalGate) return;
     setIsProcessingApproval(true);
     try {
-      await approveGate(pendingJob.approvalGate.id, 'Autorizado pelo Diretor Técnico após verificação de evidências.');
+      await approveGate(
+        pendingJob.approvalGate.id,
+        'Autorizado pelo Diretor Técnico após conferência das evidências de conformidade.'
+      );
       setShowApprovalModal(false);
     } finally {
       setIsProcessingApproval(false);
@@ -63,16 +69,31 @@ export function CompanyMonitor() {
     if (!pendingJob?.approvalGate) return;
     setIsProcessingApproval(true);
     try {
-      await rejectGate(pendingJob.approvalGate.id, rejectReason || 'Rejeitado para ajustes adicionais.');
+      await rejectGate(pendingJob.approvalGate.id, rejectReason || 'Rejeitado pelo Diretor Técnico para revisão.');
       setShowApprovalModal(false);
     } finally {
       setIsProcessingApproval(false);
     }
   };
 
+  const handleTriggerCommercialFollowup = async () => {
+    setIsExecutingJob(true);
+    try {
+      const job = await executeJob('commercial.followup');
+      const commAgent = agents.find((a) => a.role === 'commercial');
+      if (commAgent) setSelectedAgent(commAgent);
+      setSelectedJob(job);
+      setShowApprovalModal(true);
+    } catch (err) {
+      console.error('Erro ao disparar commercial.followup:', err);
+    } finally {
+      setIsExecutingJob(false);
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#F0EEE9] text-neutral-800 font-sans select-none">
-      {/* 2D/3D Pokemon Office View in Three.js (Pantone 2026 Cloud Dancer Background) */}
+      {/* Pure 3D Low-Poly Office View in Three.js (Pantone 2026 Cloud Dancer Background) */}
       <div className="absolute inset-0">
         <PokemonOfficeScene
           agents={agents}
@@ -122,15 +143,26 @@ export function CompanyMonitor() {
           </div>
         </div>
 
-        {/* Right Actions / Pending Gate Pill */}
+        {/* Right Actions / Pending Gate & Job Trigger Pill */}
         <div className="flex items-center space-x-2">
+          {/* Commercial Followup Trigger Button */}
+          <button
+            onClick={handleTriggerCommercialFollowup}
+            disabled={isExecutingJob}
+            className="flex items-center space-x-1.5 bg-[#F0EEE9]/90 hover:bg-neutral-200/80 text-neutral-800 px-3.5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm transition text-xs font-semibold cursor-pointer"
+            title="Executar varredura de leads e rascunho de follow-up"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>{isExecutingJob ? 'Processando...' : 'Job: commercial.followup'}</span>
+          </button>
+
           {telemetry.pendingApprovalsCount > 0 ? (
             <button
               onClick={() => setShowApprovalModal(true)}
-              className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-2xl shadow-sm transition text-xs font-semibold animate-pulse"
+              className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-2xl shadow-sm transition text-xs font-semibold animate-pulse cursor-pointer"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Aprovação Humana Pendente</span>
+              <span>Aprovação Humana Pendente ({telemetry.pendingApprovalsCount})</span>
             </button>
           ) : (
             <div className="flex items-center space-x-1.5 bg-[#F0EEE9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm text-xs text-neutral-600">
@@ -141,22 +173,15 @@ export function CompanyMonitor() {
         </div>
       </header>
 
-      {/* Bottom Floating Minimalist Dialogue Bar (Pokemon NPC Speech Style) */}
+      {/* Bottom Floating Minimalist Dialogue Bar */}
       <footer className="absolute bottom-5 inset-x-6 z-20 flex justify-center pointer-events-auto">
         <div className="w-full max-w-3xl bg-[#F0EEE9]/95 backdrop-blur-lg border border-neutral-300/90 rounded-2xl shadow-lg p-3.5 flex items-center space-x-4">
-          {/* Avatar Crop Preview */}
-          <div className="w-12 h-12 rounded-xl bg-white border border-neutral-200 overflow-hidden relative shrink-0 shadow-inner flex items-center justify-center">
-            <img
-              src="/anime_8bit_color.png"
-              alt="Avatar"
-              className="pixel-art absolute max-w-none"
-              style={{
-                width: '120px',
-                height: '75px',
-                top: selectedAgent?.role === 'coder' ? '-2px' : selectedAgent?.role === 'devops' ? '-45px' : '-15px',
-                left: '-2px',
-              }}
-            />
+          {/* Role Color Badge */}
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm font-bold text-white text-xs"
+            style={{ backgroundColor: selectedAgent?.color || '#38BDF8' }}
+          >
+            {selectedAgent?.role.slice(0, 3).toUpperCase() || 'SYS'}
           </div>
 
           {/* Dialog Text */}
@@ -180,63 +205,43 @@ export function CompanyMonitor() {
                   : 'Ocioso'}
               </span>
             </div>
-            <p className="text-xs text-neutral-700 truncate font-normal">
-              &quot;{selectedAgent?.currentTask || 'Selecione um funcionário no escritório para inspecionar a atividade.'}&quot;
+            <p className="text-xs text-neutral-700 font-mono truncate">
+              {selectedAgent?.currentTask || 'Aguardando próxima instrução no Control Plane.'}
             </p>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex items-center space-x-2 shrink-0">
-            <button
-              onClick={() => setShowDetailsPanel(!showDetailsPanel)}
-              className="text-xs font-medium px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 shadow-sm transition flex items-center space-x-1"
-            >
-              <span>{showDetailsPanel ? 'Fechar' : 'Detalhes'}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
-            </button>
-
-            {pendingJob && (
-              <button
-                onClick={() => setShowApprovalModal(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition flex items-center space-x-1"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Revisar Gate</span>
-              </button>
-            )}
-          </div>
+          {/* Action to view details */}
+          <button
+            onClick={() => setShowDetailsPanel(!showDetailsPanel)}
+            className="flex items-center space-x-1 text-xs text-neutral-600 hover:text-neutral-900 font-medium px-3 py-1.5 rounded-xl hover:bg-neutral-200/60 transition cursor-pointer"
+          >
+            <span>{showDetailsPanel ? 'Fechar' : 'Inspecionar'}</span>
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showDetailsPanel ? 'rotate-90' : ''}`} />
+          </button>
         </div>
       </footer>
 
-      {/* Slide-out Minimalist Details Drawer */}
+      {/* Slide-out Details Drawer */}
       {showDetailsPanel && selectedAgent && (
-        <aside className="absolute right-6 top-20 bottom-24 w-88 z-30 flex flex-col bg-[#F0EEE9]/95 backdrop-blur-xl border border-neutral-300 rounded-3xl shadow-2xl p-5 overflow-hidden pointer-events-auto animate-fadeIn">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-neutral-200/80 pb-3">
-            <div>
-              <h3 className="font-semibold text-sm text-neutral-900">{selectedAgent.name}</h3>
-              <p className="text-xs text-neutral-500">{selectedAgent.title}</p>
+        <aside className="absolute right-6 top-20 bottom-24 w-80 bg-[#F0EEE9]/95 backdrop-blur-xl border border-neutral-300 rounded-3xl shadow-xl z-20 flex flex-col pointer-events-auto overflow-hidden animate-slideIn">
+          <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedAgent.color }} />
+              <h3 className="font-semibold text-xs text-neutral-900">{selectedAgent.title}</h3>
             </div>
             <button
               onClick={() => setShowDetailsPanel(false)}
-              className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition"
+              className="text-neutral-400 hover:text-neutral-700 p-1 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto py-3 space-y-4 text-xs">
-            {/* Mission */}
-            <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
-              <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Missão & Escopo</span>
-              <p className="text-neutral-700 mt-1 leading-relaxed">{selectedAgent.currentTask}</p>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-2.5">
+          <div className="p-4 flex-1 overflow-y-auto space-y-4 text-xs">
+            {/* Telemetry Numbers */}
+            <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
-                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Tokens</span>
+                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Tokens Processados</span>
                 <p className="text-sm font-semibold text-neutral-900 mt-0.5">
                   {selectedAgent.tokensProcessed.toLocaleString()}
                 </p>
@@ -272,7 +277,7 @@ export function CompanyMonitor() {
                   <span className="text-[10px] font-mono text-neutral-400">{selectedJob.id}</span>
                 </div>
                 <div className="font-semibold text-neutral-900">{selectedJob.title}</div>
-                <div className="text-[11px] text-neutral-500">Cliente: {selectedJob.client}</div>
+                <div className="text-[11px] text-neutral-500">Cliente / Contexto: {selectedJob.client}</div>
 
                 <div className="pt-2 border-t border-neutral-100">
                   <span className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">
@@ -304,23 +309,31 @@ export function CompanyMonitor() {
               <div>
                 <h2 className="text-sm font-semibold text-neutral-900">Gate de Aprovação Humana</h2>
                 <p className="text-xs text-neutral-500">
-                  Modelo AI → AI → AI → HUMAN (ADR-0028). Deploy em produção requer aprovação do Diretor Técnico.
+                  Modelo AI → AI → AI → HUMAN (ADR-0028). Ações com impacto externo ou produção exigem aprovação explícita.
                 </p>
               </div>
             </div>
 
             <div className="bg-white p-3.5 rounded-2xl border border-neutral-200/80 space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-neutral-500">Ação:</span>
-                <span className="font-semibold text-red-600">Deploy em Produção (v1.2.0)</span>
+                <span className="text-neutral-500">Ação / Gate:</span>
+                <span className="font-semibold text-amber-600">
+                  {pendingJob.approvalGate?.title || pendingJob.title}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-500">Projeto:</span>
-                <span className="text-neutral-800 font-medium">{pendingJob.title}</span>
+                <span className="text-neutral-500">Contexto / Projeto:</span>
+                <span className="text-neutral-800 font-medium">{pendingJob.project || pendingJob.client}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-500">Solicitante:</span>
-                <span className="font-medium text-purple-600">AI DevOps</span>
+                <span className="text-neutral-500">Agente Solicitante:</span>
+                <span className="font-medium text-emerald-700">
+                  {pendingJob.agentRole === 'commercial'
+                    ? 'AI Comercial (SDR)'
+                    : pendingJob.agentRole === 'devops'
+                    ? 'AI DevOps'
+                    : pendingJob.agentRole}
+                </span>
               </div>
             </div>
 
@@ -328,7 +341,7 @@ export function CompanyMonitor() {
               <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                 Evidências Anexadas (Verify & Evidence)
               </span>
-              <div className="bg-white p-3 rounded-2xl border border-neutral-200/80 space-y-1.5 max-h-40 overflow-y-auto">
+              <div className="bg-white p-3 rounded-2xl border border-neutral-200/80 space-y-1.5 max-h-48 overflow-y-auto font-mono text-[11px]">
                 {pendingJob.evidence.map((ev, i) => (
                   <div key={i} className="flex items-start space-x-2 text-neutral-700">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
@@ -342,17 +355,23 @@ export function CompanyMonitor() {
               <button
                 disabled={isProcessingApproval}
                 onClick={handleReject}
-                className="px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 font-medium text-xs transition"
+                className="px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 font-medium text-xs transition cursor-pointer"
               >
                 Rejeitar & Solicitar Ajustes
               </button>
               <button
                 disabled={isProcessingApproval}
                 onClick={handleApprove}
-                className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs shadow-sm transition flex items-center space-x-1.5"
+                className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>{isProcessingApproval ? 'Processando...' : 'Aprovar Deploy em Produção'}</span>
+                <span>
+                  {isProcessingApproval
+                    ? 'Processando...'
+                    : pendingJob.approvalGate?.type === 'outbound_contact'
+                    ? 'Aprovar & Despachar Mensagens'
+                    : 'Aprovar & Executar Ação'}
+                </span>
               </button>
             </div>
           </div>
