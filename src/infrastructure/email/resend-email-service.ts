@@ -134,6 +134,10 @@ export class ResendEmailService {
 
     try {
       const listResponse = await this.client.emails.list();
+      if (listResponse.error) {
+        console.warn('[ResendEmailService] Sync window list error:', listResponse.error);
+        return { syncedCount, bouncedCount };
+      }
       const emails = (listResponse.data as any)?.data || [];
       const cutoffTime = new Date(Date.now() - windowHours * 3600 * 1000);
 

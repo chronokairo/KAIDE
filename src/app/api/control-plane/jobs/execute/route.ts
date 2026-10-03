@@ -3,6 +3,7 @@ import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supab
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
 import { defaultPullRequestRepository } from '@/infrastructure/qa/forge-pull-request-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
+import { ExecuteCommercialDailyUseCase } from '@/application/use-cases/execute-commercial-daily';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,23 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (jobName === 'commercial.daily') {
+      const useCase = new ExecuteCommercialDailyUseCase(new SupabaseLeadRepository(), defaultCompanyControlPlane);
+      const result = await useCase.execute();
+
+      return NextResponse.json({
+        success: true,
+        message: "Job 'commercial.daily' executado com sucesso no Control Plane.",
+        jobId: result.jobId,
+        status: 'waiting_approval',
+        requiresApproval: true,
+        approvalGateId: result.approvalGateId,
+        leadsScannedCount: result.leadsScannedCount,
+        analyses: result.analyses,
+        draftsGenerated: result.drafts,
+      });
+    }
+
     if (jobName === 'qa.review_pr') {
       const useCase = new ExecuteQaPrReviewUseCase(defaultPullRequestRepository, defaultCompanyControlPlane);
       const result = await useCase.execute();
@@ -41,6 +59,27 @@ export async function POST(req: NextRequest) {
         reports: result.reports,
         overallSummary: result.overallSummary,
       });
+    }
+
+    if (defaultCompanyControlPlane.executeJob) {
+      try {
+        const job = await defaultCompanyControlPlane.executeJob(jobName, body.params);
+        return NextResponse.json({
+          success: true,
+          message: `Job '${jobName}' executado com sucesso no Control Plane.`,
+          jobId: job.id,
+          stage: job.stage,
+          status: job.status,
+          requiresApproval: job.requiresApproval,
+          approvalGateId: job.approvalGate?.id,
+          evidence: job.evidence,
+        });
+      } catch {
+        return NextResponse.json(
+          { error: `Job '${jobName}' não reconhecido pelo harness do Control Plane.` },
+          { status: 400 }
+        );
+      }
     }
 
     return NextResponse.json(
@@ -76,18 +115,55 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const useCase = new ExecuteQaPrReviewUseCase(defaultPullRequestRepository, defaultCompanyControlPlane);
-    const result = await useCase.execute();
+    if (jobName === 'commercial.daily') {
+      const useCase = new ExecuteCommercialDailyUseCase(new SupabaseLeadRepository(), defaultCompanyControlPlane);
+      const result = await useCase.execute();
+      return NextResponse.json({
+        success: true,
+        message: "Job 'commercial.daily' executado com sucesso no Control Plane.",
+        jobId: result.jobId,
+        status: 'waiting_approval',
+        requiresApproval: true,
+        approvalGateId: result.approvalGateId,
+        leadsScannedCount: result.leadsScannedCount,
+        analyses: result.analyses,
+        draftsGenerated: result.drafts,
+      });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Job 'qa.review_pr' executado com sucesso no Control Plane.",
-      jobId: result.jobId,
-      stage: 'qa',
-      prsScannedCount: result.prsScannedCount,
-      reports: result.reports,
-      overallSummary: result.overallSummary,
-    });
+    if (jobName === 'qa.review_pr') {
+      const useCase = new ExecuteQaPrReviewUseCase(defaultPullRequestRepository, defaultCompanyControlPlane);
+      const result = await useCase.execute();
+
+      return NextResponse.json({
+        success: true,
+        message: "Job 'qa.review_pr' executado com sucesso no Control Plane.",
+        jobId: result.jobId,
+        stage: 'qa',
+        prsScannedCount: result.prsScannedCount,
+        reports: result.reports,
+        overallSummary: result.overallSummary,
+      });
+    }
+
+    if (defaultCompanyControlPlane.executeJob) {
+      const job = await defaultCompanyControlPlane.executeJob(jobName);
+      return NextResponse.json({
+        success: true,
+        message: `Job '${jobName}' executado com sucesso no Control Plane.`,
+        jobId: job.id,
+        stage: job.stage,
+        status: job.status,
+        requiresApproval: job.requiresApproval,
+        approvalGateId: job.approvalGate?.id,
+        evidence: job.evidence,
+      });
+    }
+
+    return NextResponse.json(
+      { error: `Job '${jobName}' não reconhecido pelo harness do Control Plane.` },
+      { status: 400 }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 });
   }
