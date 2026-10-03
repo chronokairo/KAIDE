@@ -12,28 +12,53 @@ O produto deve:
 - manter provedores de LLM, RAG e integrações externas atrás de portas e adapters;
 - consumir a identidade, organização, tenant e RBAC da Platform.
 
-## Arquitetura obrigatória
+## Arquitetura obrigatória (Hexagonal Pura)
 
-Usar arquitetura hexagonal:
+Usar arquitetura hexagonal pura (Ports & Adapters):
 
 ```text
-HTTP/SSE/MCP adapters -> application use cases -> domain -> output ports -> infrastructure adapters
+Adapters Primários (UI: 4 partes / HTTP API / CLI)
+             │
+             ▼
+   Application Use Cases ──► Domain (puro)
+             │
+             ▼
+   Application Ports (Contratos)
+             │
+             ▼
+Adapters Secundários (HTTP fetch, Tauri IPC, Supabase, LLMs, Storage)
 ```
 
-- O domínio e os casos de uso não importam Express, Supabase, SDK de LLM ou clientes dos produtos.
+- **Camadas estritas**:
+  - `src/domain/` — entidades, regras e tipos puros (sem React, Next, Express, Supabase ou SDKs).
+  - `src/application/ports/` — contratos de entrada e saída.
+  - `src/application/use-cases/` — orquestração de casos de uso dependendo apenas de portas.
+  - `src/infrastructure/` — adapters concretos fora do hexágono:
+    - `src/infrastructure/ui/` — **Adapter Primário de Apresentação** composto exclusivamente pelas **4 partes**: `AppBar`, `LeftSidebar`, `Body` e `RightSidebar`, orquestradas pelo `AppShell`.
+    - `src/infrastructure/http/` — adapters de rede web e rotas Next.js.
+    - `src/infrastructure/tauri/` — adapters nativos de desktop para IPC com o núcleo Rust `ckc`.
+    - `src/infrastructure/llm/`, `identity/`, `credentials/`, `secrets/`, `audit/`.
+
+### Política de Migração de Legados
+- **Migração progressiva / sob demanda**: Arquivos legados existentes (`src/modules/*`, `src/server/rag/*`) serão migrados para a estrutura hexagonal pura conforme for necessário mexer neles. Não fazer reescritas cegas sem necessidade.
+- **Roteiro de execução**: Primeiro migrar e consolidar no Next.js (Web); em seguida, conectar o desktop Tauri ao núcleo `ckc`.
 - Consultas e comandos usam contratos versionados. Não acessar diretamente o banco de outro produto.
 - Toda ferramenta de escrita exige autenticação, `organizationId` validado no servidor, permissão específica, validação de entrada, idempotência e auditoria.
 - Ações destrutivas, financeiras, administrativas ou irreversíveis exigem confirmação explícita antes da execução.
 - O modelo nunca escolhe nem amplia permissões; a autorização ocorre no backend depois da chamada da ferramenta.
 - Segredos e credenciais de provedores ficam somente no backend.
 
-## UI e experiência
+## UI e experiência (As 4 Partes Canônicas)
 
-- Refatorar a interface para o design system padrão ChronoKairo (`@chronokairo/platform/ui`) e seus tokens de tema.
-- Reutilizar AppBar, navegação, identidade autenticada, ícones, estados de carregamento, feedback e componentes acessíveis da plataforma.
-- O tema claro/escuro deve aparecer apenas como ícone na AppBar; não duplicar controles na sidebar.
-- O chat é a experiência principal. Busca, fontes, ferramentas executadas, confirmações e resultados devem ser distinguíveis e rastreáveis.
-- Remover branding e padrões visuais legados de Athena/TOTVS quando não forem necessários ao domínio da integração.
+A interface é um adapter primário (`src/infrastructure/ui/`) composto estritamente por 4 partes sob o design system `@chronokairo/platform/ui` e tokens themáveis:
+
+1. **`AppBar` (Topo)**: Identidade ChronoKairo AI, contexto/workspace ativo, status do motor (NIM/Ollama), `ThemeToggle` exclusivo (sem duplicar na sidebar) e perfil do usuário.
+2. **`LeftSidebar` (Navegação & Histórico)**: Botão de nova conversa, lista de sessões recentes com busca/agrupamento temporal e alternância de visões (Chat, Busca, Agentes, Configurações).
+3. **`Body` (Centro)**: Área principal do trabalho ativo (Thread de mensagens com streaming, markdown, codeblocks, gráficos Chart.js e `ChatInput` na base).
+4. **`RightSidebar` (Inspetor de Contexto & Ferramentas)**: Colapsável. Exibe fontes RAG, inspeção de tool calling executado, auditoria e métricas de turnos (tokens e custo).
+
+- Zero `fetch()` ou `invoke()` acoplados dentro de componentes JSX da UI: a UI consome casos de uso ou portas via hooks.
+- Remover branding e padrões visuais legados de Athena/TOTVS.
 - Não duplicar componentes compartilhados localmente. Quando `@chronokairo/platform/ui` ainda não oferecer um componente, criar uma porta visual local e planejar sua promoção ao pacote compartilhado.
 
 ## Organização do monorepo
@@ -106,3 +131,13 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 - [`chronokairo/cli` → `TODO.md`](https://gitlab.com/chronokairo/cli/-/blob/main/TODO.md) — pendências do núcleo Rust `ckc` / binário `ck` (repo próprio, ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md)).
 - [`docs/market/TODO.md`](docs/market/TODO.md) — paridade com coding agents de mercado (CLI e desktop), derivada dos changelogs em `docs/market/changelogs/`.
 - [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
