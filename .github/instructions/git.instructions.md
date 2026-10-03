@@ -2,12 +2,34 @@
 applyTo: "**"
 ---
 
-# Git
+# Git, GitHub & GitLab (Organização ChronoKairo)
 
-- Nunca commitar direto em `main`: branch por Job (`job/<tipo>-<id>`), PR com plano, alterações, testes e evidências.
-- Commits pequenos, em português, com prefixo convencional (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
-- Merge só após QA `PASS` e aprovação humana.
-- Não reescrever histórico publicado, não usar `push --force` em branches compartilhadas.
-- Não apagar branches sem confirmação explícita.
-- Núcleo Rust `ckc`: mudanças vão para `chronokairo/cli`, não para este repo.
-- Remote padrão: `origin` (`https://gitlab.com/chronokairo/ai.git`).
+Os agentes têm acesso e devem operar sobre os repositórios da organização/grupo **`chronokairo`** no GitHub e GitLab:
+
+## Repositórios & Organizações Oficiais
+
+| Plataforma | Namespace / URL | CLI | Finalidade |
+| :--- | :--- | :---: | :--- |
+| **GitHub** | [`https://github.com/chronokairo`](https://github.com/chronokairo) | `gh` | Repositórios principais, automações do Copilot e PRs |
+| **GitLab** | [`https://gitlab.com/chronokairo`](https://gitlab.com/chronokairo) | `glab` | Repositórios legados, espelhos/backup, CI/CD e core Rust (`cli`) |
+
+### Repositórios Ativos
+- **Harness & AI (`chronokairo/ai`):**
+  - GitHub: `https://github.com/chronokairo/ai.git` (remote `origin`)
+  - GitLab: `https://gitlab.com/chronokairo/ai.git` (remote `gitlab`)
+- **Core Rust Zero-Lib (`chronokairo/cli`):**
+  - GitLab: `https://gitlab.com/chronokairo/cli.git` (binário `ck`, crate `ckc`)
+- **Projetos de Clientes & Satélites:**
+  - `chronokairo/audiomed`: `https://gitlab.com/chronokairo/audiomed.git`
+  - `chronokairo/chronokairo.github.io`: `https://github.com/chronokairo/chronokairo.github.io.git`
+
+## Regras de Execução dos Agentes
+
+- Nunca commitar direto em `main`: crie branch por Job (`job/<tipo>-<id>`).
+- Sincronização: Todo push relevante em `main` deve ser enviado ao `origin` (GitHub) e espelhado no `gitlab` (GitLab).
+- Abertura de PR / MR:
+  - Coder gera a branch, roda testes e abre PR via `gh pr create` ou MR via `glab mr create`.
+  - QA revisa com abordagem adversarial antes de qualquer aprovação.
+- Merge exige validação de QA (`PASS`) e aprovação humana explícita.
+- Não usar `push --force` em branches públicas nem apagar branches remotas sem autorização.
+- Alterações no núcleo Rust do agente (`ckc`) pertencem exclusivamente ao repositório `chronokairo/cli`.

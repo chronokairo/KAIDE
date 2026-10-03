@@ -67,7 +67,7 @@ export function CompanyMonitor() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0a0d14] text-slate-100 font-sans">
+    <div className="relative w-screen h-screen overflow-hidden bg-black text-white font-mono">
       {/* 3D WebGL Canvas */}
       <div className="absolute inset-0">
         <CompanyScene3D
@@ -81,21 +81,21 @@ export function CompanyMonitor() {
         />
       </div>
 
-      {/* Top Header & Telemetry Bar */}
-      <header className="absolute top-0 inset-x-0 z-20 flex flex-col md:flex-row items-center justify-between px-6 py-4 bg-slate-950/70 backdrop-blur-md border-b border-slate-800/80 pointer-events-auto">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 ring-1 ring-sky-400/30">
+      {/* Top Header & Telemetry Bar (8-bit Monochrome) */}
+      <header className="absolute top-0 inset-x-0 z-20 flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-black/85 backdrop-blur-md border-b border-white/20 pointer-events-auto">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 border border-white bg-black flex items-center justify-center shadow-sm">
             <Cpu className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-lg font-bold tracking-tight text-white">CHRONOKAIRO AI</h1>
-              <span className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-950/80 text-sky-400 border border-sky-800/60 rounded-full">
-                Empresa Virtual de Agentes
+              <h1 className="text-base font-bold tracking-wider text-white">CHRONOKAIRO AI</h1>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-white text-black">
+                8-BIT VIRTUAL CO
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Operação AI-First com Supervisão Humana • <span className="text-slate-300 font-medium">ADR-0028</span>
+            <p className="text-[11px] text-neutral-400">
+              AI-First Engineering • GitHub & GitLab chronokairo • <span className="text-neutral-200">ADR-0028/0029</span>
             </p>
           </div>
         </div>
