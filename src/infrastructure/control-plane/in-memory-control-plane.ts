@@ -1,14 +1,20 @@
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
+import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
 import { AgentEntity, JobEntity, CompanyTelemetry } from '@/domain/company';
 import { defaultLeadRepository } from '@/infrastructure/crm/in-memory-lead-repository';
+import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
+import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 
 export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePort {
   private snapshot: CompanyStateSnapshot;
   private listeners: Set<(snapshot: CompanyStateSnapshot) => void> = new Set();
 
-  constructor(private readonly leadRepository: LeadRepositoryPort = defaultLeadRepository) {
+  constructor(
+    private readonly leadRepository: LeadRepositoryPort = defaultLeadRepository,
+    private readonly prRepository: PullRequestRepositoryPort = defaultPullRequestRepository
+  ) {
     const agents: AgentEntity[] = [
       {
         id: 'agent-human',
@@ -98,13 +104,12 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
         name: 'AI QA',
         title: 'Testes Adversariais & Segurança',
         department: 'Qualidade & Auditoria',
-        status: 'working',
-        currentTask: 'Validando isolamento de tenant, RBAC e testes de regressão',
-        currentJobId: 'job-001',
+        status: 'idle',
+        currentTask: 'Pronto para revisão adversarial de PRs e auditoria de segurança',
         tokensProcessed: 412000,
         costUsd: 0.82,
         lastActivity: 'Há 1 min',
-        activeTools: ['fuzz_tester', 'rbac_verifier', 'security_scanner', 'evidence_collector'],
+        activeTools: ['fuzz_tester', 'rbac_verifier', 'security_scanner', 'evidence_collector', 'git_diff_analyzer'],
         coordinates: [6, 0.4, -8],
         color: '#ef4444',
         accentColor: '#dc2626',
@@ -251,7 +256,7 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
       agent.status = job.status === 'waiting_approval' ? 'waiting_approval' : job.status === 'in_progress' ? 'working' : 'idle';
       agent.currentJobId = job.id;
       if (job.status === 'waiting_approval') {
-        agent.currentTask = `${job.title} — Aguardando aprovação humana para envio.`;
+        agent.currentTask = `${job.title} — Aguardando aprovação humana.`;
       } else {
         agent.currentTask = job.title;
       }
@@ -276,6 +281,16 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
       return job;
     }
 
+    if (jobName === 'qa.review_pr') {
+      const useCase = new ExecuteQaPrReviewUseCase(this.prRepository, this);
+      const result = await useCase.execute();
+      const job = this.snapshot.jobs.find((j) => j.id === result.jobId);
+      if (!job) {
+        throw new Error(`Job ${result.jobId} não encontrado após execução de qa.review_pr`);
+      }
+      return job;
+    }
+
     throw new Error(`Job '${jobName}' não reconhecido pelo Control Plane.`);
   }
 
@@ -291,7 +306,6 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // Handle specific gate types
     if (job.approvalGate.type === 'outbound_contact') {
-      // 1. Mark drafts as dispatched in Lead Repository
       const drafts = await this.leadRepository.getDraftsByJobId?.(job.id) || [];
       const dispatchTime = new Date().toISOString();
       for (const draft of drafts) {
@@ -303,7 +317,6 @@ export class InMemoryCompanyControlPlaneAdapter implements CompanyControlPlanePo
         `Disparo Externo Concluído: Mensagens transmitidas com sucesso aos destinatários autorizados às ${new Date().toLocaleTimeString('pt-BR')}.`
       );
 
-      // 2. Transition commercial agent
       const commAgent = this.snapshot.agents.find((a) => a.role === 'commercial');
       if (commAgent) {
         commAgent.status = 'working';

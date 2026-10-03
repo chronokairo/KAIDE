@@ -91,6 +91,21 @@ export function CompanyMonitor() {
     }
   };
 
+  const handleTriggerQaReview = async () => {
+    setIsExecutingJob(true);
+    try {
+      const job = await executeJob('qa.review_pr');
+      const qaAgent = agents.find((a) => a.role === 'qa');
+      if (qaAgent) setSelectedAgent(qaAgent);
+      setSelectedJob(job);
+      setShowDetailsPanel(true);
+    } catch (err) {
+      console.error('Erro ao disparar qa.review_pr:', err);
+    } finally {
+      setIsExecutingJob(false);
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#F0EEE9] text-neutral-800 font-sans select-none">
       {/* Pure 3D Low-Poly Office View in Three.js (Pantone 2026 Cloud Dancer Background) */}
@@ -154,6 +169,17 @@ export function CompanyMonitor() {
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>{isExecutingJob ? 'Processando...' : 'Job: commercial.followup'}</span>
+          </button>
+
+          {/* QA PR Review Trigger Button */}
+          <button
+            onClick={handleTriggerQaReview}
+            disabled={isExecutingJob}
+            className="flex items-center space-x-1.5 bg-[#F0EEE9]/90 hover:bg-neutral-200/80 text-neutral-800 px-3.5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm transition text-xs font-semibold cursor-pointer"
+            title="Executar auditoria técnica adversarial nos PRs abertos"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>{isExecutingJob ? 'Auditando...' : 'Job: qa.review_pr'}</span>
           </button>
 
           {telemetry.pendingApprovalsCount > 0 ? (
