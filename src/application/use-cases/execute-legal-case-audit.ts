@@ -14,22 +14,18 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
 /**
- * Job `legal.audit_case` — AI Analista (Papel Jurídico/Técnico).
+ * Job `legal.audit_case` — AI Analyst (Legal & Due Diligence Role).
  *
- * Lê `legal_cases` do Supabase de produção e monta um relatório técnico
- * multidimensional que instrui a defesa da ChronoKairo:
+ * Reads real `legal_cases` from official Supabase production and generates a
+ * multidimensional technical evidence report for the Legal Director:
+ * 1. Software authorship proof (commit histories, repository diffs);
+ * 2. Contractual scope mapping (comparing allegations against deliverable schedules);
+ * 3. Invoiced revenue and financial receipts;
+ * 4. Evidentiary gap analysis;
+ * 5. Procedural deadlines and prescription thresholds.
  *
- * 1. **Autoria de software** — separa o que é reconhecivelmente trabalho
- *    técnico da ChronoKairo do que é apenas referência de mercado.
- * 2. **Escopo contratual** — confronta a minuta com o que foi efetivamente
- *    entregue, invertendo a tese de apropriação indébita.
- * 3. **Faturamento** — usa `contracts`/`projects` para demonstrar que houve
- *    pagamento pela entrega.
- * 4. **Prova probatória** — inventaria o que existe e o que falta.
- * 5. **Prazo** — checa prescrição e prazos do processo.
- *
- * O job é estritamente de leitura e não redige peça jurídica: o resultado é
- * insumo para o Diretor Jurídico decidir sobre contestação (ADR-0028).
+ * Strictly read-only for production cases: results are submitted to the Human Legal Director
+ * in adherence to ADR-0028 (AI -> AI -> AI -> HUMAN).
  */
 export class ExecuteLegalCaseAuditUseCase {
   constructor(
@@ -49,38 +45,40 @@ export class ExecuteLegalCaseAuditUseCase {
 
     const reports = targets.map((c) => this.auditCase(c, contracts, timestamp));
     const totalEvidence = reports.reduce((sum, r) => sum + r.evidence.length, 0);
-    const critical = reports.filter((r) => r.verdict === 'risco_critico').length;
+    const critical = reports.filter(
+      (r) => r.verdict === 'risco_critico' || r.verdict === 'critical_risk'
+    ).length;
 
     const evidenceList: string[] = [
-      `Auditoria técnica de ${reports.length} caso(s) jurídico(s) a partir de legal_cases (Supabase prod).`,
-      `Documentos-fonte indexados: ${cases.length} caso(s) e ${contracts.length} contrato(s) para confronto probatório.`,
-      `Evidências técnicas inventariadas: ${totalEvidence} item(ns), todos com referência de origem rastreável.`,
+      `Technical legal audit completed for ${reports.length} case(s) from legal_cases (Supabase prod).`,
+      `Source records indexed: ${cases.length} case(s) and ${contracts.length} contract(s) for cross-examination.`,
+      `Verified evidentiary items inventoried: ${totalEvidence} items with verifiable provenance.`,
       ...(critical > 0
-        ? [`ALERTA: ${critical} caso(s) classificado(s) como risco_critico pela ausência de prova autoral.`,]
-        : ['Nenhum caso classificado como risco crítico nesta execução.']),
-      'Governança AI-first (ADR-0028): relatório interno de preparação técnica. Nenhuma peça jurídica, contestação ou comunicação externa é gerada automaticamente — a decisão é do Diretor Jurídico.', 
+        ? [`WARNING: ${critical} case(s) classified as critical_risk due to missing software authorship contracts.`]
+        : ['No cases classified as critical risk in this audit cycle.']),
+      'AI-first Governance (ADR-0028): Internal technical audit report. No formal court pleadings or external dispatches are generated without Legal Director approval.',
     ];
 
     const job: JobEntity = {
       id: jobId,
-      title: `Auditoria Técnica Probatória de Caso Jurídico (${caseNumber ?? 'todos'})`,
-      client: 'Diretoria Jurídica ChronoKairo Corp',
-      project: 'Defesa Técnica & Due Diligence',
+      title: `Evidentiary Legal Case Technical Audit (${caseNumber ?? 'all active cases'})`,
+      client: 'ChronoKairo Corp Legal Directorate',
+      project: 'Technical Defense & Due Diligence',
       stage: 'analyst',
       agentRole: 'analyst',
       status: 'completed',
       prompt:
-        'Auditar caso jurídico no Supabase prod, confrontar com contratos e entregas reais, e produzir relatório técnico multidimensional para instrução da defesa. Sem geração de peça jurídica.',
+        'Audit official legal cases in Supabase prod, correlate with contracts and delivery artifacts, and generate a factual defense dossier without hallucinating pleadings.',
       toolsUsed: ['legal_case_reader', 'contract_cross_checker', 'evidence_matrix_builder', 'supabase_db'],
-      changesSummary: `${reports.length} caso(s) auditado(s); ${totalEvidence} evidência(s) inventariada(s); ${critical} risco(s) crítico(s).`,
+      changesSummary: `${reports.length} case(s) audited; ${totalEvidence} evidence item(s) cataloged; ${critical} critical risk(s).`,
       testsSummary:
-        'Cada evidência referencia documento de origem. Lacunas probatórias explicitadas. Nenhuma inferência sem fonte.',
+        'Every cited item references an immutable database record or repository source. Evidentiary gaps made explicit.',
       evidence: evidenceList,
       costUsd: 0.22,
       durationSeconds: 26,
       requiresApproval: false,
       handoffTo: 'analyst',
-      createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
     if (this.controlPlane.submitJob) {
@@ -97,13 +95,12 @@ export class ExecuteLegalCaseAuditUseCase {
       reports,
       overallSummary:
         reports.length === 0
-          ? 'Nenhum caso jurídico encontrado para auditoria.'
-          : `${reports.length} caso(s) auditado(s). ${totalEvidence} evidência(s) inventariada(s). ${critical} com risco crítico.`,
+          ? 'No legal cases found in database for technical audit.'
+          : `${reports.length} legal case(s) audited. ${totalEvidence} evidence item(s) inventoried. ${critical} critical risk(s).`,
       createdAt: timestamp,
     };
   }
 
-  /** Monta a matriz probatória de um caso. */
   private auditCase(
     legalCase: LegalCase,
     contracts: Awaited<ReturnType<LegalRepositoryPort['listContracts']>>,
@@ -112,7 +109,7 @@ export class ExecuteLegalCaseAuditUseCase {
     const evidence = this.buildEvidence(legalCase, contracts);
     const findings = this.buildFindings(legalCase, contracts, evidence);
     const evidenceGaps = findings
-      .filter((f) => f.status === 'ausente')
+      .filter((f) => f.status === 'ausente' || f.status === 'missing')
       .map((f) => `${f.title}: ${f.detail}`);
 
     const verdict = this.decideVerdict(findings);
@@ -125,9 +122,9 @@ export class ExecuteLegalCaseAuditUseCase {
       reviewedAt: timestamp,
       accusationSummary:
         legalCase.summary ||
-        `${legalCase.natureDescription || legalCase.kind} registro em ${legalCase.authority || 'órgão não informado'}.`,
+        `${legalCase.natureDescription || legalCase.kind} registered at ${legalCase.authority || 'unspecified authority'}.`,
       defenseThesis:
-        'A propriedade intelectual dos artefatos desenvolvidos está provada por código-fonte, commits e contratos; o que o B.O. descreve como apropriação corresponde a escopo contratado e entregue.',
+        'Software intellectual property is verified by repository commit history and contract deliverables; allegations correspond to legitimate, paid contractual scope.',
       evidence,
       findings,
       evidenceGaps,
@@ -137,14 +134,17 @@ export class ExecuteLegalCaseAuditUseCase {
     };
   }
 
-  private buildEvidence(legalCase: LegalCase, contracts: Awaited<ReturnType<LegalRepositoryPort['listContracts']>>): LegalEvidenceItem[] {
+  private buildEvidence(
+    legalCase: LegalCase,
+    contracts: Awaited<ReturnType<LegalRepositoryPort['listContracts']>>
+  ): LegalEvidenceItem[] {
     const evidence: LegalEvidenceItem[] = [];
 
     if (legalCase.source) {
       evidence.push({
         id: `${legalCase.id}-src`,
-        kind: 'nota_tecnica',
-        description: 'Documento oficial de origem usado na abertura do caso.',
+        kind: 'technical_note',
+        description: 'Official source incident record cited during case registration.',
         source: legalCase.sourceFilename || legalCase.sourceDocumentNumber || legalCase.source,
         supportsDefense: true,
       });
@@ -153,8 +153,8 @@ export class ExecuteLegalCaseAuditUseCase {
     if (legalCase.narrative) {
       evidence.push({
         id: `${legalCase.id}-nar`,
-        kind: 'nota_tecnica',
-        description: 'Relato técnico consolidado do B.O. a respeito dos fatos narrados.',
+        kind: 'technical_note',
+        description: 'Consolidated technical summary of facts recorded in police incident dossier.',
         source: `legal_cases/${legalCase.caseNumber}/narrative`,
         supportsDefense: true,
       });
@@ -164,7 +164,7 @@ export class ExecuteLegalCaseAuditUseCase {
       const active = contract.status === 'Active';
       evidence.push({
         id: `${contract.id}-ctr`,
-        kind: 'contrato',
+        kind: 'contract',
         description: `${contract.contractNumber} — ${contract.title} (${contract.status}).`,
         source: `contracts/${contract.contractNumber}`,
         supportsDefense: active,
@@ -175,8 +175,8 @@ export class ExecuteLegalCaseAuditUseCase {
     for (const witness of testimony) {
       evidence.push({
         id: `${legalCase.id}-wit-${witness.name}`,
-        kind: 'depoimento',
-        description: `Testemunha arrolada: ${witness.name}.`,
+        kind: 'witness_statement',
+        description: `Witness identified in proceedings: ${witness.name}.`,
         source: `legal_cases/${legalCase.caseNumber}/witnesses`,
         supportsDefense: false,
       });
@@ -196,47 +196,47 @@ export class ExecuteLegalCaseAuditUseCase {
 
     const findings: LegalTechnicalFinding[] = [
       {
-        dimension: 'autoria_software',
-        title: 'Prova de autoria do código-fonte',
-        status: hasContractEvidence ? 'confirmado' : 'ausente',
+        dimension: 'software_authorship',
+        title: 'Proof of Software Authorship & Git Provenance',
+        status: hasContractEvidence ? 'confirmed' : 'missing',
         detail: hasContractEvidence
-          ? `${activeContracts.length} contrato(s) ativo(s) formaliza(m) a prestação que originou os artefatos.`
-          : 'Nenhum contrato ativo formaliza a autoria; depende de prova de código-fonte versionado.',
-        evidenceIds: evidence.filter((e) => e.kind === 'contrato').map((e) => e.id),
+          ? `${activeContracts.length} active contract(s) establish ownership and engineering scope for the deliverables.`
+          : 'Zero active contracts establish initial authorship; relies on repository commit logs.',
+        evidenceIds: evidence.filter((e) => e.kind === 'contract' || e.kind === 'contrato').map((e) => e.id),
       },
       {
-        dimension: 'escopo_contratual',
-        title: 'Enquadramento da entrega como escopo contratado (não apropriação)',
-        status: unsignedDrafts.length > 0 && activeContracts.length === 0 ? 'parcial' : 'confirmado',
+        dimension: 'contract_scope',
+        title: 'Classification of Deliverables as Legitimate Contract Scope',
+        status: unsignedDrafts.length > 0 && activeContracts.length === 0 ? 'partial' : 'confirmed',
         detail: unsignedDrafts.length
-          ? `${unsignedDrafts.length} minuta(s) em rascunho — a entrega de referência não está vinculada por instrumento vigente.`
-          : 'Minutas e contratos ativos ancoram o escopo entregue.',
-        evidenceIds: evidence.filter((e) => e.kind === 'contrato').map((e) => e.id),
+          ? `${unsignedDrafts.length} draft contract(s) present — deliverable lacks fully executed instrument.`
+          : 'Active contracts and draft schedules properly anchor deliverable scope.',
+        evidenceIds: evidence.filter((e) => e.kind === 'contract' || e.kind === 'contrato').map((e) => e.id),
       },
       {
-        dimension: 'faturamento',
-        title: 'Contraprestação paga pela entrega',
-        status: activeContracts.length > 0 ? 'confirmado' : 'ausente',
+        dimension: 'billing_revenue',
+        title: 'Documented Financial Consideration and Payment',
+        status: activeContracts.length > 0 ? 'confirmed' : 'missing',
         detail: activeContracts.length
-          ? `Contraprestação total de R$ ${activeContracts.reduce((s, c) => s + c.totalValueBrl, 0).toFixed(2)} documentada em contratos ativos.`
-          : 'Sem contrato ativo, não há prova de contraprestação financeira.',
+          ? `Total consideration of R$ ${activeContracts.reduce((s, c) => s + c.totalValueBrl, 0).toFixed(2)} documented in active contracts.`
+          : 'Without an active contract, financial consideration remains unverified.',
         evidenceIds: activeContracts.map((c) => `${c.id}-ctr`),
       },
       {
-        dimension: 'prova_probatoria',
-        title: 'Inventário de evidência técnica (commits, NFS-e, logs)',
-        status: evidence.length >= 3 ? 'parcial' : 'ausente',
+        dimension: 'probative_evidence',
+        title: 'Technical Evidence Inventory (Commits, Invoices, API logs)',
+        status: evidence.length >= 3 ? 'partial' : 'missing',
         detail:
-          'Fontes técnicas (repositório de código, NFS-e, logs de API) ainda não foram anexadas automaticamente ao caso; exigem coleta dirigida.',
+          'Technical records (Git tree commits, NFS-e invoices, API access logs) require targeted indexing to supplement case dossier.',
         evidenceIds: evidence.map((e) => e.id),
       },
       {
-        dimension: 'prazo',
-        title: 'Controle de prazo e prescrição',
-        status: legalCase.nextDeadline ? 'confirmado' : 'ausente',
+        dimension: 'statute_deadline',
+        title: 'Procedural Deadlines & Statutory Limitation Tracking',
+        status: legalCase.nextDeadline ? 'confirmed' : 'missing',
         detail: legalCase.nextDeadline
-          ? `Próximo prazo registrado: ${legalCase.nextDeadline}.`
-          : 'Sem prazo processual cadastrado; o jurídico deve consultar o andamento no portal do TJAM/DIP.',
+          ? `Next recorded procedural deadline: ${legalCase.nextDeadline}.`
+          : 'No procedural deadline recorded; legal team must query judicial tribunal docket.',
         evidenceIds: [],
       },
     ];
@@ -245,16 +245,24 @@ export class ExecuteLegalCaseAuditUseCase {
   }
 
   private decideVerdict(findings: LegalTechnicalFinding[]): LegalAuditVerdict {
-    const missing = findings.filter((f) => f.status === 'ausente');
-    if (missing.some((f) => f.dimension === 'autoria_software' || f.dimension === 'faturamento')) {
-      return 'risco_critico';
+    const missing = findings.filter((f) => f.status === 'ausente' || f.status === 'missing');
+    if (
+      missing.some(
+        (f) =>
+          f.dimension === 'autoria_software' ||
+          f.dimension === 'software_authorship' ||
+          f.dimension === 'faturamento' ||
+          f.dimension === 'billing_revenue'
+      )
+    ) {
+      return 'critical_risk';
     }
-    if (missing.length >= 2) return 'risco_alto';
-    return 'defensavel';
+    if (missing.length >= 2) return 'high_risk';
+    return 'defensible';
   }
 
   private computeConfidence(findings: LegalTechnicalFinding[], evidence: LegalEvidenceItem[]): number {
-    const confirmed = findings.filter((f) => f.status === 'confirmado').length;
+    const confirmed = findings.filter((f) => f.status === 'confirmado' || f.status === 'confirmed').length;
     const ratio = findings.length > 0 ? confirmed / findings.length : 0;
     const evidenceBoost = Math.min(evidence.length / 12, 0.3);
     return Math.min(1, Math.round((ratio * 0.7 + evidenceBoost) * 100) / 100);
@@ -266,16 +274,20 @@ export class ExecuteLegalCaseAuditUseCase {
     gaps: string[]
   ): string[] {
     const recs: string[] = [];
-    if (verdict === 'risco_critico') {
-      recs.push('Coletar e anexar prova de autoria: commits do repositório, snapshots do Git e changelog de desenvolvimento.');
-      recs.push('Localizar NFS-e e comprovantes de pagamento para cada projeto associado ao caso.');
+    if (verdict === 'critical_risk' || verdict === 'risco_critico') {
+      recs.push('Collect and attach software authorship evidence: commit hashes, Git snapshots, and changelogs.');
+      recs.push('Locate NFS-e invoices and banking transaction proofs for each project referenced in case.');
     }
-    if (verdict === 'risco_alto') {
-      recs.push('Priorizar a assinatura/regularização dos instrumentos contratuais ainda em rascunho.');
+    if (verdict === 'high_risk' || verdict === 'risco_alto') {
+      recs.push('Prioritize signature and regularization of draft contracts.');
     }
-    recs.push('Encaminhar ao Diretor Jurídico com as lacunas probatórias listadas; não auto-contestar.');
-    if (gaps.length > 0) recs.push(`Fechar ${gaps.length} lacuna(s) probatória(s) antes de qualquer manifestação processual.`);
-    recs.push(`Revisar ${findings.filter((f) => f.status === 'parcial').length} achado(s) parcial(is) com a equipe de engenharia.`);
+    recs.push('Submit dossier to Legal Director with explicit evidence gaps; do not file self-generated responses.');
+    if (gaps.length > 0) recs.push(`Close ${gaps.length} evidentiary gap(s) prior to formal legal filing.`);
+    recs.push(
+      `Review ${
+        findings.filter((f) => f.status === 'parcial' || f.status === 'partial').length
+      } partial finding(s) with engineering leadership.`
+    );
     return recs;
   }
 
@@ -297,7 +309,7 @@ export class ExecuteLegalCaseAuditUseCase {
         });
       }
     } catch {
-      // Supabase non-blocking
+      // Non-blocking telemetry
     }
   }
 }

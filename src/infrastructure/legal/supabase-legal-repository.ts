@@ -13,9 +13,8 @@ import {
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
- * Adapta os campos JSONB do B.O. (`reporting_party`, `involved_parties`,
- * `witnesses`) para o domínio. O banco pode devolver objeto, array ou string,
- * dependendo de como o documento foi importado.
+ * Normalizes JSONB fields (`reporting_party`, `involved_parties`, `witnesses`)
+ * into structured domain party references.
  */
 function toParty(value: unknown): LegalPartyReference | undefined {
   if (!value) return undefined;
@@ -51,8 +50,8 @@ function toWitnesses(value: unknown): LegalWitnessReference[] | undefined {
 }
 
 /**
- * `contracts.notes` guarda JSON como texto nas minutas. Parse defensivo:
- * nunca lança, apenas devolve `undefined` quando o conteúdo não é JSON.
+ * Safely parses serialized JSON stored in `contracts.notes`.
+ * Returns undefined when invalid instead of throwing.
  */
 function parseNotes(notes: unknown): LegalContractNotes | undefined {
   if (!notes) return undefined;
@@ -67,11 +66,11 @@ function parseNotes(notes: unknown): LegalContractNotes | undefined {
 }
 
 /**
- * Adaptador Secundário Real do Supabase para o Repositório Jurídico.
+ * Production secondary adapter for the Legal & Due Diligence Repository backed by Supabase.
  *
- * Conectado ao Supabase de Produção (chronokairo-prod / eufyppwpnxmxeinabwyi).
- * Consome `legal_cases` e `contracts`. Somente leitura: nenhum relatório
- * jurídico altera o estado de um caso ou de uma minuta contratual.
+ * Connected directly to official production database (`chronokairo-prod`).
+ * Queries `legal_cases` and `contracts`. Strictly read-only for legal records;
+ * audit reports are persisted into `audit_logs` for compliance trails.
  */
 export class SupabaseLegalRepository implements LegalRepositoryPort {
   async listCases(): Promise<LegalCase[]> {
@@ -82,7 +81,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
       .order('case_number', { ascending: true });
 
     if (error || !data) {
-      console.warn('[SupabaseLegalRepository] Falha ao listar casos jurídicos:', error?.message);
+      console.warn('[SupabaseLegalRepository] Failed to query legal cases:', error?.message);
       return [];
     }
 
@@ -123,7 +122,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
       .order('contract_number', { ascending: true });
 
     if (error || !data) {
-      console.warn('[SupabaseLegalRepository] Falha ao listar contratos:', error?.message);
+      console.warn('[SupabaseLegalRepository] Failed to query contracts:', error?.message);
       return [];
     }
 
@@ -162,7 +161,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
       organization_id: PROD_ORGANIZATION_ID,
       action: 'LEGAL_CONTRACT_REVIEWED',
       target: `contracts/${report.contractNumber}`,
-      success: report.verdict !== 'bloqueado',
+      success: report.verdict !== 'bloqueado' && report.verdict !== 'blocked',
       details: {
         verdict: report.verdict,
         score: report.score,

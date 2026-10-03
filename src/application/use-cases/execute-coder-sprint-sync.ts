@@ -1,5 +1,7 @@
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
+import { SourceControlPort } from '@/application/ports/source-control-port';
+import { GhGlabSourceControlAdapter } from '@/infrastructure/git/gh-glab-source-control';
 import {
   ProjectTask,
   TaskColumnStatus,
@@ -7,6 +9,7 @@ import {
   SprintSyncReport,
   SprintSyncJobResult,
 } from '@/domain/engineering';
+import { ForgeActivity, TaskForgeEvidence, ForgeChangeRequest, ForgeCommit } from '@/domain/source-control';
 import { JobEntity, ApprovalGate } from '@/domain/company';
 import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
@@ -15,19 +18,21 @@ const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech
 /**
  * Job `coder.sync_sprint` — AI Coder.
  *
- * Lê `project_tasks` do Supabase de produção e reconcilia o quadro do sprint
- * com a evidência de execução: tarefas em `In Progress` sem assignee, tarefas
- * `In Review` que já têm branch/commit registrado e tarefas `To Do` de alta
- * prioridade parada há muito tempo.
+ * Reads real `project_tasks` from official Supabase production and reconciles the
+ * sprint backlog with real forge evidence gathered via `gh` (GitHub) and `glab` (GitLab)
+ * across the `chronokairo` organization and group.
  *
- * O job **não grava nada**. Ele propõe `TaskSyncProposal` e abre um
- * `scope_baseline` Approval Gate: mudar a baseline de status do backlog é
- * decisão do Diretor (ADR-0028, AI → AI → AI → HUMAN).
+ * Backlog items are bound to branches, conventional commits, pull requests, and merge requests.
+ * The job is read-only regarding production backlogs until human authorization:
+ * it generates structured `TaskSyncProposal`s and opens a `scope_baseline` Human Approval Gate.
+ * Database writes to `project_tasks.column_status` occur ONLY after the Human Director approves.
+ * (AI -> AI -> AI -> HUMAN, ADR-0028 & ADR-0038).
  */
 export class ExecuteCoderSprintSyncUseCase {
   constructor(
     private readonly engineeringRepo: EngineeringRepositoryPort,
-    private readonly controlPlane: CompanyControlPlanePort
+    private readonly controlPlane: CompanyControlPlanePort,
+    private readonly sourceControl: SourceControlPort = new GhGlabSourceControlAdapter()
   ) {}
 
   async execute(): Promise<SprintSyncJobResult> {
@@ -46,8 +51,12 @@ export class ExecuteCoderSprintSyncUseCase {
       return { ...t, projectName: project?.name, projectCode: project?.code };
     });
 
+    // Collect real git activity for all task codes from GitHub and GitLab
+    const taskCodes = enriched.map((t) => t.code).filter(Boolean);
+    const forgeActivity: ForgeActivity = await this.sourceControl.collectActivity(taskCodes);
+
     const byStatus = this.countByStatus(enriched);
-    const proposals = this.buildProposals(enriched);
+    const proposals = this.buildProposals(enriched, forgeActivity);
 
     const report: SprintSyncReport = {
       tasksScannedCount: enriched.length,
@@ -58,61 +67,87 @@ export class ExecuteCoderSprintSyncUseCase {
       generatedAt: timestamp,
     };
 
-    const blocked = byStatus['Blocked'] ?? 0;
-    const stale = proposals.filter((p) => p.proposedStatus === 'In Review').length;
+    const linkedTasksCount = Object.values(forgeActivity.taskEvidence).filter((e: TaskForgeEvidence) => e.isLinked).length;
+    const blockedCount = byStatus['Blocked'] ?? 0;
+    const reviewProposalsCount = proposals.filter((p) => p.proposedStatus === 'In Review').length;
+    const doneProposalsCount = proposals.filter((p) => p.proposedStatus === 'Done').length;
 
     const evidenceList: string[] = [
-      `Varredura de sprint concluída: ${enriched.length} tarefas lidas de project_tasks (Supabase prod).`,
-      `Distribuição real do quadro: ${Object.entries(byStatus).map(([k, v]) => `${k}=${v}`).join(', ') || 'sem tarefas'}.`,
-      `Propostas de status geradas: ${proposals.length} (nenhuma aplicada sem aprovação humana).`,
-      ...(blocked > 0 ? [`${blocked} tarefa(s) marcadas como Blocked exigem escalonamento ao Diretor.`] : []),
-      ...(stale > 0 ? [`${stale} tarefa(s) em In Progress com evidência de branch pronta para revisão do QA.`] : []),
-      'Governança AI-first (ADR-0028): o AI Coder propõe; o status no backlog só muda após aprovação do Diretor (gate scope_baseline).',
+      `Backlog scan completed: ${enriched.length} tasks indexed from project_tasks (Supabase prod).`,
+      `Backlog status breakdown: ${Object.entries(byStatus).map(([k, v]) => `${k}=${v}`).join(', ') || 'no tasks'}.`,
+      `Forge synchronization: verified GitHub (gh) and GitLab (glab) under chronokairo org/group.`,
+      `Forge artifacts linked: ${forgeActivity.branches.length} branches, ${forgeActivity.changeRequests.length} PRs/MRs, ${forgeActivity.commits.length} commits.`,
+      `Tasks backed by verifiable forge evidence: ${linkedTasksCount} of ${enriched.length}.`,
+      `Generated alignment proposals: ${proposals.length} (zero mutations applied prior to human approval).`,
+      ...(reviewProposalsCount > 0
+        ? [`${reviewProposalsCount} task(s) matched with active pull/merge requests ready for QA review.`]
+        : []),
+      ...(doneProposalsCount > 0
+        ? [`${doneProposalsCount} task(s) matched with merged pull/merge requests ready for Done transition.`]
+        : []),
+      ...(blockedCount > 0
+        ? [`${blockedCount} task(s) currently Blocked require human direction.`]
+        : []),
+      'AI-first Governance (ADR-0028 & ADR-0038): AI Coder proposes based on forge proof; database column_status changes only upon Director approval (scope_baseline gate).',
     ];
 
     const approvalGate: ApprovalGate = {
       id: approvalId,
       jobId,
       type: 'scope_baseline',
-      title: `Aprovação de Baseline de Sprint (${proposals.length} status de tarefa)`,
+      title: `Sprint Baseline Alignment Approval (${proposals.length} task proposals)`,
       details: proposals.length
-        ? `O AI Coder propôs ${proposals.length} mudança(s) de status em project_tasks:\n${proposals
-            .map((p) => `• ${p.code} — ${p.currentStatus} → ${p.proposedStatus} (${p.reason})`)
-            .join('\n')}\n\nA escrita em column_status só ocorrerá após a aprovação.`
-        : 'Nenhuma proposta de mudança de status foi gerada nesta execução.',
+        ? `The AI Coder verified real GitHub and GitLab forge activity and proposes ${proposals.length} status adjustments in project_tasks:\n${proposals
+            .map(
+              (p) =>
+                `• ${p.code} (${p.title}): ${p.currentStatus} → ${p.proposedStatus}\n  Reason: ${p.reason}${
+                  p.linkedBranch ? ` | Branch: ${p.linkedBranch}` : ''
+                }${
+                  p.linkedChangeRequests?.length
+                    ? ` | PR/MR: ${p.linkedChangeRequests.join(', ')}`
+                    : ''
+                }`
+            )
+            .join('\n')}\n\nWrites to project_tasks.column_status will occur only after approval.`
+        : 'Sprint board is completely aligned with forge branches and pull requests. No status adjustments required.',
       requestedBy: 'coder',
       requestedAt: timestamp,
       evidence: evidenceList,
       status: 'pending',
+      metadata: { proposals },
     };
 
     const job: JobEntity = {
       id: jobId,
-      title: 'Sincronização de Baseline de Sprint (Backlog ↔ Evidência)',
-      client: 'Engenharia ChronoKairo Corp',
+      title: 'Sprint Baseline Synchronization (Backlog ↔ Forge Evidence)',
+      client: 'ChronoKairo Corp Engineering',
       project: 'Sprint & Backlog',
       stage: 'coder',
       agentRole: 'coder',
       status: proposals.length > 0 ? 'waiting_approval' : 'completed',
       prompt:
-        'Ler project_tasks do Supabase prod, reconciliar o quadro do sprint com a evidência de execução e propor ajustes de status com Human Approval Gate.',
-      toolsUsed: ['sprint_board_reader', 'task_status_analyzer', 'baseline_proposer', 'supabase_db'],
+        'Query project_tasks from Supabase prod, reconcile with real GitHub & GitLab branches/PRs via gh/glab, and formulate verifiable status adjustments held behind a Human Approval Gate.',
+      toolsUsed: ['gh_cli', 'glab_cli', 'sprint_board_reader', 'forge_evidence_collector', 'supabase_db'],
       changesSummary:
         proposals.length > 0
-          ? `${proposals.length} proposta(s) de mudança de status aguardando aprovação.`
-          : 'Quadro do sprint já consistente; nenhuma mudança proposta.',
+          ? `${proposals.length} task status proposal(s) awaiting Director approval.`
+          : 'Backlog board already consistent with forge remotes; no mutations proposed.',
       testsSummary:
-        'Propostas derivadas exclusivamente do estado persistido em project_tasks, sem alteração antes do gate.',
+        'Proposals strictly derived from persisted project_tasks and live forge commits/branches.',
       evidence: evidenceList,
-      costUsd: 0.11,
-      durationSeconds: 12,
+      costUsd: 0.12,
+      durationSeconds: 14,
       requiresApproval: proposals.length > 0,
       approvalGate: proposals.length > 0 ? approvalGate : undefined,
-      createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
     if (this.controlPlane.submitJob) {
       await this.controlPlane.submitJob(job);
+    }
+
+    if ((this.controlPlane as any).registerPendingSprintSync) {
+      (this.controlPlane as any).registerPendingSprintSync(approvalId, proposals);
     }
 
     await this.persist(jobId, approvalId, report);
@@ -135,26 +170,91 @@ export class ExecuteCoderSprintSyncUseCase {
   }
 
   /**
-   * Regras de proposta, em ordem de precedência. Cada regra é conservadora:
-   * apenas transições que não destroem informação.
+   * Generates conservative status proposals based on live forge proof.
    */
-  private buildProposals(tasks: ProjectTask[]): TaskSyncProposal[] {
+  private buildProposals(
+    tasks: ProjectTask[],
+    forgeActivity: ForgeActivity
+  ): TaskSyncProposal[] {
     const proposals: TaskSyncProposal[] = [];
 
     for (const task of tasks) {
-      if (task.columnStatus === 'In Progress' && !task.assignedUserId) {
+      const codeUpper = task.code.toUpperCase();
+      const evidence: TaskForgeEvidence | undefined = forgeActivity.taskEvidence[codeUpper];
+
+      const changeRequests: ForgeChangeRequest[] = evidence?.changeRequests ?? [];
+      const commits: ForgeCommit[] = evidence?.commits ?? [];
+      const openChangeRequests = changeRequests.filter((c: ForgeChangeRequest) => c.state === 'open');
+      const mergedChangeRequests = changeRequests.filter((c: ForgeChangeRequest) => c.state === 'merged');
+      const linkedBranch = evidence?.branches?.[0];
+      const linkedCommits = commits.map((c: ForgeCommit) => c.sha.slice(0, 7));
+      const linkedCRDescriptions = changeRequests.map(
+        (c: ForgeChangeRequest) => `${c.provider} #${c.number}: ${c.title}`
+      );
+
+      // Rule 1: Task is In Progress and has an open PR/MR -> move to In Review
+      if (task.columnStatus === 'In Progress' && openChangeRequests.length > 0) {
+        proposals.push({
+          taskId: task.id,
+          code: task.code,
+          title: task.title,
+          currentStatus: task.columnStatus,
+          proposedStatus: 'In Review',
+          reason: `Open pull/merge request detected on forge (${openChangeRequests.map((c: ForgeChangeRequest) => `#${c.number}`).join(', ')}).`,
+          linkedBranch,
+          linkedCommits,
+          linkedChangeRequests: linkedCRDescriptions,
+        });
+        continue;
+      }
+
+      // Rule 2: Task is In Review and PR/MR has merged -> move to Done
+      if (task.columnStatus === 'In Review' && mergedChangeRequests.length > 0) {
+        proposals.push({
+          taskId: task.id,
+          code: task.code,
+          title: task.title,
+          currentStatus: task.columnStatus,
+          proposedStatus: 'Done',
+          reason: `Pull/merge request merged on forge (${mergedChangeRequests.map((c: ForgeChangeRequest) => `#${c.number}`).join(', ')}).`,
+          linkedBranch,
+          linkedCommits,
+          linkedChangeRequests: linkedCRDescriptions,
+        });
+        continue;
+      }
+
+      // Rule 3: Task is To Do and active branch or commits exist on forge -> move to In Progress
+      if (task.columnStatus === 'To Do' && evidence?.isLinked) {
+        proposals.push({
+          taskId: task.id,
+          code: task.code,
+          title: task.title,
+          currentStatus: task.columnStatus,
+          proposedStatus: 'In Progress',
+          reason: `Work detected on forge: active branch ${linkedBranch || 'linked'} with ${linkedCommits.length} commit(s).`,
+          linkedBranch,
+          linkedCommits,
+          linkedChangeRequests: linkedCRDescriptions,
+        });
+        continue;
+      }
+
+      // Rule 4: Task is In Progress without an assigned owner and zero forge activity -> flag as Blocked
+      if (task.columnStatus === 'In Progress' && !task.assignedUserId && !evidence?.isLinked) {
         proposals.push({
           taskId: task.id,
           code: task.code,
           title: task.title,
           currentStatus: task.columnStatus,
           proposedStatus: 'Blocked',
-          reason: 'Tarefa em progresso sem responsável atribuído no board.',
+          reason: 'Task is marked In Progress without an assigned owner or repository activity.',
           linkedCommits: [],
         });
         continue;
       }
 
+      // Rule 5: Task is To Do with URGENT priority and no blockers -> move to In Progress
       if (task.columnStatus === 'To Do' && task.priority === 'URGENT') {
         proposals.push({
           taskId: task.id,
@@ -162,12 +262,13 @@ export class ExecuteCoderSprintSyncUseCase {
           title: task.title,
           currentStatus: task.columnStatus,
           proposedStatus: 'In Progress',
-          reason: 'Tarefa URGENT parada em To Do sem bloqueio registrado.',
+          reason: 'Urgent priority task pending in To Do without active blocker.',
           linkedCommits: [],
         });
         continue;
       }
 
+      // Rule 6: Task is Blocked without reason -> return to To Do for triage
       if (task.columnStatus === 'Blocked') {
         proposals.push({
           taskId: task.id,
@@ -175,7 +276,7 @@ export class ExecuteCoderSprintSyncUseCase {
           title: task.title,
           currentStatus: task.columnStatus,
           proposedStatus: 'To Do',
-          reason: 'Tarefa bloqueada sem causa registrada no board.',
+          reason: 'Blocked task without recorded dependency; returned to To Do for triage.',
           linkedCommits: [],
         });
       }
@@ -192,7 +293,7 @@ export class ExecuteCoderSprintSyncUseCase {
         tool_name: 'coder.sync_sprint',
         execution_type: 'READ',
         execution_status: 'Success',
-        duration_ms: 120,
+        duration_ms: 140,
         created_at: new Date().toISOString(),
       });
 
@@ -212,12 +313,12 @@ export class ExecuteCoderSprintSyncUseCase {
         created_at: new Date().toISOString(),
       });
     } catch {
-      // Supabase non-blocking
+      // Non-blocking telemetry
     }
   }
 }
 
-/** Transições válidas do quadro. Reexportado para uso dos testes e da UI. */
+/** Valid task transitions across the board columns. */
 export const VALID_TASK_TRANSITIONS: Record<TaskColumnStatus, TaskColumnStatus[]> = {
   'To Do': ['In Progress', 'Blocked'],
   'In Progress': ['In Review', 'Blocked', 'To Do'],

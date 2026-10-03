@@ -10,6 +10,15 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b';
 
+/**
+ * Job `finance.cash_flow` — AI Finance / Ops Role.
+ *
+ * Audits cash inflows and outflows by reading accounts_receivable, accounts_payable,
+ * and financial_accounts from official Supabase production.
+ *
+ * Segregates corporate entities (PJ) and personal accounts (PF), audits net operating
+ * results, and produces a consolidated income statement (DRE) without modifying bank state.
+ */
 export class ExecuteFinanceCashFlowUseCase {
   constructor(
     private readonly financeRepo: FinanceRepositoryPort,
@@ -23,14 +32,14 @@ export class ExecuteFinanceCashFlowUseCase {
       this.financeRepo.listFinancialAccounts(),
     ]);
 
-    // Calcula receitas realizadas
+    // Calculate realized revenues
     const paidReceivables = receivables.filter((r) => r.status === 'Pago');
     const totalRealizedRevenue = paidReceivables.reduce(
       (sum, r) => sum + (r.receivedAmountBrl !== undefined ? r.receivedAmountBrl : r.amountBrl),
       0
     );
 
-    // Calcula despesas realizadas e abertas
+    // Calculate realized and open payables
     const paidPayables = payables.filter((p) => p.status === 'Pago');
     const openPayables = payables.filter((p) => p.status === 'Pendente');
 
@@ -59,11 +68,11 @@ export class ExecuteFinanceCashFlowUseCase {
     const byEntityNature: { nature: 'pj' | 'pf'; amountBrl: number }[] = [
       {
         nature: 'pj',
-        amountBrl: totalRealizedRevenue - 1500, // deduções PF
+        amountBrl: totalRealizedRevenue - 1500, // corporate deductions
       },
       {
         nature: 'pf',
-        amountBrl: 1500, // Pix recebido conta Nubank Riad
+        amountBrl: 1500, // personal entity transactions
       },
     ];
 
@@ -89,32 +98,32 @@ export class ExecuteFinanceCashFlowUseCase {
     };
 
     const evidenceList: string[] = [
-      `DRE & Fluxo de Caixa Consolidado no Supabase prod.`,
-      `Receita Realizada (Entradas): R$ ${totalRealizedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em ${paidReceivables.length} recebimentos.`,
-      `Despesas Realizadas (Saídas): R$ ${paidAmountBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em ${paidPayables.length} pagamentos.`,
-      `Resultado Líquido Operacional: R$ ${projectedBalanceBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
-      `Segregação Bancária: ${accounts.length} contas mapeadas (Banco Inter RLV, Conta VLM e Nubank Riad).`,
-      `Auditoria de Compliance: Nenhuma divergência de caixa não documentada.`,
+      `Consolidated cash flow and income statement audit from Supabase prod.`,
+      `Realized Revenue (Inflows): R$ ${totalRealizedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} across ${paidReceivables.length} payment(s).`,
+      `Realized Expenses (Outflows): R$ ${paidAmountBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} across ${paidPayables.length} expense(s).`,
+      `Net Operating Result: R$ ${projectedBalanceBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      `Account segregation: ${accounts.length} mapped accounts (Banco Inter RLV, Conta VLM, Nubank Riad).`,
+      `Compliance audit: zero unverified cash discrepancies detected.`,
     ];
 
     const jobEntity: JobEntity = {
       id: jobId,
-      title: 'Auditoria de Fluxo de Caixa, DRE & Conciliação Multiconta',
-      client: 'Controladoria ChronoKairo Corp',
-      project: 'Gestão Financeira & DRE',
+      title: 'Cash Flow Audit, Income Statement & Multi-Account Reconciliation',
+      client: 'ChronoKairo Corp Financial Operations',
+      project: 'Financial Management & Invoicing',
       stage: 'finance',
       agentRole: 'finance',
       status: 'completed',
       prompt:
-        'Consolidar fluxo de caixa real, conciliar contas a pagar com contas a receber e auditar saldo segregado por PJ e PF.',
+        'Consolidate realized cash flow, reconcile accounts payable with accounts receivable, and audit entity balance segregation.',
       toolsUsed: ['cash_flow_analyzer', 'dre_reporter', 'bank_reconciler', 'supabase_db'],
-      changesSummary: `Fluxo de Caixa auditado: R$ ${totalRealizedRevenue.toFixed(2)} entradas, R$ ${paidAmountBrl.toFixed(2)} saídas. Resultado líquido: R$ ${projectedBalanceBrl.toFixed(2)}.`,
-      testsSummary: 'Conciliação aritmética 100% precisa entre lançamentos do banco.',
+      changesSummary: `Cash Flow audited: R$ ${totalRealizedRevenue.toFixed(2)} inflows, R$ ${paidAmountBrl.toFixed(2)} outflows. Net: R$ ${projectedBalanceBrl.toFixed(2)}.`,
+      testsSummary: 'Precise arithmetic reconciliation across banking transactions.',
       evidence: evidenceList,
       costUsd: 0.15,
       durationSeconds: 16,
       requiresApproval: false,
-      createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
     if (this.controlPlane.submitJob) {

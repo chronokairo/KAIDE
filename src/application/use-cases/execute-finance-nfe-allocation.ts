@@ -10,6 +10,15 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b';
 
+/**
+ * Job `finance.nfe_allocation` — AI Finance / Ops Role.
+ *
+ * Reconciles official municipal service invoices (`service_invoices`) with
+ * receivables (`accounts_receivable`) via `service_invoice_receivable_allocations`.
+ *
+ * Detects paid invoices lacking valid electronic service invoices (NFS-e),
+ * calculates statutory tax exposure, and audits compliance across corporate accounts.
+ */
 export class ExecuteFinanceNfeAllocationUseCase {
   constructor(
     private readonly financeRepo: FinanceRepositoryPort,
@@ -31,11 +40,11 @@ export class ExecuteFinanceNfeAllocationUseCase {
 
     for (const r of receivables) {
       if (r.status === 'Pago' && !allocatedReceivableIds.has(r.id)) {
-        let reason = 'Recebimento histórico sem vínculo com NFS-e cadastrada.';
+        let reason = 'Historical payment without linked municipal NFS-e invoice.';
         if (r.description.includes('Nubank') || r.description.includes('Audiomed')) {
-          reason = 'Recebimento via PIX na conta pessoal sem emissão de NFS-e correspondente registrada.';
+          reason = 'Direct transaction received on personal account without corresponding municipal NFS-e registered.';
         } else if (r.description.includes('Escrita360')) {
-          reason = 'Faturamento de projeto educacional sem NFS-e vinculada no lote legado.';
+          reason = 'Educational project billing without linked NFS-e in legacy batch.';
         }
 
         const exposure = r.receivedAmountBrl !== undefined ? r.receivedAmountBrl : r.amountBrl;
@@ -44,7 +53,7 @@ export class ExecuteFinanceNfeAllocationUseCase {
         divergences.push({
           kind: 'fatura_sem_nfse',
           severity: 'alta',
-          description: `Fatura quitada ${r.invoiceNumber} sem alocação de NFS-e municipal`,
+          description: `Settled receivable ${r.invoiceNumber} lacks municipal NFS-e allocation`,
           evidence: reason,
           references: [r.invoiceNumber],
           exposureBrl: exposure,
@@ -65,31 +74,31 @@ export class ExecuteFinanceNfeAllocationUseCase {
     };
 
     const evidenceList: string[] = [
-      `Auditoria Fiscal de NFS-e concluída no Supabase prod.`,
-      `Total de NFS-e Emitidas: ${invoices.length} notas no valor total de R$ ${totalInvoicesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
-      `Alocações de Faturas Confirmadas: ${allocations.length} vínculos auditados com sucesso em service_invoice_receivable_allocations.`,
-      `Exposição Fiscal Estimada: R$ ${fiscalExposureBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em ${divergences.length} faturas sem NFS-e alocada.`,
-      `Status de Conformidade: ${report.conformity.toUpperCase()}.`,
+      `Tax invoice (NFS-e) audit completed from Supabase prod.`,
+      `Total NFS-e issued: ${invoices.length} invoices totaling R$ ${totalInvoicesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      `Verified receivable allocations: ${allocations.length} bindings verified in service_invoice_receivable_allocations.`,
+      `Estimated tax exposure: R$ ${fiscalExposureBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} across ${divergences.length} invoices lacking NFS-e allocation.`,
+      `Tax compliance status: ${report.conformity.toUpperCase()}.`,
     ];
 
     const jobEntity: JobEntity = {
       id: jobId,
-      title: 'Auditoria de Alocação de Notas Fiscais (NFS-e) & Conformidade Tributária',
-      client: 'Controladoria ChronoKairo Corp',
-      project: 'Conformidade Fiscal & Tributária',
+      title: 'Tax Invoice Allocation Audit & Statutory Compliance',
+      client: 'ChronoKairo Corp Financial Operations',
+      project: 'Tax Compliance & Invoicing',
       stage: 'finance',
       agentRole: 'finance',
       status: 'completed',
       prompt:
-        'Cruzar notas fiscais de serviço (service_invoices) com contas a receber e identificar receitas sem comprovação fiscal.',
+        'Cross-reference service invoices (service_invoices) with accounts receivable and identify revenues lacking fiscal compliance documentation.',
       toolsUsed: ['nfe_allocator', 'tax_compliance_auditor', 'supabase_db'],
-      changesSummary: `Auditoria de NFS-e: ${invoices.length} notas (R$ ${totalInvoicesAmount.toFixed(2)}), ${allocations.length} alocações ativas. Exposição: R$ ${fiscalExposureBrl.toFixed(2)}.`,
-      testsSummary: 'Validação de chaves de acesso municipais e integridade referencial com accounts_receivable.',
+      changesSummary: `NFS-e audit: ${invoices.length} invoices (R$ ${totalInvoicesAmount.toFixed(2)}), ${allocations.length} active allocations. Exposure: R$ ${fiscalExposureBrl.toFixed(2)}.`,
+      testsSummary: 'Validation of municipal access keys and referential integrity against accounts_receivable.',
       evidence: evidenceList,
       costUsd: 0.14,
       durationSeconds: 15,
       requiresApproval: false,
-      createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
 
     if (this.controlPlane.submitJob) {

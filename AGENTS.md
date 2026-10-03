@@ -74,6 +74,14 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 - **Núcleo Rust zero-lib**: **não** está neste repositório. Vive em [`chronokairo/cli`](https://gitlab.com/chronokairo/cli) (`ckc::agent`, `ckc::llm`, `ckc::mcp`, `ckc::tools`, `ckc::repo`, ...) — ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence ao repo `cli`, não a este.
 - Histórico dos repos originais preservado nas branches `cli` e `desktop`.
 
+## Source Control & Forge Integration Rules (ADR-0038)
+
+- **Dual-Forge Mirroring**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters).
+- **Rastreabilidade Fina (Traceability)**: Commits, branches e PRs/MRs devem referenciar tarefas de backlog (`SECP-*`, `AUDIO-ASO-*`, `TSK-*`, etc.) seguindo o padrão *Conventional Commits* (`feat(scope): ...`, `fix(scope): ...`).
+- **Língua Pura nos Domínios e Portas**: Novas entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
+- **Human Gate em Escopo (`scope_baseline`)**: O job `coder.sync_sprint` submete reconciliações de status de sprint como propostas com evidência fotográfica/textual. Nenhuma alteração em `project_tasks.column_status` ocorre sem aprovação humana explícita no Control Plane.
+- **Zero Mock / Fallback**: É terminantemente proibido manter dados falsos ou simulados nos adapters secundários de produção; leituras e escritas comunicam-se diretamente com o Supabase de produção ou CLIs oficiais.
+
 ## Critérios mínimos
 
 - `GET /health`, `GET /ready` e `GET /version`.
@@ -130,6 +138,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0035](docs/adr/0035-implementacao-job-qa-review-pr-e-analise-adversarial.md) | Implementação Real do Job qa.review_pr e Análise Adversarial Multidimensional |
 | [0036](docs/adr/0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md) | Conexão Oficial ao Supabase de Produção, Eliminação de Mocks e Persistência Real do Control Plane |
 | [0037](docs/adr/0037-implementacao-job-finance-reconcile-e-controladoria.md) | Implementação do Módulo de Finanças & Controladoria (AI Finance / Ops) Conectado ao Supabase de Produção |
+| [0038](docs/adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control domain, dual-forge linkage (GitHub & GitLab), and pure-English domain transition |
 
 ### Mapas de código — `docs/maps/`
 

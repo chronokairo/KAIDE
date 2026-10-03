@@ -1,15 +1,16 @@
 /**
- * Entidades e tipos de domínio do Módulo de Suporte & Base de Conhecimento
+ * Pure domain entities and types for the Support & Knowledge Base Module
  * (AI Support).
  *
- * Mapeiam, em forma pura, as tabelas reais do Supabase de produção:
- * ai_conversations e ai_messages.
+ * Directly mirrors the production schema from Supabase:
+ * `ai_conversations` and `ai_messages`.
  *
- * O job apenas classifica conversas já existentes e propõe artigos de base de
- * conhecimento. Não publica nada: a curadoria do FAQ é do AI Support e a
- * publicação exige o Diretor (ADR-0028).
+ * This job reads historical conversations, identifies recurring user inquiries,
+ * and proposes knowledge base / FAQ articles. The job is read-only regarding
+ * production knowledge: proposing FAQ entries creates them in `proposed` status,
+ * and final publication requires human director approval (ADR-0028).
  *
- * Arquitetura Hexagonal: Domínio Puro (sem Supabase, Next, React ou SDKs).
+ * Hexagonal Architecture: pure domain, decoupled from SDKs and web frameworks.
  */
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
@@ -34,6 +35,14 @@ export interface ConversationThread {
 }
 
 export type TicketCategory =
+  | 'access_rbac'
+  | 'technical'
+  | 'financial'
+  | 'legal'
+  | 'commercial'
+  | 'operational'
+  | 'data'
+  | 'other'
   | 'acesso_rbac'
   | 'tecnico'
   | 'financeiro'
@@ -43,7 +52,7 @@ export type TicketCategory =
   | 'dados'
   | 'outro';
 
-export type FaqStatus = 'proposto' | 'aprovado' | 'rejeitado';
+export type FaqStatus = 'proposed' | 'approved' | 'rejected' | 'proposto' | 'aprovado' | 'rejeitado';
 
 export interface FaqEntry {
   id: string;
