@@ -1,4 +1,46 @@
-# TODO.md - Athena Server Improvements
+# TODO.md — ChronoKairo AI
+
+## 🏢 Empresa Virtual de Agentes — Próximos Jobs com Dados Reais do Supabase (ADR-0036)
+
+> Conforme verificado no Supabase oficial de produção (`chronokairo-prod` / `your-project-ref`), existem **24 tabelas com dados reais ativos**. Os seguintes jobs e integrações devem ser implementados para os agentes operarem sobre esses dados:
+
+### 1. Controladoria & Faturamento (`AI Finance / Ops`)
+- [ ] **Job `finance.reconcile`** (Conciliação de Contas a Receber e Contratos):
+  - Consumir tabela `accounts_receivable` (20 faturas cadastradas) e cruzar com `contracts` (9 contratos, incluindo `AUDIOMED-SAAS-001` de R$ 3.600 e CIESA de R$ 3.500).
+  - Identificar faturas pendentes da Audiomed (R$ 300/mês para 2026-09, 2026-10, 2026-11 e 2026-12) e gerar relatório de inadimplência/previsão de caixa.
+  - Requer aprovação humana do Diretor (`outbound_contact` / `billing_release`) antes de emitir cobranças.
+- [ ] **Job `finance.cash_flow`** (Contas a Pagar e Conciliação Bancária):
+  - Consumir tabela `accounts_payable` (8 contas pagas: honorários advocatícios R$ 1.000, domínios `chronokairo.com.br` R$ 80 e `manausdev.com.br` R$ 40).
+  - Reconciliar com as 3 contas em `financial_accounts` (`Banco Inter ChronoKairo/RLV`, `Conta VLM`, `Nubank pessoal Riad`).
+  - Gerar DRE preliminar e relatório de fluxo de caixa segregando PJ e PF.
+- [ ] **Job `finance.nfe_allocation`** (Alocação de NFS-e e Faturamento):
+  - Consumir tabela `service_invoices` (6 notas fiscais emitidas) e mapear através de `service_invoice_receivable_allocations` (7 alocações).
+  - Verificar se todas as faturas recebidas possuem NFS-e correspondente e apontar divergências fiscais.
+
+### 2. Jurídico, Due Diligence & Propriedade Intelectual (`AI Analista / Jurídico`)
+- [ ] **Job `legal.audit_case`** (Auditoria de Casos Jurídicos e B.O.):
+  - Consumir tabela `legal_cases` (Processo/B.O. `00215674/2026-A01` do 22º DIP / Polícia Civil AM envolvendo o Instituto WD Educacional e CIESA).
+  - Auditar narrativa de apropriação indébita de códigos-fonte, site institucional do CIESA e RP Educacional.
+  - Varrer o histórico dos repositórios locais para emitir relatório técnico pericial de conformidade e autoria de software.
+- [ ] **Job `legal.review_contracts`** (Auditoria de Minutas e Conformidade Contratual):
+  - Analisar minutas em `contracts` com status `Draft` (ex: `MINUTA-CIESA-VLM-2025-10`).
+  - Apontar cláusulas faltantes: ausência de assinaturas, falta de testemunhas, dados incompletos da contratada e ausência de comprovante de pagamento.
+
+### 3. Engenharia de Software, Backlog & Sprints (`AI Coder` & `AI Product`)
+- [ ] **Job `coder.sync_sprint`** (Sincronização de Tarefas do Banco com Git):
+  - Consumir tabela `project_tasks` (10 tarefas reais: `AUDIO-ASO-01`, `SECP-01` a `SECP-07`, `TSK-4EC62792`).
+  - Vincular os códigos de tarefas aos commits do repositório e branches (`feature/aso-*`).
+  - Atualizar automaticamente `column_status` (`In Progress` -> `Done`) na tabela `project_tasks` após aprovação de PRs pelo AI QA.
+- [ ] **Job `product.spec_milestones`** (Refinamento de Backlog e Requisitos):
+  - Consumir tarefas com status `To Do` em `project_tasks` (ex: `SECP-PHASE2-TOTVS` — integração com TOTVS não executada).
+  - Gerar especificação técnica detalhada com critérios de aceite em YAML e arquitetura hexagonal pura.
+
+### 4. Suporte & Base de Conhecimento (`AI Support`)
+- [ ] **Job `support.triage_history`** (Triagem de Conversas e Geração de FAQ):
+  - Varrer as 14 conversas em `ai_conversations` e 27 mensagens em `ai_messages`.
+  - Classificar dúvidas e chamados recorrentes dos usuários, gerando artigos de base de conhecimento para o `AI Support`.
+
+---
 
 ## P0 — Coding agent de mercado (fundação) — CONCLUÍDO
 
