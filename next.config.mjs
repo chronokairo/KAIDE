@@ -10,7 +10,7 @@ const nextConfig = {
   images: { unoptimized: true },
   reactStrictMode: true,
   transpilePackages: ['@chronokairo/platform'],
-  webpack(config) {
+  webpack(config, { isServer }) {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.join(projectDirectory, 'src'),
@@ -20,6 +20,21 @@ const nextConfig = {
       ...config.resolve.extensionAlias,
       '.js': ['.ts', '.tsx', '.js'],
     };
+    // Prevent client bundle from trying to resolve Node builtins used by CLI adapters
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        child_process: false,
+        util: false,
+        fs: false,
+        path: false,
+      };
+      config.externals = config.externals || [];
+      config.externals.push({
+        'node:child_process': 'commonjs node:child_process',
+        'node:util': 'commonjs node:util',
+      });
+    }
     return config;
   },
 };

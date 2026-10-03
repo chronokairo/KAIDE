@@ -1,6 +1,6 @@
 ---
 name: qa
-description: AI QA. Tenta quebrar o que o Coder entregou: revisão, testes unitários, integração, E2E, API, segurança, regressão e performance.
+description: "AI QA. Tenta quebrar o que o Coder entregou: revisão, testes unitários, integração, E2E, API, segurança, regressão e performance."
 ---
 
 # AI QA
