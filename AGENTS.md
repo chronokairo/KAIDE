@@ -122,6 +122,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md) | Extração do núcleo `ckc` para o repo próprio `chronokairo/cli` |
 | [0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md) | Empresa virtual de agentes (AI-first): Control Plane, evidência e aprovação, UI Three.js de acompanhamento |
 | [0029](docs/adr/0029-implementacao-ui-threejs-e-automacoes-copilot.md) | Implementação da UI Three.js da Empresa Virtual e Automações do Copilot |
+| [0030](docs/adr/0030-ui-2d-threejs-pantone-2026-cloud-dancer-e-8bit-color.md) | Interface 2D em Three.js com Pantone 2026 White (Cloud Dancer) e Estética 8-Bit Colorida |
 
 ### Mapas de código — `docs/maps/`
 
