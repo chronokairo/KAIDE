@@ -2,10 +2,14 @@
 
 ## Responsabilidade
 
-Este repositório implementa o chat de IA da plataforma ChronoKairo e sua API de backend. Ele não é apenas uma demonstração de RAG nem um frontend isolado.
+Este repositório implementa a **empresa virtual de agentes** da ChronoKairo (software engineering company AI-first, com supervisão humana), o chat de IA da plataforma e sua API de backend. Ele não é apenas uma demonstração de RAG nem um frontend isolado. Ver [ADR-0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md).
+
+Modelo operacional: **AI → AI → AI → HUMAN**, nunca AI → produção. Todo trabalho segue `plan → execute → verify → evidence → approval → merge/deploy`. O humano (sócio/CTO) é orquestrador e aprovador; dinheiro real e produção exigem aprovação humana.
 
 O produto deve:
 
+- operar um **Control Plane** (cliente → demanda → projeto → tasks → agentes → tools → evidências → aprovação → entrega), registrando cada execução como `Job` (contexto, agente, prompt, tools usadas, alterações, testes, evidências, custo, duração, status);
+- executar papéis por agentes especializados: Comercial, Analista, Product, Coder, QA, DevOps, Support e Finance/Ops;
 - responder consultas usando dados e contratos dos produtos ChronoKairo;
 - propor e executar manipulações no backend somente por ferramentas tipadas e autorizadas;
 - expor chat, streaming, histórico, catálogo de ferramentas e auditoria por API;
@@ -34,7 +38,7 @@ Adapters Secundários (HTTP fetch, Tauri IPC, Supabase, LLMs, Storage)
   - `src/application/ports/` — contratos de entrada e saída.
   - `src/application/use-cases/` — orquestração de casos de uso dependendo apenas de portas.
   - `src/infrastructure/` — adapters concretos fora do hexágono:
-    - `src/infrastructure/ui/` — **Adapter Primário de Apresentação** composto exclusivamente pelas **4 partes**: `AppBar`, `LeftSidebar`, `Body` e `RightSidebar`, orquestradas pelo `AppShell`.
+    - `src/infrastructure/ui/` — **Adapter Primário de Apresentação**: cena **Three.js** de acompanhamento dos agentes (somente leitura, com gate de aprovação humana), orquestrada pelo `AppShell`.
     - `src/infrastructure/http/` — adapters de rede web e rotas Next.js.
     - `src/infrastructure/tauri/` — adapters nativos de desktop para IPC com o núcleo Rust `ckc`.
     - `src/infrastructure/llm/`, `identity/`, `credentials/`, `secrets/`, `audit/`.
@@ -48,14 +52,13 @@ Adapters Secundários (HTTP fetch, Tauri IPC, Supabase, LLMs, Storage)
 - O modelo nunca escolhe nem amplia permissões; a autorização ocorre no backend depois da chamada da ferramenta.
 - Segredos e credenciais de provedores ficam somente no backend.
 
-## UI e experiência (As 4 Partes Canônicas)
+## UI e experiência (Three.js de acompanhamento)
 
-A interface é um adapter primário (`src/infrastructure/ui/`) composto estritamente por 4 partes sob o design system `@chronokairo/platform/ui` e tokens themáveis:
+A interface é um adapter primário (`src/infrastructure/ui/`) **somente de acompanhamento**: uma cena **Three.js** que mostra a empresa virtual de agentes em operação (agentes, jobs em andamento, handoffs entre papéis, status, custo, evidências e pedidos de aprovação). Ela observa e apresenta; a execução acontece no Control Plane e nos agentes, nunca na cena.
 
-1. **`AppBar` (Topo)**: Identidade ChronoKairo AI, contexto/workspace ativo, status do motor (NIM/Ollama), `ThemeToggle` exclusivo (sem duplicar na sidebar) e perfil do usuário.
-2. **`LeftSidebar` (Navegação & Histórico)**: Botão de nova conversa, lista de sessões recentes com busca/agrupamento temporal e alternância de visões (Chat, Busca, Agentes, Configurações).
-3. **`Body` (Centro)**: Área principal do trabalho ativo (Thread de mensagens com streaming, markdown, codeblocks, gráficos Chart.js e `ChatInput` na base).
-4. **`RightSidebar` (Inspetor de Contexto & Ferramentas)**: Colapsável. Exibe fontes RAG, inspeção de tool calling executado, auditoria e métricas de turnos (tokens e custo).
+- A cena consome o event log e os casos de uso do Control Plane por hooks/portas. Ela é leitura por padrão; a única ação permitida é aprovar ou rejeitar (gate humano) pelos casos de uso de aprovação.
+- O adapter Three.js fica em `src/infrastructure/ui/` e não importa domínio impuro nem faz `fetch()`/`invoke()` direto.
+- Substitui as 4 partes canônicas (`AppBar`, `LeftSidebar`, `Body`, `RightSidebar`). Os componentes legados continuam em uso até a migração (política de migração progressiva abaixo).
 
 - Zero `fetch()` ou `invoke()` acoplados dentro de componentes JSX da UI: a UI consome casos de uso ou portas via hooks.
 - Remover branding e padrões visuais legados de Athena/TOTVS.
@@ -116,6 +119,8 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0024](docs/adr/0024-roadmap-p0-mercado-validacao-e-implementacao.md) | Roadmap de paridade com o mercado: P0s validados com testes de integração e os 3 P0s restantes implementados |
 | [0025](docs/adr/0025-ckc-modo-edit-aider-para-llms-pequenos.md) | Modo edit (aider-like) no `ckc` CLI para LLMs pequenos: editar/autocompletar apenas o arquivo aberto |
 | [0026](docs/adr/0026-debito-implementacao-p1s-mercado.md) | Débito: implementação dos 15 P1s de mercado com testes e validação via NVIDIA NIM |
+| [0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md) | Extração do núcleo `ckc` para o repo próprio `chronokairo/cli` |
+| [0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md) | Empresa virtual de agentes (AI-first): Control Plane, evidência e aprovação, UI Three.js de acompanhamento |
 
 ### Mapas de código — `docs/maps/`
 
