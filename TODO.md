@@ -1,4 +1,89 @@
-# TODO.md - Athena Server Improvements
+# TODO.md — ChronoKairo AI
+
+## 🏢 Empresa Virtual de Agentes — Próximos Jobs com Dados Reais do Supabase (ADR-0036)
+
+> Conforme verificado no Supabase oficial de produção (`chronokairo-prod` / `your-project-ref`), existem **24 tabelas com dados reais ativos**. Os seguintes jobs e integrações devem ser implementados para os agentes operarem sobre esses dados:
+
+### 1. Controladoria & Faturamento (`AI Finance / Ops`) — CONCLUÍDO (ADR-0037)
+- [x] **Job `finance.reconcile`** (Conciliação de Contas a Receber e Contratos):
+  - Consumir tabela `accounts_receivable` (20 faturas cadastradas) e cruzar com `contracts` (9 contratos, incluindo `AUDIOMED-SAAS-001` de R$ 3.600 e CIESA de R$ 3.500).
+  - Identificar faturas pendentes da Audiomed (R$ 300/mês para 2026-09, 2026-10, 2026-11 e 2026-12) e gerar relatório de inadimplência/previsão de caixa.
+  - Requer aprovação humana do Diretor (`payment_release`) antes de emitir cobranças.
+- [x] **Job `finance.cash_flow`** (Contas a Pagar e Conciliação Bancária):
+  - Consumir tabela `accounts_payable` (8 contas pagas: honorários advocatícios R$ 1.000, domínios `chronokairo.com.br` R$ 80 e `manausdev.com.br` R$ 40).
+  - Reconciliar com as 3 contas em `financial_accounts` (`Banco Inter ChronoKairo/RLV`, `Conta VLM`, `Nubank pessoal Riad`).
+  - Gerar DRE preliminar e relatório de fluxo de caixa segregando PJ e PF.
+- [x] **Job `finance.nfe_allocation`** (Alocação de NFS-e e Faturamento):
+  - Consumir tabela `service_invoices` (6 notas fiscais emitidas) e mapear através de `service_invoice_receivable_allocations` (7 alocações).
+  - Verificar se todas as faturas recebidas possuem NFS-e correspondente e apontar divergências fiscais.
+
+### 2. Jurídico, Due Diligence & Propriedade Intelectual (`AI Analista / Jurídico`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `legal.audit_case`** (Auditoria de Casos Jurídicos e B.O.):
+  - Consumir tabela `legal_cases` (Processo/B.O. `00215674/2026-A01` do 22º DIP / Polícia Civil AM envolvendo o Instituto WD Educacional e CIESA).
+  - Auditar narrativa de apropriação indébita de códigos-fonte, site institucional do CIESA e RP Educacional.
+  - Varrer o histórico dos repositórios locais para emitir relatório técnico pericial de conformidade e autoria de software.
+- [x] **Job `legal.review_contracts`** (Auditoria de Minutas e Conformidade Contratual):
+  - Analisar minutas em `contracts` com status `Draft` (ex: `MINUTA-CIESA-VLM-2025-10`).
+  - Apontar cláusulas faltantes: ausência de assinaturas, falta de testemunhas, dados incompletos da contratada e ausência de comprovante de pagamento.
+
+### 3. Engenharia de Software, Backlog & Sprints (`AI Coder` & `AI Product`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `coder.sync_sprint`** (Sincronização de Tarefas do Banco com Git):
+  - Consumir tabela `project_tasks` (10 tarefas reais: `AUDIO-ASO-01`, `SECP-01` a `SECP-07`, `TSK-4EC62792`).
+  - Vincular os códigos de tarefas aos commits do repositório e branches (`feature/aso-*`) via `gh` e `glab`.
+  - Atualizar atomicamente `column_status` (`In Progress` -> `In Review` / `Done`) na tabela `project_tasks` após aprovação do Human Approval Gate (`scope_baseline`) pelo Diretor.
+- [x] **Job `product.spec_milestones`** (Refinamento de Backlog e Requisitos):
+  - Consumir tarefas com status `To Do` em `project_tasks` (ex: `SECP-PHASE2-TOTVS` — integração com TOTVS não executada).
+  - Gerar especificação técnica detalhada com critérios de aceite em YAML e arquitetura hexagonal pura.
+
+### 4. Suporte & Base de Conhecimento (`AI Support`) — CONCLUÍDO (ADR-0038)
+- [x] **Job `support.triage_history`** (Triagem de Conversas e Geração de FAQ):
+  - Varrer as 14 conversas em `ai_conversations` e 27 mensagens em `ai_messages`.
+  - Classificar dúvidas e chamados recorrentes dos usuários, gerando artigos de base de conhecimento para o `AI Support`.
+
+---
+
+### Registro de Mudanças (Changelog ADR-0038) — 2026-10-03
+- **Domínio & Porta de Controle de Versão (Source Control)**:
+  - Criação de `src/domain/source-control.ts` e `src/application/ports/source-control-port.ts` em inglês puro.
+  - Implementação de `src/infrastructure/git/gh-glab-source-control.ts` conectando os CLIs autenticados `gh` (GitHub) e `glab` (GitLab) limitados à organização e grupo `chronokairo`.
+- **Sincronização Real de Sprint com Evidência de Git**:
+  - `coder.sync_sprint` vinculado a branches, commits convencionais e pull/merge requests reais.
+  - Gravação atômica em `project_tasks.column_status` no Supabase prod ativada sob o gate humano `scope_baseline`.
+- **Transição Completa para Inglês Puro**:
+  - Módulos Legal, Support, Engineering, Finance e Control Plane reescritos em inglês puro em todas as tipagens, docstrings e contratos.
+- **5 Novos Jobs Conectados no Control Plane**:
+  - `coder.sync_sprint`, `product.spec_milestones`, `legal.audit_case`, `legal.review_contracts`, `support.triage_history`.
+- **Validação de Testes**: 28/28 testes passando com dados reais do Supabase prod e TypeScript limpo.
+
+### Registro de Mudanças (Changelog ADR-0038 Refactor, Dual-Forge & Resend) — 2026-10-03
+- **Eliminação Total de Adapters Mock / In-Memory**:
+  - Remoção definitiva de `src/infrastructure/qa/in-memory-pr-repository.ts` e do adapter monolítico `src/infrastructure/git/gh-glab-source-control.ts`.
+  - Implementação de `ForgePullRequestRepository` (`src/infrastructure/qa/forge-pull-request-repository.ts`) conectado diretamente ao forge GitHub via `GitHubPort`.
+- **Desacoplamento e Domínio Puro Multi-Forge**:
+  - `src/domain/forge.ts`: Extração do domínio compartilhado para task codes (`extractTaskCodes`) e commits convencionais (`parseConventionalCommit`, `ConventionalCommit`).
+  - `src/domain/github.ts` e `src/application/ports/github-port.ts`: Domínio e porta nativa do GitHub.
+  - `src/domain/gitlab.ts` e `src/application/ports/gitlab-port.ts`: Domínio e porta nativa do GitLab.
+  - `src/application/ports/cli-runner-port.ts` e `src/infrastructure/cli/node-cli-runner.ts`: Porta e runner de execução de processos com proteção contra command injection.
+  - `src/infrastructure/git/gh-cli-github-adapter.ts`: Adapter para o CLI autenticado `gh` (leitura de PR/branches/commits/files/checks e submissão de reviews).
+  - `src/infrastructure/git/glab-cli-gitlab-adapter.ts`: Adapter para o CLI autenticado `glab` (leitura de MR/branches/commits/changes/pipeline e criação de notas).
+  - `src/infrastructure/git/forge-source-control-adapter.ts`: Unificação dos forges com coletor de warnings resiliente (`safeFetch`).
+- **Suporte Real Conectado a `support_tickets` e `support_incidents`**:
+  - `src/domain/support.ts`, `src/application/ports/support-repository-port.ts` e `SupabaseSupportRepository` atualizados para consumir as tabelas de produção `support_tickets` e `support_incidents`.
+  - `ExecuteSupportTriageUseCase` reescrito em inglês puro, sem conteúdo fabricado nem union types bilíngues.
+- **Integração Oficial com Resend SDK & Eventos de Job**:
+  - Adição do SDK oficial `resend` (`npm i resend`).
+  - Configuração do serviço de email `ResendEmailService` com chave de API `REMOVED_EXPOSED_CREDENTIAL` e janela de sincronização de 24h.
+  - Adição dos tipos `JobEventType` (`'email.sent'`, `'email.synced'`, `'email.bounced'`) e persistência de eventos no Supabase.
+  - Disparo real de emails via Resend ativado no Control Plane ao aprovar o gate humano `outbound_contact`.
+- **Implementação do Job `commercial.daily` (AI Comercial / SDR)**:
+  - Criação do caso de uso `ExecuteCommercialDailyUseCase` (`src/application/use-cases/execute-commercial-daily.ts`) e script `scripts/execute-commercial-daily.ts` (`npm run job:commercial:daily`).
+  - Auditoria e due diligence corporativa dos 13 leads qualificados reais do Supabase produção (`leads`), enriquecimento de notas de CRM e elaboração de rascunhos consultivos mantidos sob Human Approval Gate.
+- **Revisão e Limpeza em Inglês Puro**:
+  - Módulos Legal, Support e Engineering sem tipos em português ou validações artificiais.
+- **Validação de Testes e Typecheck**:
+  - 35/35 testes passando no Vitest em 8 suítes de teste; TypeScript compilando com zero erros.
+
+---
 
 ## P0 — Coding agent de mercado (fundação) — CONCLUÍDO
 
