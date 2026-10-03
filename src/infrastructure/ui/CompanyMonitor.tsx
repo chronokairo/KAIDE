@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCompanyMonitor } from '@/application/use-cases/use-company-monitor';
-import { CompanyScene2D } from './CompanyScene2D';
+import { PokemonOfficeScene } from './PokemonOfficeScene';
 import { AgentEntity, JobEntity } from '@/domain/company';
 import {
   Users,
@@ -13,69 +13,10 @@ import {
   ShieldCheck,
   Check,
   X,
-  Volume2,
-  VolumeX,
-  Gamepad2,
-  Terminal,
-  Activity,
-  Zap,
+  Sparkles,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
-
-// Web Audio API 8-bit Sound Effects Synthesizer
-class RetroSoundSynth {
-  private ctx: AudioContext | null = null;
-  public enabled = true;
-
-  private init() {
-    if (!this.ctx && typeof window !== 'undefined') {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-  }
-
-  playSelect() {
-    if (!this.enabled) return;
-    this.init();
-    if (!this.ctx) return;
-    try {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-      osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.12);
-    } catch {}
-  }
-
-  playSuccess() {
-    if (!this.enabled) return;
-    this.init();
-    if (!this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(freq, now + i * 0.08);
-        gain.gain.setValueAtTime(0.08, now + i * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now + i * 0.08);
-        osc.stop(now + i * 0.08 + 0.15);
-      });
-    } catch {}
-  }
-}
-
-const sfx = new RetroSoundSynth();
 
 export function CompanyMonitor() {
   const {
@@ -93,9 +34,9 @@ export function CompanyMonitor() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessingApproval, setIsProcessingApproval] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
 
-  // Set default selected agent to Coder on mount for immediate dialog preview
+  // Set default selected agent to Coder on mount
   useEffect(() => {
     if (agents.length > 0 && !selectedAgent) {
       const defaultAgent = agents.find((a) => a.role === 'coder') || agents[0];
@@ -105,13 +46,6 @@ export function CompanyMonitor() {
     }
   }, [agents, selectedAgent, setSelectedAgent, jobs, setSelectedJob]);
 
-  const toggleSound = () => {
-    const next = !soundEnabled;
-    setSoundEnabled(next);
-    sfx.enabled = next;
-    if (next) sfx.playSelect();
-  };
-
   const pendingJob = jobs.find((j) => j.status === 'waiting_approval' && j.approvalGate?.status === 'pending');
 
   const handleApprove = async () => {
@@ -119,7 +53,6 @@ export function CompanyMonitor() {
     setIsProcessingApproval(true);
     try {
       await approveGate(pendingJob.approvalGate.id, 'Autorizado pelo Diretor Técnico após verificação de evidências.');
-      sfx.playSuccess();
       setShowApprovalModal(false);
     } finally {
       setIsProcessingApproval(false);
@@ -131,7 +64,6 @@ export function CompanyMonitor() {
     setIsProcessingApproval(true);
     try {
       await rejectGate(pendingJob.approvalGate.id, rejectReason || 'Rejeitado para ajustes adicionais.');
-      sfx.playSelect();
       setShowApprovalModal(false);
     } finally {
       setIsProcessingApproval(false);
@@ -139,14 +71,13 @@ export function CompanyMonitor() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F0EEE9] text-[#1A1A1A] font-silkscreen select-none">
-      {/* 2D Three.js WebGL Scene (Pantone 2026 Cloud Dancer Background) */}
+    <div className="relative w-screen h-screen overflow-hidden bg-[#F0EEE9] text-neutral-800 font-sans select-none">
+      {/* 2D/3D Pokemon Office View in Three.js (Pantone 2026 Cloud Dancer Background) */}
       <div className="absolute inset-0">
-        <CompanyScene2D
+        <PokemonOfficeScene
           agents={agents}
           selectedAgent={selectedAgent}
           onSelectAgent={(agent) => {
-            sfx.playSelect();
             setSelectedAgent(agent);
             const agentJob = jobs.find((j) => j.agentRole === agent.role || j.id === agent.currentJobId);
             if (agentJob) setSelectedJob(agentJob);
@@ -154,235 +85,179 @@ export function CompanyMonitor() {
         />
       </div>
 
-      {/* Retro 8-Bit Top HUD Bar */}
-      <header className="absolute top-3 inset-x-4 z-20 flex flex-col md:flex-row items-center justify-between px-5 py-3 bg-[#F0EEE9] border-4 border-[#1A1A1A] shadow-[4px_4px_0_0_#1A1A1A] pointer-events-auto">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-[#1A1A1A] text-[#F0EEE9] flex items-center justify-center border-2 border-[#1A1A1A]">
-            <Gamepad2 className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-sm font-bold tracking-wider text-[#1A1A1A]">CHRONOKAIRO 8-BIT VIRTUAL CO</h1>
-              <span className="px-1.5 py-0.5 text-[9px] font-bold bg-[#1A1A1A] text-[#F0EEE9]">PANTONE 2026</span>
-            </div>
-            <p className="text-[10px] text-neutral-600">
-              AI-First Engineering Control Plane • <span className="text-blue-700 font-bold">ADR-0028/0029</span>
-            </p>
+      {/* Top Floating Minimalist Header */}
+      <header className="absolute top-4 inset-x-6 z-20 flex items-center justify-between pointer-events-auto">
+        {/* Brand & Status Pill */}
+        <div className="flex items-center space-x-3 bg-[#F0EEE9]/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-neutral-300/80 shadow-sm">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center space-x-2">
+            <span className="font-semibold text-xs tracking-tight text-neutral-900">CHRONOKAIRO AI</span>
+            <span className="text-[10px] text-neutral-400 font-normal">|</span>
+            <span className="text-[11px] text-neutral-600 font-medium">Empresa Virtual</span>
           </div>
         </div>
 
-        {/* 8-Bit Retro RPG Telemetry Meters */}
-        <div className="flex items-center space-x-4 text-[10px] mt-2 md:mt-0 font-bold">
-          {/* Operations HP Bar */}
-          <div className="flex items-center space-x-1.5 bg-white px-2 py-1 border-2 border-[#1A1A1A]">
-            <span className="text-emerald-700">HP:</span>
-            <span className="tracking-tighter text-emerald-600">[██████████]</span>
-            <span className="text-[#1A1A1A]">100%</span>
+        {/* Minimalist Metrics Pill */}
+        <div className="hidden md:flex items-center space-x-5 bg-[#F0EEE9]/90 backdrop-blur-md px-5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm text-xs text-neutral-600">
+          <div className="flex items-center space-x-1.5">
+            <Users className="w-3.5 h-3.5 text-neutral-500" />
+            <span className="font-medium text-neutral-900">{telemetry.activeAgentsCount}</span>
+            <span className="text-neutral-500">Agentes</span>
           </div>
 
-          {/* Jobs Stat */}
-          <div className="flex items-center space-x-1.5 bg-white px-2 py-1 border-2 border-[#1A1A1A]">
-            <Briefcase className="w-3.5 h-3.5 text-blue-600" />
-            <span className="text-neutral-600">JOBS:</span>
-            <span className="text-blue-800">{telemetry.totalJobsCompleted}</span>
+          <span className="text-neutral-300">•</span>
+
+          <div className="flex items-center space-x-1.5">
+            <Briefcase className="w-3.5 h-3.5 text-neutral-500" />
+            <span className="font-medium text-neutral-900">{telemetry.totalJobsCompleted}</span>
+            <span className="text-neutral-500">Entregas</span>
           </div>
 
-          {/* Tokens Gold Stat */}
-          <div className="flex items-center space-x-1.5 bg-white px-2 py-1 border-2 border-[#1A1A1A]">
-            <DollarSign className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-neutral-600">COST:</span>
-            <span className="text-amber-800">${telemetry.totalCostUsd.toFixed(2)}</span>
-          </div>
+          <span className="text-neutral-300">•</span>
 
-          {/* Pending Approval Badge */}
+          <div className="flex items-center space-x-1.5">
+            <DollarSign className="w-3.5 h-3.5 text-neutral-500" />
+            <span className="font-medium text-neutral-900">${telemetry.totalCostUsd.toFixed(2)}</span>
+            <span className="text-neutral-500">Custo</span>
+          </div>
+        </div>
+
+        {/* Right Actions / Pending Gate Pill */}
+        <div className="flex items-center space-x-2">
           {telemetry.pendingApprovalsCount > 0 ? (
             <button
-              onClick={() => {
-                sfx.playSelect();
-                setShowApprovalModal(true);
-              }}
-              className="flex items-center space-x-1.5 px-2.5 py-1 bg-red-500 text-white border-2 border-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A] hover:bg-red-600 animate-bounce transition"
+              onClick={() => setShowApprovalModal(true)}
+              className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-2xl shadow-sm transition text-xs font-semibold animate-pulse"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>[! HUMAN GATE PENDENTE !]</span>
+              <span>Aprovação Humana Pendente</span>
             </button>
           ) : (
-            <div className="flex items-center space-x-1 px-2 py-1 bg-emerald-100 text-emerald-800 border-2 border-[#1A1A1A]">
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span>GATES OK</span>
+            <div className="flex items-center space-x-1.5 bg-[#F0EEE9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-neutral-300/80 shadow-sm text-xs text-neutral-600">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Sistemas Operacionais</span>
             </div>
           )}
-
-          {/* Sound Toggle Button */}
-          <button
-            onClick={toggleSound}
-            className="p-1.5 bg-white border-2 border-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A] hover:bg-neutral-100"
-            title="Toggle Retro SFX"
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-blue-700" /> : <VolumeX className="w-3.5 h-3.5 text-neutral-400" />}
-          </button>
         </div>
       </header>
 
-      {/* Left Employee Roster (Retro RPG Party Menu) */}
-      <aside className="absolute left-4 top-20 bottom-36 w-72 z-10 flex flex-col bg-[#F0EEE9] border-4 border-[#1A1A1A] shadow-[4px_4px_0_0_#1A1A1A] overflow-hidden pointer-events-auto">
-        <div className="p-2.5 bg-[#1A1A1A] text-[#F0EEE9] flex items-center justify-between text-[11px] font-bold">
-          <div className="flex items-center space-x-1.5">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
-            <span>AGENTS ROSTER</span>
+      {/* Bottom Floating Minimalist Dialogue Bar (Pokemon NPC Speech Style) */}
+      <footer className="absolute bottom-5 inset-x-6 z-20 flex justify-center pointer-events-auto">
+        <div className="w-full max-w-3xl bg-[#F0EEE9]/95 backdrop-blur-lg border border-neutral-300/90 rounded-2xl shadow-lg p-3.5 flex items-center space-x-4">
+          {/* Avatar Crop Preview */}
+          <div className="w-12 h-12 rounded-xl bg-white border border-neutral-200 overflow-hidden relative shrink-0 shadow-inner flex items-center justify-center">
+            <img
+              src="/anime_8bit_color.png"
+              alt="Avatar"
+              className="pixel-art absolute max-w-none"
+              style={{
+                width: '120px',
+                height: '75px',
+                top: selectedAgent?.role === 'coder' ? '-2px' : selectedAgent?.role === 'devops' ? '-45px' : '-15px',
+                left: '-2px',
+              }}
+            />
           </div>
-          <span className="text-neutral-400">9 MEMBROS</span>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-          {agents.map((agent) => {
-            const isSelected = selectedAgent?.id === agent.id;
-            return (
-              <button
-                key={agent.id}
-                onClick={() => {
-                  sfx.playSelect();
-                  setSelectedAgent(agent);
-                  const agentJob = jobs.find((j) => j.agentRole === agent.role || j.id === agent.currentJobId);
-                  if (agentJob) setSelectedJob(agentJob);
-                }}
-                className={`w-full text-left p-2 transition border-2 ${
-                  isSelected
-                    ? 'bg-amber-100 border-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A]'
-                    : 'bg-white hover:bg-neutral-100 border-[#1A1A1A]'
+          {/* Dialog Text */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-0.5">
+              <span className="font-semibold text-xs text-neutral-900">{selectedAgent?.name || 'Central de Controle'}</span>
+              <span className="text-[11px] text-neutral-500 font-normal">({selectedAgent?.department})</span>
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.2 rounded-full ${
+                  selectedAgent?.status === 'waiting_approval'
+                    ? 'bg-amber-100 text-amber-800'
+                    : selectedAgent?.status === 'working'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-neutral-200 text-neutral-700'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 border border-[#1A1A1A]" style={{ backgroundColor: agent.color }} />
-                    <span className="text-[11px] font-bold text-[#1A1A1A] truncate">{agent.name}</span>
-                  </div>
-                  <span
-                    className={`text-[8px] px-1 py-0.2 border border-[#1A1A1A] ${
-                      agent.status === 'waiting_approval'
-                        ? 'bg-red-500 text-white animate-pulse'
-                        : agent.status === 'working'
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-neutral-200 text-neutral-700'
-                    }`}
-                  >
-                    {agent.status === 'waiting_approval' ? 'GATE' : agent.status === 'working' ? 'ACT' : 'IDL'}
-                  </span>
-                </div>
-                <div className="text-[9px] text-neutral-600 line-clamp-1">{agent.title}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="p-2 bg-[#E2DFD8] border-t-2 border-[#1A1A1A] text-[9px] text-neutral-700 flex items-center justify-between">
-          <span>PIPELINE:</span>
-          <span className="text-blue-800 font-bold">AI → AI → AI → HUMAN</span>
-        </div>
-      </aside>
-
-      {/* Bottom Retro Dialogue Box (Classic RPG / Visual Novel Text Box) */}
-      <footer className="absolute bottom-3 inset-x-4 h-30 z-20 bg-[#F0EEE9] border-4 border-[#1A1A1A] shadow-[4px_4px_0_0_#1A1A1A] p-3 flex items-center space-x-4 pointer-events-auto">
-        {/* Character Portrait from Sprite */}
-        <div className="w-20 h-20 bg-white border-2 border-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A] flex items-center justify-center shrink-0 overflow-hidden relative">
-          <img
-            src="/anime_8bit_color.png"
-            alt="Agent Sprite"
-            className="pixel-art absolute max-w-none"
-            style={{
-              width: '160px',
-              height: '100px',
-              top: selectedAgent?.role === 'coder' ? '-3px' : selectedAgent?.role === 'devops' ? '-60px' : '-20px',
-              left: '-2px',
-            }}
-          />
-        </div>
-
-        {/* Dialogue Content */}
-        <div className="flex-1 flex flex-col justify-between h-full">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold bg-[#1A1A1A] text-[#F0EEE9] px-2 py-0.5">
-                {selectedAgent ? selectedAgent.name.toUpperCase() : 'CENTRAL DE COMANDO'}
+                {selectedAgent?.status === 'waiting_approval'
+                  ? 'Aguardando Aprovação'
+                  : selectedAgent?.status === 'working'
+                  ? 'Processando'
+                  : 'Ocioso'}
               </span>
-              <span className="text-[10px] text-neutral-600">[{selectedAgent?.department || 'SISTEMA'}]</span>
             </div>
-            {selectedJob && (
-              <span className="text-[10px] bg-blue-100 text-blue-900 border border-blue-900 px-1.5 py-0.5">
-                JOB: {selectedJob.title}
-              </span>
+            <p className="text-xs text-neutral-700 truncate font-normal">
+              &quot;{selectedAgent?.currentTask || 'Selecione um funcionário no escritório para inspecionar a atividade.'}&quot;
+            </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              onClick={() => setShowDetailsPanel(!showDetailsPanel)}
+              className="text-xs font-medium px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 shadow-sm transition flex items-center space-x-1"
+            >
+              <span>{showDetailsPanel ? 'Fechar' : 'Detalhes'}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
+            </button>
+
+            {pendingJob && (
+              <button
+                onClick={() => setShowApprovalModal(true)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition flex items-center space-x-1"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Revisar Gate</span>
+              </button>
             )}
           </div>
-
-          <div className="text-[11px] text-[#1A1A1A] bg-white border-2 border-[#1A1A1A] p-2 leading-relaxed flex-1 mt-1 flex items-center justify-between">
-            <span>
-              &quot;{selectedAgent?.currentTask || 'Selecione um agente ou funcionário para acompanhar a tarefa ativa.'}&quot;
-            </span>
-            <span className="text-amber-600 animate-bounce ml-2 font-bold">▼</span>
-          </div>
         </div>
-
-        {/* Action Button for Pending Gate */}
-        {pendingJob && (
-          <button
-            onClick={() => {
-              sfx.playSelect();
-              setShowApprovalModal(true);
-            }}
-            className="px-4 py-3 bg-amber-400 hover:bg-amber-300 text-[#1A1A1A] border-3 border-[#1A1A1A] shadow-[3px_3px_0_0_#1A1A1A] font-bold text-xs shrink-0 flex items-center space-x-1.5 animate-pulse"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>ABRIR GATE</span>
-          </button>
-        )}
       </footer>
 
-      {/* Right Details Drawer (When Agent Selected) */}
-      {selectedAgent && (
-        <aside className="absolute right-4 top-20 bottom-36 w-84 z-10 flex flex-col bg-[#F0EEE9] border-4 border-[#1A1A1A] shadow-[4px_4px_0_0_#1A1A1A] overflow-hidden pointer-events-auto text-[10px]">
+      {/* Slide-out Minimalist Details Drawer */}
+      {showDetailsPanel && selectedAgent && (
+        <aside className="absolute right-6 top-20 bottom-24 w-88 z-30 flex flex-col bg-[#F0EEE9]/95 backdrop-blur-xl border border-neutral-300 rounded-3xl shadow-2xl p-5 overflow-hidden pointer-events-auto animate-fadeIn">
           {/* Header */}
-          <div className="p-2.5 bg-[#1A1A1A] text-[#F0EEE9] flex items-center justify-between font-bold">
-            <span>FICHA DO FUNCIONÁRIO</span>
+          <div className="flex items-center justify-between border-b border-neutral-200/80 pb-3">
+            <div>
+              <h3 className="font-semibold text-sm text-neutral-900">{selectedAgent.name}</h3>
+              <p className="text-xs text-neutral-500">{selectedAgent.title}</p>
+            </div>
             <button
-              onClick={() => {
-                sfx.playSelect();
-                setSelectedAgent(null);
-              }}
-              className="px-1 text-white hover:bg-neutral-800"
+              onClick={() => setShowDetailsPanel(false)}
+              className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition"
             >
-              [X]
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#F0EEE9]">
-            {/* Identity */}
-            <div className="p-2 bg-white border-2 border-[#1A1A1A]">
-              <div className="text-[9px] text-neutral-500 font-bold mb-0.5">CARGO & DEPARTAMENTO</div>
-              <div className="text-xs font-bold text-[#1A1A1A]">{selectedAgent.name}</div>
-              <div className="text-[10px] text-blue-800">{selectedAgent.title}</div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto py-3 space-y-4 text-xs">
+            {/* Mission */}
+            <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
+              <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Missão & Escopo</span>
+              <p className="text-neutral-700 mt-1 leading-relaxed">{selectedAgent.currentTask}</p>
             </div>
 
-            {/* RPG Stats */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2 bg-white border-2 border-[#1A1A1A]">
-                <div className="text-[9px] text-neutral-500 font-bold">TOKENS EXP</div>
-                <div className="text-xs font-bold text-neutral-900 mt-0.5">
+            {/* Metrics */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
+                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Tokens</span>
+                <p className="text-sm font-semibold text-neutral-900 mt-0.5">
                   {selectedAgent.tokensProcessed.toLocaleString()}
-                </div>
+                </p>
               </div>
-              <div className="p-2 bg-white border-2 border-[#1A1A1A]">
-                <div className="text-[9px] text-neutral-500 font-bold">CUSTO GOLD</div>
-                <div className="text-xs font-bold text-amber-700 mt-0.5">${selectedAgent.costUsd.toFixed(2)}</div>
+              <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
+                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Custo Computacional</span>
+                <p className="text-sm font-semibold text-amber-600 mt-0.5">${selectedAgent.costUsd.toFixed(2)}</p>
               </div>
             </div>
 
             {/* Authorized Tools */}
-            <div className="p-2 bg-white border-2 border-[#1A1A1A]">
-              <div className="text-[9px] text-neutral-500 font-bold mb-1">EQUIPAMENTO (TOOLS)</div>
-              <div className="flex flex-wrap gap-1">
+            <div className="bg-white/80 p-3 rounded-2xl border border-neutral-200/80">
+              <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider mb-2 block">
+                Ferramentas Autorizadas
+              </span>
+              <div className="flex flex-wrap gap-1.5">
                 {selectedAgent.activeTools.map((t) => (
-                  <span key={t} className="px-1.5 py-0.5 bg-neutral-100 border border-[#1A1A1A] text-[9px]">
+                  <span
+                    key={t}
+                    className="px-2 py-0.5 rounded-lg bg-neutral-100 border border-neutral-200/80 text-[10px] font-mono text-neutral-600"
+                  >
                     {t}
                   </span>
                 ))}
@@ -391,81 +266,93 @@ export function CompanyMonitor() {
 
             {/* Active Job & Evidences */}
             {selectedJob && (
-              <div className="p-2 bg-amber-50 border-2 border-[#1A1A1A] space-y-1.5">
-                <div className="text-[9px] font-bold text-amber-900">JOB ATIVO: {selectedJob.id}</div>
-                <div className="text-[10px] font-bold text-[#1A1A1A]">{selectedJob.title}</div>
-                <div className="text-[9px] text-neutral-600">Cliente: {selectedJob.client}</div>
+              <div className="bg-white p-3.5 rounded-2xl border border-blue-200 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">Job em Execução</span>
+                  <span className="text-[10px] font-mono text-neutral-400">{selectedJob.id}</span>
+                </div>
+                <div className="font-semibold text-neutral-900">{selectedJob.title}</div>
+                <div className="text-[11px] text-neutral-500">Cliente: {selectedJob.client}</div>
 
-                <div className="text-[9px] font-bold text-neutral-700 mt-1">EVIDÊNCIAS DE ENTREGA:</div>
-                <ul className="space-y-1">
-                  {selectedJob.evidence.map((ev, i) => (
-                    <li key={i} className="flex items-start space-x-1 text-[9px] text-neutral-800">
-                      <span className="text-emerald-700 font-bold shrink-0">[V]</span>
-                      <span>{ev}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="pt-2 border-t border-neutral-100">
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">
+                    Evidências Verificadas
+                  </span>
+                  <ul className="space-y-1">
+                    {selectedJob.evidence.map((ev, i) => (
+                      <li key={i} className="flex items-start space-x-1.5 text-[11px] text-neutral-700">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{ev}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
           </div>
         </aside>
       )}
 
-      {/* Retro 8-Bit Human Approval Gate Modal (ADR-0028) */}
+      {/* Minimalist Human Approval Gate Modal (ADR-0028) */}
       {showApprovalModal && pendingJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-xl bg-[#F0EEE9] border-4 border-[#1A1A1A] shadow-[8px_8px_0_0_#1A1A1A] p-5 space-y-3 font-silkscreen">
-            <div className="flex items-center space-x-2 text-red-700 border-b-2 border-[#1A1A1A] pb-2">
-              <ShieldCheck className="w-5 h-5 text-red-600" />
-              <h2 className="text-xs font-bold text-[#1A1A1A]">HUMAN APPROVAL GATE — ADR-0028</h2>
-            </div>
-
-            <div className="p-3 bg-white border-2 border-[#1A1A1A] space-y-1 text-[10px]">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">AÇÃO:</span>
-                <span className="font-bold text-red-700">PRODUÇÃO (DEPLOY EM PROD)</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/30 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-xl bg-[#F0EEE9] border border-neutral-300 rounded-3xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center space-x-3 pb-3 border-b border-neutral-200">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+                <ShieldCheck className="w-5 h-5" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">JOB:</span>
-                <span className="font-bold text-[#1A1A1A]">{pendingJob.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">SOLICITANTE:</span>
-                <span className="font-bold text-purple-700">AI DEVOPS</span>
+              <div>
+                <h2 className="text-sm font-semibold text-neutral-900">Gate de Aprovação Humana</h2>
+                <p className="text-xs text-neutral-500">
+                  Modelo AI → AI → AI → HUMAN (ADR-0028). Deploy em produção requer aprovação do Diretor Técnico.
+                </p>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <span className="text-[9px] font-bold text-neutral-700">EVIDÊNCIAS DE VERIFICAÇÃO (VERIFY):</span>
-              <div className="p-2.5 bg-white border-2 border-[#1A1A1A] space-y-1 text-[9px] max-h-36 overflow-y-auto">
+            <div className="bg-white p-3.5 rounded-2xl border border-neutral-200/80 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Ação:</span>
+                <span className="font-semibold text-red-600">Deploy em Produção (v1.2.0)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Projeto:</span>
+                <span className="text-neutral-800 font-medium">{pendingJob.title}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Solicitante:</span>
+                <span className="font-medium text-purple-600">AI DevOps</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                Evidências Anexadas (Verify & Evidence)
+              </span>
+              <div className="bg-white p-3 rounded-2xl border border-neutral-200/80 space-y-1.5 max-h-40 overflow-y-auto">
                 {pendingJob.evidence.map((ev, i) => (
-                  <div key={i} className="flex items-start space-x-1.5 text-neutral-800">
-                    <span className="text-emerald-700 font-bold">[OK]</span>
+                  <div key={i} className="flex items-start space-x-2 text-neutral-700">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                     <span>{ev}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-2 bg-amber-100 border border-amber-400 text-[9px] text-amber-900 leading-tight">
-              Regra de Segurança: AI → AI → AI → HUMAN. O agente DevOps não tem permissão para alterar produção sem o aval do Diretor Técnico.
-            </div>
-
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 disabled={isProcessingApproval}
                 onClick={handleReject}
-                className="px-3 py-2 bg-neutral-200 hover:bg-neutral-300 text-[#1A1A1A] border-2 border-[#1A1A1A] shadow-[2px_2px_0_0_#1A1A1A] text-[10px] font-bold"
+                className="px-4 py-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/60 font-medium text-xs transition"
               >
-                [ REJEITAR ]
+                Rejeitar & Solicitar Ajustes
               </button>
               <button
                 disabled={isProcessingApproval}
                 onClick={handleApprove}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white border-2 border-[#1A1A1A] shadow-[3px_3px_0_0_#1A1A1A] text-[10px] font-bold flex items-center space-x-1.5"
+                className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs shadow-sm transition flex items-center space-x-1.5"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>{isProcessingApproval ? 'PROCESSANDO...' : '[ APROVAR DEPLOY ]'}</span>
+                <span>{isProcessingApproval ? 'Processando...' : 'Aprovar Deploy em Produção'}</span>
               </button>
             </div>
           </div>
