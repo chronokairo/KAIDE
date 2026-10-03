@@ -1,17 +1,37 @@
 /**
- * Pure domain entities and types for the Support & Knowledge Base Module
- * (AI Support).
+ * Pure domain entities and types for the Support & Operations Module (AI Support).
  *
- * Directly mirrors the production schema from Supabase:
- * `ai_conversations` and `ai_messages`.
- *
- * This job reads historical conversations, identifies recurring user inquiries,
- * and proposes knowledge base / FAQ articles. The job is read-only regarding
- * production knowledge: proposing FAQ entries creates them in `proposed` status,
- * and final publication requires human director approval (ADR-0028).
+ * Connected directly to official Supabase production tables:
+ * - `support_tickets`
+ * - `support_incidents`
+ * - `ai_conversations`
+ * - `ai_messages`
  *
  * Hexagonal Architecture: pure domain, decoupled from SDKs and web frameworks.
  */
+
+export interface SupportTicket {
+  id: string;
+  code: string;
+  clientName: string;
+  subject: string;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' | string;
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed' | string;
+  ownerName?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface SupportIncident {
+  id: string;
+  code: string;
+  systemName: string;
+  severity: 'SEV1' | 'SEV2' | 'SEV3' | 'SEV4' | string;
+  status: 'Open' | 'Investigating' | 'Mitigated' | 'Resolved' | string;
+  openedAt: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 
@@ -42,17 +62,9 @@ export type TicketCategory =
   | 'commercial'
   | 'operational'
   | 'data'
-  | 'other'
-  | 'acesso_rbac'
-  | 'tecnico'
-  | 'financeiro'
-  | 'juridico'
-  | 'comercial'
-  | 'operacional'
-  | 'dados'
-  | 'outro';
+  | 'other';
 
-export type FaqStatus = 'proposed' | 'approved' | 'rejected' | 'proposto' | 'aprovado' | 'rejeitado';
+export type FaqStatus = 'proposed' | 'approved' | 'rejected';
 
 export interface FaqEntry {
   id: string;
@@ -74,8 +86,12 @@ export interface RecurringIssue {
 }
 
 export interface SupportTriageReport {
+  ticketsScannedCount: number;
+  incidentsScannedCount: number;
   conversationsScannedCount: number;
   messagesScannedCount: number;
+  tickets: SupportTicket[];
+  incidents: SupportIncident[];
   byCategory: { category: TicketCategory; count: number }[];
   recurringIssues: RecurringIssue[];
   faqs: FaqEntry[];

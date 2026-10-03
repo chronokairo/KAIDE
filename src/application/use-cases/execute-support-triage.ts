@@ -22,10 +22,12 @@ const STOPWORDS = new Set([
 /**
  * Job `support.triage_history` — AI Support Role.
  *
- * Reads real `ai_conversations` and `ai_messages` from official Supabase production and:
- * 1. Categorizes each conversation thread by intent / ticket category;
- * 2. Groups user messages into normalized problem signatures to detect recurring questions;
- * 3. Proposes draft FAQ entries from verified recurrent themes.
+ * Reads real `support_tickets`, `support_incidents`, `ai_conversations` and `ai_messages`
+ * from official Supabase production and:
+ * 1. Catalogs active support tickets and production incidents;
+ * 2. Categorizes each conversation thread by intent / ticket category;
+ * 3. Groups user messages into normalized problem signatures to detect recurring questions;
+ * 4. Proposes draft FAQ entries from verified recurrent themes.
  *
  * The job is strictly read-only for production knowledge: FAQ entries are created
  * with `status = 'proposed'` and require AI Support curation and Human Director sign-off (ADR-0028).
@@ -37,7 +39,12 @@ export class ExecuteSupportTriageUseCase {
   ) {}
 
   async execute(minOccurrences = 2): Promise<SupportTriageJobResult> {
-    const threads = await this.supportRepo.listConversations();
+    const [tickets, incidents, threads] = await Promise.all([
+      this.supportRepo.listTickets(),
+      this.supportRepo.listIncidents(),
+      this.supportRepo.listConversations(),
+    ]);
+
     const timestamp = new Date().toISOString();
     const jobId = `job-support-triage-${Date.now()}`;
 
@@ -49,8 +56,12 @@ export class ExecuteSupportTriageUseCase {
     const unansweredCount = threads.filter((t) => t.messages.length <= 1).length;
 
     const report: SupportTriageReport = {
+      ticketsScannedCount: tickets.length,
+      incidentsScannedCount: incidents.length,
       conversationsScannedCount: threads.length,
       messagesScannedCount: userMessages.length,
+      tickets,
+      incidents,
       byCategory,
       recurringIssues: recurring,
       faqs,
@@ -59,7 +70,8 @@ export class ExecuteSupportTriageUseCase {
     };
 
     const evidenceList: string[] = [
-      `Support triage completed: ${threads.length} conversation(s) and ${userMessages.length} user message(s) analyzed from Supabase prod.`,
+      `Support audit completed: ${tickets.length} ticket(s) from support_tickets, ${incidents.length} incident(s) from support_incidents.`,
+      `Conversation history: ${threads.length} conversation(s) and ${userMessages.length} user message(s) analyzed from Supabase prod.`,
       `Category distribution: ${byCategory.map((c) => `${c.category}=${c.count}`).join(', ') || 'no conversations'}.`,
       `Recurring issue clusters identified: ${recurring.length} (minimum threshold: ${minOccurrences} occurrences).`,
       `Proposed FAQ draft entries: ${faqs.length}, all set to 'proposed' awaiting editorial curation.`,
@@ -78,9 +90,9 @@ export class ExecuteSupportTriageUseCase {
       agentRole: 'support',
       status: 'completed',
       prompt:
-        'Query ai_conversations and ai_messages from Supabase prod, categorize intents, detect recurrent questions and propose draft FAQ entries without publishing.',
-      toolsUsed: ['conversation_reader', 'intent_classifier', 'recurring_issue_detector', 'faq_proposer', 'supabase_db'],
-      changesSummary: `${threads.length} conversation(s) triaged; ${recurring.length} recurrent cluster(s); ${faqs.length} draft FAQ(s) proposed.`,
+        'Query support_tickets, support_incidents, ai_conversations and ai_messages from Supabase prod, categorize intents, detect recurrent questions and propose draft FAQ entries without publishing.',
+      toolsUsed: ['ticket_reader', 'incident_reader', 'conversation_reader', 'intent_classifier', 'faq_proposer', 'supabase_db'],
+      changesSummary: `${tickets.length} ticket(s), ${incidents.length} incident(s), ${threads.length} conversation(s) triaged; ${recurring.length} recurrent cluster(s); ${faqs.length} draft FAQ(s) proposed.`,
       testsSummary:
         'Domain lexical categorization with multi-term normalization. Recurrence demands at least two independent occurrences.',
       evidence: evidenceList,
@@ -217,10 +229,12 @@ export class ExecuteSupportTriageUseCase {
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'SUPPORT_HISTORY_TRIAGED',
-        target: 'ai_conversations',
+        target: 'support_tickets_and_conversations',
         success: true,
         details: {
           jobId,
+          tickets: report.ticketsScannedCount,
+          incidents: report.incidentsScannedCount,
           conversations: report.conversationsScannedCount,
           messages: report.messagesScannedCount,
           recurring: report.recurringIssues.length,

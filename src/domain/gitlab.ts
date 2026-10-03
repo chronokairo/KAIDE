@@ -1,160 +1,128 @@
 /**
- * GitLab-native domain entities.
+ * Pure domain entities and types representing native GitLab capabilities.
  *
- * These types mirror GitLab's own vocabulary: merge requests, pipelines,
- * approvals, approvals-before-merge and project boards. They are deliberately
- * not identical to the GitHub types, because the two forges expose genuinely
- * different capabilities and flattening them would lose information.
- *
- * Target: the `chronokairo` GitLab group, project `chronokairo/ai`.
- *
- * Hexagonal architecture: pure domain, no SDK, no process, no I/O.
+ * Hexagonal architecture: pure domain, decoupled from GitLab CLI or REST API clients.
  */
 
-export interface GitlabProjectRef {
-  /** Always `group/name`, for example `chronokairo/ai`. */
-  pathWithNamespace: string;
-  name: string;
-  defaultBranch: string;
-  visibility: string;
+import { extractTaskCodes } from './forge';
+
+export type GitLabMergeRequestState = 'opened' | 'closed' | 'merged' | 'locked';
+
+export type GitLabPipelineStatus =
+  | 'running'
+  | 'pending'
+  | 'success'
+  | 'failed'
+  | 'canceled'
+  | 'skipped'
+  | 'manual';
+
+export interface GitLabMergeRequest {
+  id: number;
+  iid: number;
+  title: string;
+  description?: string;
+  state: GitLabMergeRequestState;
+  draft: boolean;
+  sourceBranch: string;
+  targetBranch: string;
+  sha?: string;
+  author: string;
+  webUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  approvalsRequired?: number;
+  taskCodes: string[];
 }
 
-export interface GitlabUser {
-  username: string;
+export interface GitLabBranch {
   name: string;
+  commitSha?: string;
+  isDefault: boolean;
+  taskCodes: string[];
 }
 
-export interface GitlabCommitRef {
+export interface GitLabCommit {
   id: string;
   shortId: string;
   title: string;
   message: string;
   authorName: string;
-  authorEmail: string;
-  committedDate: string;
-}
-
-export interface GitlabBranch {
-  name: string;
-  commitSha: string;
+  createdAt: string;
   taskCodes: string[];
-  isDefault: boolean;
-  isProtected: boolean;
 }
 
-export interface GitlabMergeRequestDiff {
+export interface GitLabPipeline {
+  id: number;
+  status: GitLabPipelineStatus;
+  ref: string;
+  sha: string;
+  webUrl?: string;
+}
+
+export interface GitLabMergeRequestChange {
   oldPath: string;
   newPath: string;
   newFile: boolean;
   renamedFile: boolean;
   deletedFile: boolean;
-  diff?: string;
 }
 
-export interface GitlabApproval {
-  id: number;
-  approver: string;
-  state: 'approved' | 'unapproved' | null;
-}
-
-export interface GitlabApprovalState {
-  approvalsRequired: number;
-  approvalsLeft: number;
-  approvedBy: number;
-  /** GitLab's own merge gate; when false the MR must not be merged. */
-  mergeableWhenPipelineSucceeds: boolean;
-  hasApprovalRules: boolean;
-}
-
-/** GitLab CI pipeline, the native equivalent of a GitHub Actions workflow run. */
-export interface GitlabPipeline {
-  id: number;
-  iid: number;
-  status: 'created' | 'running' | 'pending' | 'success' | 'failed' | 'canceled' | 'skipped' | 'manual';
-  source: string;
-  ref: string;
-  sha: string;
-  webUrl: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface GitlabPipelineJob {
-  id: number;
-  name: string;
-  stage: string;
-  status: GitlabPipeline['status'];
-  webUrl: string;
-}
-
-export type GitlabMrState = 'opened' | 'closed' | 'locked' | 'merged';
-
-export interface GitlabMergeRequest {
-  id: number;
-  iid: number;
-  projectPathWithNamespace: string;
-  title: string;
-  description: string;
-  state: GitlabMrState;
-  isDraft: boolean;
-  hasConflicts: boolean;
-  sourceBranch: string;
-  targetBranch: string;
-  sha: string;
-  author: string;
-  changesCount: string | null;
-  diffRefsSha: string | null;
-  labels: string[];
-  milestone: string | null;
-  taskCodes: string[];
-  upvotes: number;
-  downvotes: number;
-  approvals: GitlabApproval[];
-  approvalState: GitlabApprovalState | null;
-  pipeline: GitlabPipeline | null;
-  webUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  warnings: string[];
-}
-
-/** Payload written back to a merge request as an internal note. */
-export interface GitlabMergeRequestNote {
+export interface GitLabNoteInput {
   mergeRequestIid: number;
   body: string;
 }
 
-export interface GitlabConventionalCommit {
-  type: string;
-  scope?: string;
-  subject: string;
-  breaking: boolean;
-  references: string[];
-  raw: string;
+export interface GitLabAuthStatus {
+  authenticated: boolean;
+  account: string;
+  host: string;
 }
 
-/** GitLab project board: the forge-native backlog, when one exists. */
-export interface GitlabBoardListColumn {
-  id: number;
-  label: string;
-  position: number;
-}
+export function toGitLabMergeRequest(raw: {
+  id?: number | string;
+  iid?: number | string;
+  title?: string;
+  description?: string;
+  state?: string;
+  draft?: boolean;
+  work_in_progress?: boolean;
+  source_branch?: string;
+  target_branch?: string;
+  sha?: string;
+  author?: { username?: string; name?: string } | string;
+  web_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  approvals_required?: number;
+}): GitLabMergeRequest {
+  const authorName =
+    typeof raw.author === 'object' && raw.author !== null
+      ? raw.author.username || raw.author.name || 'unknown'
+      : typeof raw.author === 'string'
+        ? raw.author
+        : 'unknown';
 
-export interface GitlabBoardList {
-  id: number;
-  name: string;
-  columns?: GitlabBoardListColumn[];
-  lists?: { id: number; label: string; position: number }[];
-}
+  const iidNumber = Number(raw.iid || raw.id || 0);
+  const idNumber = Number(raw.id || raw.iid || 0);
+  const title = raw.title ?? '';
+  const sourceBranch = raw.source_branch ?? '';
 
-/** Aggregated view the Coder job uses as evidence for a status proposal. */
-export interface GitlabActivity {
-  project: GitlabProjectRef;
-  branches: GitlabBranch[];
-  mergeRequests: GitlabMergeRequest[];
-  commits: GitlabCommitRef[];
-  boards: GitlabBoardList[];
-  authenticatedAccount: string | null;
-  collectedAt: string;
-  warnings: string[];
+  return {
+    id: idNumber,
+    iid: iidNumber,
+    title,
+    description: raw.description,
+    state: ((raw.state ?? 'opened').toLowerCase() as GitLabMergeRequestState) || 'opened',
+    draft: Boolean(raw.draft || raw.work_in_progress),
+    sourceBranch,
+    targetBranch: raw.target_branch ?? '',
+    sha: raw.sha,
+    author: authorName,
+    webUrl: raw.web_url ?? '',
+    createdAt: raw.created_at ?? '',
+    updatedAt: raw.updated_at ?? '',
+    approvalsRequired: raw.approvals_required,
+    taskCodes: extractTaskCodes(`${sourceBranch} ${title}`),
+  };
 }

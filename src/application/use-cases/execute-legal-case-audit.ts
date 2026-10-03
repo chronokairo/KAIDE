@@ -45,9 +45,7 @@ export class ExecuteLegalCaseAuditUseCase {
 
     const reports = targets.map((c) => this.auditCase(c, contracts, timestamp));
     const totalEvidence = reports.reduce((sum, r) => sum + r.evidence.length, 0);
-    const critical = reports.filter(
-      (r) => r.verdict === 'risco_critico' || r.verdict === 'critical_risk'
-    ).length;
+    const critical = reports.filter((r) => r.verdict === 'critical_risk').length;
 
     const evidenceList: string[] = [
       `Technical legal audit completed for ${reports.length} case(s) from legal_cases (Supabase prod).`,
@@ -109,7 +107,7 @@ export class ExecuteLegalCaseAuditUseCase {
     const evidence = this.buildEvidence(legalCase, contracts);
     const findings = this.buildFindings(legalCase, contracts, evidence);
     const evidenceGaps = findings
-      .filter((f) => f.status === 'ausente' || f.status === 'missing')
+      .filter((f) => f.status === 'missing')
       .map((f) => `${f.title}: ${f.detail}`);
 
     const verdict = this.decideVerdict(findings);
@@ -202,7 +200,7 @@ export class ExecuteLegalCaseAuditUseCase {
         detail: hasContractEvidence
           ? `${activeContracts.length} active contract(s) establish ownership and engineering scope for the deliverables.`
           : 'Zero active contracts establish initial authorship; relies on repository commit logs.',
-        evidenceIds: evidence.filter((e) => e.kind === 'contract' || e.kind === 'contrato').map((e) => e.id),
+        evidenceIds: evidence.filter((e) => e.kind === 'contract').map((e) => e.id),
       },
       {
         dimension: 'contract_scope',
@@ -211,7 +209,7 @@ export class ExecuteLegalCaseAuditUseCase {
         detail: unsignedDrafts.length
           ? `${unsignedDrafts.length} draft contract(s) present — deliverable lacks fully executed instrument.`
           : 'Active contracts and draft schedules properly anchor deliverable scope.',
-        evidenceIds: evidence.filter((e) => e.kind === 'contract' || e.kind === 'contrato').map((e) => e.id),
+        evidenceIds: evidence.filter((e) => e.kind === 'contract').map((e) => e.id),
       },
       {
         dimension: 'billing_revenue',
@@ -245,13 +243,11 @@ export class ExecuteLegalCaseAuditUseCase {
   }
 
   private decideVerdict(findings: LegalTechnicalFinding[]): LegalAuditVerdict {
-    const missing = findings.filter((f) => f.status === 'ausente' || f.status === 'missing');
+    const missing = findings.filter((f) => f.status === 'missing');
     if (
       missing.some(
         (f) =>
-          f.dimension === 'autoria_software' ||
           f.dimension === 'software_authorship' ||
-          f.dimension === 'faturamento' ||
           f.dimension === 'billing_revenue'
       )
     ) {
@@ -262,7 +258,7 @@ export class ExecuteLegalCaseAuditUseCase {
   }
 
   private computeConfidence(findings: LegalTechnicalFinding[], evidence: LegalEvidenceItem[]): number {
-    const confirmed = findings.filter((f) => f.status === 'confirmado' || f.status === 'confirmed').length;
+    const confirmed = findings.filter((f) => f.status === 'confirmed').length;
     const ratio = findings.length > 0 ? confirmed / findings.length : 0;
     const evidenceBoost = Math.min(evidence.length / 12, 0.3);
     return Math.min(1, Math.round((ratio * 0.7 + evidenceBoost) * 100) / 100);
@@ -274,18 +270,18 @@ export class ExecuteLegalCaseAuditUseCase {
     gaps: string[]
   ): string[] {
     const recs: string[] = [];
-    if (verdict === 'critical_risk' || verdict === 'risco_critico') {
+    if (verdict === 'critical_risk') {
       recs.push('Collect and attach software authorship evidence: commit hashes, Git snapshots, and changelogs.');
       recs.push('Locate NFS-e invoices and banking transaction proofs for each project referenced in case.');
     }
-    if (verdict === 'high_risk' || verdict === 'risco_alto') {
+    if (verdict === 'high_risk') {
       recs.push('Prioritize signature and regularization of draft contracts.');
     }
     recs.push('Submit dossier to Legal Director with explicit evidence gaps; do not file self-generated responses.');
     if (gaps.length > 0) recs.push(`Close ${gaps.length} evidentiary gap(s) prior to formal legal filing.`);
     recs.push(
       `Review ${
-        findings.filter((f) => f.status === 'parcial' || f.status === 'partial').length
+        findings.filter((f) => f.status === 'partial').length
       } partial finding(s) with engineering leadership.`
     );
     return recs;

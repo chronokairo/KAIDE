@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { defaultCompanyControlPlane } from '@/infrastructure/control-plane/supabase-control-plane-adapter';
 import { SupabaseLeadRepository } from '@/infrastructure/crm/supabase-lead-repository';
-import { defaultPullRequestRepository } from '@/infrastructure/qa/in-memory-pr-repository';
+import { defaultPullRequestRepository } from '@/infrastructure/qa/forge-pull-request-repository';
 import { ExecuteCommercialFollowupUseCase } from '@/application/use-cases/execute-commercial-followup';
 import { ExecuteQaPrReviewUseCase } from '@/application/use-cases/execute-qa-pr-review';
 

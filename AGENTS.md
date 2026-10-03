@@ -76,11 +76,13 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 
 ## Source Control & Forge Integration Rules (ADR-0038)
 
-- **Dual-Forge Mirroring**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters).
+- **Dual-Forge Mirroring**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters sobre `CliRunnerPort` seguro contra shell injection).
 - **Rastreabilidade Fina (Traceability)**: Commits, branches e PRs/MRs devem referenciar tarefas de backlog (`SECP-*`, `AUDIO-ASO-*`, `TSK-*`, etc.) seguindo o padrão *Conventional Commits* (`feat(scope): ...`, `fix(scope): ...`).
-- **Língua Pura nos Domínios e Portas**: Novas entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
+- **Língua Pura nos Domínios e Portas**: Entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
 - **Human Gate em Escopo (`scope_baseline`)**: O job `coder.sync_sprint` submete reconciliações de status de sprint como propostas com evidência fotográfica/textual. Nenhuma alteração em `project_tasks.column_status` ocorre sem aprovação humana explícita no Control Plane.
-- **Zero Mock / Fallback**: É terminantemente proibido manter dados falsos ou simulados nos adapters secundários de produção; leituras e escritas comunicam-se diretamente com o Supabase de produção ou CLIs oficiais.
+- **Human Gate em Comunicações Externas (`outbound_contact`)**: Jobs de prospecção e relacionamento (`commercial.daily`, `commercial.followup`) elaboram rascunhos consultivos retidos em gate; nenhum email é disparado sem autorização do Diretor Técnico. Ao autorizar, o envio real é processado via SDK oficial `resend` com registro de `JobEventType` (`email.sent`, `email.synced`, `email.bounced`) e janela de sync de 24h.
+- **Operações Reais de Suporte**: O módulo de atendimento e suporte (`support.triage_history`) consulta tabelas reais de produção `support_tickets` e `support_incidents` no Supabase prod em conjunto com o histórico de conversas.
+- **Zero Mock / Fallback**: É terminantemente proibido manter repositórios ou adapters em memória / mock em caminhos de produção (`InMemoryPullRequestRepository` foi eliminado e substituído por `ForgePullRequestRepository`). Leituras e escritas comunicam-se diretamente com o Supabase de produção ou com as CLIs oficiais autenticadas.
 
 ## Critérios mínimos
 

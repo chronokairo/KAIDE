@@ -121,13 +121,7 @@ export type LegalEvidenceKind =
   | 'invoice'
   | 'api_log'
   | 'technical_note'
-  | 'witness_statement'
-  | 'relatorio_entrega'
-  | 'contrato'
-  | 'nota_fiscal'
-  | 'log_api'
-  | 'nota_tecnica'
-  | 'depoimento';
+  | 'witness_statement';
 
 export interface LegalEvidenceItem {
   id: string;
@@ -140,35 +134,16 @@ export interface LegalEvidenceItem {
   supportsDefense: boolean;
 }
 
-export type LegalAuditVerdict =
-  | 'defensible'
-  | 'high_risk'
-  | 'critical_risk'
-  | 'defensavel'
-  | 'risco_alto'
-  | 'risco_critico';
+export type LegalAuditVerdict = 'defensible' | 'high_risk' | 'critical_risk';
 
 export type FindingDimension =
   | 'software_authorship'
   | 'contract_scope'
   | 'billing_revenue'
   | 'probative_evidence'
-  | 'statute_deadline'
-  | 'autoria_software'
-  | 'escopo_contratual'
-  | 'faturamento'
-  | 'prova_probatoria'
-  | 'prazo';
+  | 'statute_deadline';
 
-export type FindingStatus =
-  | 'confirmed'
-  | 'partial'
-  | 'missing'
-  | 'contradictory'
-  | 'confirmado'
-  | 'parcial'
-  | 'ausente'
-  | 'contraditorio';
+export type FindingStatus = 'confirmed' | 'partial' | 'missing' | 'contradictory';
 
 export interface LegalTechnicalFinding {
   dimension: FindingDimension;
@@ -193,18 +168,12 @@ export interface LegalAuditReport {
   recommendations: string[];
 }
 
-export type ContractReviewVerdict =
-  | 'compliance_pending'
-  | 'ready_for_signature'
-  | 'blocked'
-  | 'conformidade_pendente'
-  | 'apto_para_assinatura'
-  | 'bloqueado';
+export type ContractReviewVerdict = 'compliance_pending' | 'ready_for_signature' | 'blocked';
 
 export interface ContractClauseCheck {
   clause: string;
-  status: 'present' | 'partial' | 'missing' | 'presente' | 'parcial' | 'ausente';
-  severity: 'low' | 'medium' | 'high' | 'critical' | 'baixa' | 'media' | 'alta' | 'critica';
+  status: 'present' | 'partial' | 'missing';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   detail: string;
   recommendation: string;
 }

@@ -39,8 +39,8 @@ export class ExecuteLegalContractReviewUseCase {
     const targets = onlyUnapproved ? contracts.filter((c) => c.status !== 'Active') : contracts;
     const reports = targets.map((c) => this.reviewContract(c, timestamp));
 
-    const blocked = reports.filter((r) => r.verdict === 'bloqueado' || r.verdict === 'blocked');
-    const approved = reports.filter((r) => r.verdict === 'apto_para_assinatura' || r.verdict === 'ready_for_signature');
+    const blocked = reports.filter((r) => r.verdict === 'blocked');
+    const approved = reports.filter((r) => r.verdict === 'ready_for_signature');
     const draftCount = contracts.filter((c) => c.status !== 'Active').length;
     const activeCount = contracts.filter((c) => c.status === 'Active').length;
 
@@ -109,14 +109,14 @@ export class ExecuteLegalContractReviewUseCase {
     checks.push(this.checkWitnesses(reviewFlags));
 
     const missingClauses = checks
-      .filter((c) => c.status !== 'presente' && c.status !== 'present')
+      .filter((c) => c.status !== 'present')
       .map((c) => c.clause);
     const blockingIssues = checks
-      .filter((c) => c.severity === 'critica' || c.severity === 'critical')
+      .filter((c) => c.severity === 'critical')
       .map((c) => c.detail);
     const verdict = this.decideVerdict(contract, blockingIssues, missingClauses);
     const score = Math.round(
-      (checks.filter((c) => c.status === 'presente' || c.status === 'present').length / checks.length) * 100
+      (checks.filter((c) => c.status === 'present').length / checks.length) * 100
     );
 
     return {
@@ -260,9 +260,9 @@ export class ExecuteLegalContractReviewUseCase {
     blockingIssues: string[],
     missingClauses: string[]
   ): ContractReviewVerdict {
-    if (blockingIssues.length > 0) return 'bloqueado';
-    if (missingClauses.length > 0) return 'conformidade_pendente';
-    return contract.status === 'Active' ? 'apto_para_assinatura' : 'conformidade_pendente';
+    if (blockingIssues.length > 0) return 'blocked';
+    if (missingClauses.length > 0) return 'compliance_pending';
+    return contract.status === 'Active' ? 'ready_for_signature' : 'compliance_pending';
   }
 
   private async persist(reports: ContractComplianceReport[], jobId: string): Promise<void> {
@@ -276,7 +276,7 @@ export class ExecuteLegalContractReviewUseCase {
           success: true,
           details: {
             jobId,
-            blocked: reports.filter((r) => r.verdict === 'bloqueado' || r.verdict === 'blocked').length,
+            blocked: reports.filter((r) => r.verdict === 'blocked').length,
             verdicts: reports.map((r) => `${r.contractNumber}=${r.verdict}(${r.score})`),
           },
           created_at: new Date().toISOString(),

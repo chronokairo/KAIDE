@@ -1,158 +1,111 @@
 /**
- * GitHub-native domain entities.
+ * Pure domain entities and types representing native GitHub capabilities.
  *
- * These types mirror GitHub's own vocabulary on purpose. Nothing here is
- * normalized against GitLab: the AI QA and AI Coder roles consume the real
- * shape GitHub returns so that no field has to be invented or flattened.
- *
- * Target: the `chronokairo` GitHub organization, project `chronokairo/ai`.
- *
- * Hexagonal architecture: pure domain, no SDK, no process, no I/O.
+ * Hexagonal architecture: pure domain, decoupled from GitHub CLI or REST/GraphQL SDKs.
  */
 
-export interface GithubRepositoryRef {
-  /** Always `owner/name`, for example `chronokairo/ai`. */
-  slug: string;
-  owner: string;
-  name: string;
-  isPrivate: boolean;
-  defaultBranch: string;
-}
+import { extractTaskCodes } from './forge';
 
-export interface GithubUser {
-  login: string;
-  name: string | null;
-}
+export type GitHubPullRequestState = 'OPEN' | 'CLOSED' | 'MERGED';
 
-export interface GithubCommitRef {
-  sha: string;
-  subject: string;
-  author: string;
-  committedAt: string;
-}
+export type GitHubReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
 
-/**
- * A branch as GitHub reports it. `headSha` is the commit the branch points at,
- * which is what makes the branch evidence verifiable.
- */
-export interface GithubBranch {
-  name: string;
-  headSha: string;
-  /** Backlog codes found in the branch name, used to bind work to a task. */
-  taskCodes: string[];
-  isDefault: boolean;
-  /** True when the branch is protected by a branch protection rule. */
-  isProtected: boolean;
-  aheadBy?: number;
-  behindBy?: number;
-}
+export type GitHubReviewEvent = 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
 
-export interface GithubPullRequestFile {
-  path: string;
-  status: 'added' | 'removed' | 'modified' | 'renamed' | 'copied' | 'changed';
-  additions: number;
-  deletions: number;
-  changes: number;
-  /** File-level patch, when GitHub returns it. Truncated for large diffs. */
-  patch?: string;
-}
-
-export type GithubReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
-
-export interface GithubReview {
-  author: string;
-  state: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'DISMISSED' | 'PENDING';
-  submittedAt: string;
-  bodyExcerpt: string;
-}
-
-/** A single CI check as reported by the status rollup. */
-export interface GithubCheckRun {
-  name: string;
-  status: 'queued' | 'in_progress' | 'completed';
-  conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | null;
-  startedAt?: string;
-  completedAt?: string;
-  url?: string;
-}
-
-/** GitHub's own pull request requester state. */
-export type GithubReviewDecisionState = 'open' | 'draft' | 'approved' | 'changes_requested' | 'merged' | 'closed';
-
-export interface GithubPullRequest {
-  id: string;
+export interface GitHubPullRequest {
   number: number;
   title: string;
-  body: string;
-  state: GithubReviewDecisionState;
+  body?: string;
+  state: GitHubPullRequestState;
   isDraft: boolean;
-  headBranch: string;
-  headSha: string;
-  baseBranch: string;
+  headRefName: string;
+  baseRefName: string;
+  headRefOid?: string;
   author: string;
-  additions: number;
-  deletions: number;
-  changedFiles: number;
-  commits: GithubCommitRef[];
-  files: GithubPullRequestFile[];
-  reviews: GithubReview[];
-  reviewDecision: GithubReviewDecision | null;
-  mergeable: boolean | null;
-  mergeableState: string | null;
-  checks: GithubCheckRun[];
-  labels: string[];
-  milestone: string | null;
-  taskCodes: string[];
   url: string;
   createdAt: string;
   updatedAt: string;
-  /** Set when `files` or `checks` could not be fetched; the report is partial. */
-  warnings: string[];
+  reviewDecision?: GitHubReviewDecision | null;
+  filesChanged?: string[];
+  taskCodes: string[];
 }
 
-/** Payload written back to a pull request as a formal review. */
-export interface GithubReviewSubmission {
+export interface GitHubBranch {
+  name: string;
+  targetOid?: string;
+  isDefault: boolean;
+  taskCodes: string[];
+}
+
+export interface GitHubCommit {
+  oid: string;
+  message: string;
+  author: string;
+  committedDate: string;
+  taskCodes: string[];
+}
+
+export interface GitHubCheckRun {
+  name: string;
+  status: 'completed' | 'in_progress' | 'queued';
+  conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | null;
+  detailsUrl?: string;
+}
+
+export interface GitHubReviewInput {
   pullRequestNumber: number;
-  event: 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES';
+  event: GitHubReviewEvent;
   body: string;
 }
 
-/**
- * Conventional commit, parsed from GitHub's commit message. The repository
- * follows `type(scope): subject`, for example
- * `feat(finance): implement real finance jobs (ADR-0037)`.
- */
-export interface GithubConventionalCommit {
-  type: string;
-  scope?: string;
-  subject: string;
-  breaking: boolean;
-  references: string[];
-  raw: string;
+export interface GitHubAuthStatus {
+  authenticated: boolean;
+  account: string;
+  host: string;
 }
 
-/** Result of a CI workflow run, which AI QA treats as the test evidence. */
-export interface GithubWorkflowRun {
-  id: string;
-  name: string;
-  status: 'queued' | 'in_progress' | 'completed';
-  conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | null;
-  event: string;
-  headBranch: string;
-  headSha: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export function toGitHubPullRequest(raw: {
+  number: number;
+  title?: string;
+  body?: string;
+  state?: string;
+  isDraft?: boolean;
+  headRefName?: string;
+  baseRefName?: string;
+  headRefOid?: string;
+  author?: { login?: string } | string;
+  url?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  reviewDecision?: string | null;
+  files?: Array<{ path?: string }>;
+}): GitHubPullRequest {
+  const authorName =
+    typeof raw.author === 'object' && raw.author !== null
+      ? raw.author.login ?? 'unknown'
+      : typeof raw.author === 'string'
+        ? raw.author
+        : 'unknown';
 
-/** Aggregated view the Coder job uses as evidence for a status proposal. */
-export interface GithubActivity {
-  repository: GithubRepositoryRef;
-  branches: GithubBranch[];
-  pullRequests: GithubPullRequest[];
-  commits: GithubCommitRef[];
-  workflowRuns: GithubWorkflowRun[];
-  authenticatedAccount: string | null;
-  collectedAt: string;
-  warnings: string[];
+  const filesChanged = raw.files?.map((f) => f.path ?? '').filter(Boolean);
+  const title = raw.title ?? '';
+  const headRefName = raw.headRefName ?? '';
+
+  return {
+    number: raw.number,
+    title,
+    body: raw.body,
+    state: (raw.state?.toUpperCase() as GitHubPullRequestState) || 'OPEN',
+    isDraft: Boolean(raw.isDraft),
+    headRefName,
+    baseRefName: raw.baseRefName ?? '',
+    headRefOid: raw.headRefOid,
+    author: authorName,
+    url: raw.url ?? '',
+    createdAt: raw.createdAt ?? '',
+    updatedAt: raw.updatedAt ?? '',
+    reviewDecision: (raw.reviewDecision as GitHubReviewDecision) || null,
+    filesChanged,
+    taskCodes: extractTaskCodes(`${headRefName} ${title}`),
+  };
 }
