@@ -142,6 +142,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0037](docs/adr/0037-implementacao-job-finance-reconcile-e-controladoria.md) | Implementação do Módulo de Finanças & Controladoria (AI Finance / Ops) Conectado ao Supabase de Produção |
 | [0038](docs/adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control domain, dual-forge linkage (GitHub & GitLab), and pure-English domain transition |
 | [0039](docs/adr/0039-control-plane-hexagonal-supabase-resend.md) | Rework hexagonal do Control Plane com Supabase prod, Resend e suíte de testes (idempotência real, fixes de double-encoding e cursor) |
+| [0040](docs/adr/0040-enterprise-shell-control-plane-nvidia-nim.md) | Shell Enterprise do Control Plane, sessões por agente, terminal inferior e chat NVIDIA NIM dinâmico |
 
 ### Mapas de código — `docs/maps/`
 

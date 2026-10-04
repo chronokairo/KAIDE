@@ -4,7 +4,7 @@
 // Arquitetura Hexagonal: Infrastructure/UI — implementa CompanyControlPlanePort.
 
 import type {
-  CompanyControlPlanePort,
+  CompanyMonitorPort,
   CompanyStateSnapshot,
 } from '@/application/ports/company-control-plane-port';
 import type {
@@ -198,7 +198,7 @@ function mapJob(job: JobRecord, pendingGates: ApprovalGateRecord[]): JobEntity {
     toolsUsed: [],
     changesSummary: summary,
     testsSummary: '',
-    evidence: [`idempotencyKey: ${job.idempotencyKey}`, `attempts: ${job.attempts}`],
+    evidence: gate?.evidence ?? [],
     costUsd: job.costUsd,
     durationSeconds,
     requiresApproval: Boolean(gate),
@@ -251,7 +251,7 @@ function buildTelemetry(jobs: JobRecord[], pendingGates: ApprovalGateRecord[]): 
   return {
     totalJobsCompleted: completed.length,
     totalCostUsd: jobs.reduce((sum, j) => sum + (j.costUsd ?? 0), 0),
-    activeAgentsCount: jobs.some((j) => j.status === 'in_progress') ? 1 : 0,
+    activeAgentsCount: new Set(jobs.filter((j) => j.status === 'in_progress').map((j) => roleFromJobType(j.type))).size,
     pendingApprovalsCount: pendingGates.length,
     averageCycleTimeMinutes:
       durations.length > 0
@@ -261,8 +261,9 @@ function buildTelemetry(jobs: JobRecord[], pendingGates: ApprovalGateRecord[]): 
   };
 }
 
-export class HttpCompanyMonitorAdapter implements CompanyControlPlanePort {
+export class HttpCompanyMonitorAdapter implements CompanyMonitorPort {
   private listeners = new Set<(snapshot: CompanyStateSnapshot) => void>();
+  private errorListeners = new Set<(error: Error) => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private fetching = false;
 
@@ -288,7 +289,7 @@ export class HttpCompanyMonitorAdapter implements CompanyControlPlanePort {
   }
 
   async approveJob(approvalId: string, rationale?: string): Promise<void> {
-    const response = await fetch(`/api/control-plane/approvals/${approvalId}/resolve`, {
+    const response = await fetch(`/api/control-plane/approvals/${encodeURIComponent(approvalId)}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decision: 'approved', resolvedBy: 'director', rationale }),
@@ -299,8 +300,28 @@ export class HttpCompanyMonitorAdapter implements CompanyControlPlanePort {
     await this.refresh();
   }
 
+  async dispatchJob(jobName: string): Promise<JobEntity> {
+    const response = await fetch('/api/control-plane/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: jobName, requestedBy: 'director' }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      job?: JobRecord;
+    };
+    if (!response.ok) {
+      throw new Error(payload.error ?? `Falha ao disparar job: ${response.status}`);
+    }
+    if (!payload.job) {
+      throw new Error('Resposta do Control Plane sem job.');
+    }
+    const snapshot = await this.getSnapshot();
+    return snapshot.jobs.find((job) => job.id === payload.job!.id) ?? mapJob(payload.job, []);
+  }
+
   async rejectJob(approvalId: string, reason: string): Promise<void> {
-    const response = await fetch(`/api/control-plane/approvals/${approvalId}/resolve`, {
+    const response = await fetch(`/api/control-plane/approvals/${encodeURIComponent(approvalId)}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decision: 'rejected', resolvedBy: 'director', rationale: reason }),
@@ -311,14 +332,16 @@ export class HttpCompanyMonitorAdapter implements CompanyControlPlanePort {
     await this.refresh();
   }
 
-  subscribe(callback: (snapshot: CompanyStateSnapshot) => void): () => void {
+  subscribe(callback: (snapshot: CompanyStateSnapshot) => void, onError?: (error: Error) => void): () => void {
     this.listeners.add(callback);
+    if (onError) this.errorListeners.add(onError);
     if (!this.timer) {
       this.timer = setInterval(() => void this.refresh(), POLL_INTERVAL_MS);
     }
     void this.refresh();
     return () => {
       this.listeners.delete(callback);
+      if (onError) this.errorListeners.delete(onError);
       if (this.listeners.size === 0 && this.timer) {
         clearInterval(this.timer);
         this.timer = null;
@@ -335,7 +358,8 @@ export class HttpCompanyMonitorAdapter implements CompanyControlPlanePort {
         listener(snapshot);
       }
     } catch (error) {
-      console.warn('[control-plane] snapshot falhou:', error);
+      const failure = error instanceof Error ? error : new Error('Não foi possível consultar o Control Plane.');
+      for (const listener of this.errorListeners) listener(failure);
     } finally {
       this.fetching = false;
     }
