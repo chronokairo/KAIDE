@@ -50,7 +50,7 @@ export function AppBar({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-sm tracking-tight text-on-surface">ChronoKairo</span>
+              <span className="font-semibold text-sm tracking-tight text-on-surface">Chronokairo AI Enterprise</span>
               <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-secondary-fixed/20 text-secondary border border-secondary/30">
                 AI
               </span>

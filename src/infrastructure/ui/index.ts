@@ -1,7 +1,6 @@
 export { CompanyMonitor } from './CompanyMonitor';
-export { PokemonOfficeScene } from './PokemonOfficeScene';
-export { CompanyScene2D } from './CompanyScene2D';
-export { CompanyScene3D } from './CompanyScene3D';
+export { AtelierScene } from './AtelierScene';
+export type { AtelierCamera } from './AtelierScene';
 export { AppShell } from './AppShell';
 export { AppBar } from './AppBar';
 export { LeftSidebar } from './LeftSidebar';

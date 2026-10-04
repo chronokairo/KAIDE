@@ -107,27 +107,28 @@ export async function fetchAvailableModels(): Promise<ModelInfo[]> {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
-    const res = await fetch('/api/settings/integrations/nvidia-nim/models', { headers });
-    if (!res.ok) return NVIDIA_MODELS_FALLBACK;
-
+    const res = await fetch('/api/ai/models', { headers, cache: 'no-store' });
+    if (!res.ok) throw new Error('Não foi possível consultar os modelos NVIDIA NIM.');
     const data = await res.json();
-    if (!data.configured || !data.models?.length) return NVIDIA_MODELS_FALLBACK;
-
-    const models: ModelInfo[] = data.models.map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      provider: m.provider || 'NVIDIA',
-      contextWindow: m.contextWindow || 128000,
-      maxOutput: m.maxOutput || 8192,
-      capabilities: m.capabilities || { reasoning: false, toolCall: false, structuredOutput: false, vision: false },
-      isOpenWeights: m.isOpenWeights || false,
-    }));
+    if (!data.models?.length) throw new Error('A API NVIDIA NIM não retornou modelos.');
+    const models: ModelInfo[] = data.models.map((m: any) => {
+      const id = typeof m === 'string' ? m : m.id;
+      return {
+      id,
+      name: typeof m === 'string' ? m : (m.name || id),
+      provider: typeof m === 'string' ? 'NVIDIA NIM' : (m.provider || 'NVIDIA'),
+      contextWindow: typeof m === 'string' ? 128000 : (m.contextWindow || 128000),
+      maxOutput: typeof m === 'string' ? 8192 : (m.maxOutput || 8192),
+      capabilities: typeof m === 'string' ? { reasoning: false, toolCall: true, structuredOutput: false, vision: false } : (m.capabilities || { reasoning: false, toolCall: false, structuredOutput: false, vision: false }),
+      isOpenWeights: typeof m === 'string' ? false : (m.isOpenWeights || false),
+      };
+    });
 
     _cachedModels = models;
     _cacheTimestamp = now;
     return models;
-  } catch {
-    return NVIDIA_MODELS_FALLBACK;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Falha ao consultar modelos NVIDIA NIM.');
   }
 }
 
