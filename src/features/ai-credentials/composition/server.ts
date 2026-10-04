@@ -34,6 +34,14 @@ export function createNvidiaCredentialService(): NvidiaCredentialService {
   return {
     service: {
       async resolve(userId: string): Promise<ResolvedCredential | null> {
+        const envApiKey = process.env.NVIDIA_NIM_API_KEY || process.env.NVIDIA_API_KEY;
+        if (envApiKey) {
+          return {
+            apiKey: envApiKey,
+            baseUrl: process.env.NVIDIA_NIM_BASE_URL || NVIDIA_BASE_URL,
+            model: process.env.NVIDIA_NIM_MODEL || DEFAULT_MODEL,
+          };
+        }
         const { data, error } = await supabase
           .from('organizations')
           .select('metadata')

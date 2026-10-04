@@ -5,8 +5,8 @@ import { LayoutPanelsProvider } from '@/providers/LayoutPanelsProvider';
 import { TauriRuntimeProvider } from '@/modules/ai/components/TauriRuntimeProvider';
 
 export const metadata = {
-  title: 'ChronoKairo AI',
-  description: 'ChronoKairo AI Platform & Coding Agent',
+  title: 'Chronokairo AI Enterprise',
+  description: 'Chronokairo AI Enterprise Platform & Coding Agent',
 };
 
 export default function DesktopLayout({ children }: { children: React.ReactNode }) {

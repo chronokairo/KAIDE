@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ChronoKairo Desktop",
+  "productName": "Chronokairo AI Enterprise",
   "version": "1.0.0",
   "identifier": "com.chronokairo.desktop",
   "build": {

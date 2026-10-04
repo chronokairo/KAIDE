@@ -9,13 +9,14 @@ import { getCompanyResearchAdapter } from '@/infrastructure/research/web-company
 import { createResendEmailAdapter } from '@/infrastructure/email/resend-email-adapter';
 import type { EmailOutreachPort } from '@/application/ports/email-outreach-port';
 import type { RunJobByTypeDeps } from '@/application/use-cases/run-job-by-type';
+import { PROD_ORGANIZATION_ID, PROD_USER_ID } from '@/shared/supabase';
 
 /**
  * organizationId validado no servidor — nunca confiar no cliente.
  * Em produção é o UUID real da organização no Supabase (auth.organizations).
  */
 export function getOrganizationId(): string {
-  const orgId = process.env.CONTROL_PLANE_ORGANIZATION_ID;
+  const orgId = process.env.CONTROL_PLANE_ORGANIZATION_ID ?? PROD_ORGANIZATION_ID;
   if (!orgId) {
     throw new Error(
       'CONTROL_PLANE_ORGANIZATION_ID não configurado — defina em .env.local (UUID da organização no Supabase).'
@@ -29,7 +30,7 @@ export function getOrganizationId(): string {
  * atividades registradas pelo Control Plane (o diretor técnico).
  */
 export function getActorUserId(): string {
-  const actor = process.env.CONTROL_PLANE_ACTOR_USER_ID;
+  const actor = process.env.CONTROL_PLANE_ACTOR_USER_ID ?? PROD_USER_ID;
   if (!actor) {
     throw new Error(
       'CONTROL_PLANE_ACTOR_USER_ID não configurado — defina em .env.local (user_id do diretor no Supabase).'

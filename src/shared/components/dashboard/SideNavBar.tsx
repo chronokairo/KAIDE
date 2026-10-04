@@ -101,7 +101,7 @@ export const SideNavBar: React.FC = () => {
           </div>
           {isLeftSidebarOpen && (
             <div className="min-w-0">
-              <div className="font-bold text-xs text-white tracking-wide truncate">ChronoKairo</div>
+              <div className="font-bold text-xs text-white tracking-wide truncate">Chronokairo AI Enterprise</div>
               <div className="text-[10px] text-zinc-500 flex items-center gap-1 font-mono">
                 <span>Desktop v1.0</span>
                 {isTauri && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}

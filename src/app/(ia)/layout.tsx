@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "IA — ChronoKairo",
+  title: "IA — Chronokairo AI Enterprise",
   description: "Módulos de Inteligência Artificial: modelos, LLMs, NLP, visão computacional e agentes.",
 };
 

@@ -7,7 +7,6 @@
 
 import type { CrmPort } from '@/application/ports/crm-port';
 import type { JobStorePort } from '@/application/ports/control-plane-store-port';
-import { ControlPlaneFileStore } from './control-plane-file-store';
 import { ControlPlaneSupabaseStore } from './control-plane-supabase-store';
 
 export type ControlPlaneStore = JobStorePort & CrmPort;
@@ -15,12 +14,10 @@ export type ControlPlaneStore = JobStorePort & CrmPort;
 export function createControlPlaneStore(): ControlPlaneStore {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (supabaseUrl && serviceKey) {
-    return new ControlPlaneSupabaseStore(supabaseUrl, serviceKey);
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Control Plane requer NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
   }
-  return new ControlPlaneFileStore(
-    process.env.CONTROL_PLANE_STORE_PATH ?? '.data/control-plane.json'
-  );
+  return new ControlPlaneSupabaseStore(supabaseUrl, serviceKey);
 }
 
 let store: ControlPlaneStore | null = null;
