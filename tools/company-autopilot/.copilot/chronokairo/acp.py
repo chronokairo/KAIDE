@@ -16,6 +16,35 @@ import company
 
 BASE=company.BASE
 
+def permission_allowed(call, role, allowed_tools, cwd):
+    """Authorize structured ACP requests; opaque requests fail closed."""
+    kind = {'read': 'read', 'search': 'search', 'edit': 'edit', 'execute': 'execute'}.get(call.get('kind'))
+    if kind not in allowed_tools or (role in ['reviewer', 'analyst'] and kind not in ['read', 'search']):
+        return False
+    locations = call.get('locations', [])
+    if kind in ['read', 'edit'] and not locations:
+        return False
+    for location in locations:
+        path = location.get('path')
+        if not isinstance(path, str): return False
+        target = (Path(cwd) / path).resolve()
+        if not target.is_relative_to(Path(cwd).resolve()) or re.search(r'(?i)(?:^|/)(?:\.env(?:\..*)?|[^/]*(?:credential|secret|adminsdk)[^/]*)$', str(target)):
+            return False
+        if role == 'qa' and kind == 'edit' and not re.search(r'(?:^|/)(?:tests?|__tests__)/|\.(?:test|spec)\.', path):
+            return False
+    if kind == 'execute':
+        # Shell is not a sandbox. Only explicit local verification commands are approved.
+        import shlex
+        raw = call.get('rawInput', {})
+        command = raw.get('command') if isinstance(raw, dict) else None
+        if not isinstance(command, str) or re.search(r'[;&|`\n<>]|\$\(', command): return False
+        try: words = shlex.split(command)
+        except ValueError: return False
+        if words[:2] in [['npm', 'test'], ['npm', 'run']]:
+            return words[:2] == ['npm', 'test'] or (len(words) >= 3 and words[2] in ['test', 'lint', 'typecheck', 'build'])
+        return len(words) >= 2 and words[0] == 'git' and words[1] in ['status', 'diff', 'show', 'log'] and not any(w.startswith('--output') for w in words)
+    return kind in ['read', 'search', 'edit']
+
 def sanitize(value):
     if isinstance(value,dict):
         return {k:('[REDACTED]' if re.fullmatch(r'(?i)(?:access[_-]?token|refresh[_-]?token|auth[_-]?token|token|secret|password|api[_-]?key|authorization)',k) else sanitize(v)) for k,v in value.items()}
@@ -30,7 +59,9 @@ def namespace(cwd):
     return company.scoped(match[1])
 
 class Connection:
-    def __init__(self,cmd,cwd):
+    def __init__(self,cmd,cwd,role='analyst',allowed_tools=None):
+        self.cwd=Path(cwd).resolve();self.role=role;self.allowed_tools=set(allowed_tools or ['read','search'])
+        self.permission_count=0;self.deadline=time.monotonic()+900
         env=dict(os.environ)
         config=json.loads((BASE/'backends.json').read_text())
         env['PATH']=config['path_prefix']+os.pathsep+env.get('PATH','')
@@ -53,7 +84,7 @@ class Connection:
     def request(self,method,params,timeout=45):
         self.next_id+=1;rid=self.next_id
         self.write({'jsonrpc':'2.0','id':rid,'method':method,'params':params})
-        end=time.monotonic()+timeout
+        end=min(time.monotonic()+timeout,self.deadline)
         while time.monotonic()<end:
             try:message=self.incoming.get(timeout=max(.1,end-time.monotonic()))
             except queue.Empty:raise TimeoutError(method+' timed out')
@@ -63,9 +94,9 @@ class Connection:
                 return message.get('result',{})
             if 'method' in message and 'id' in message:
                 if message['method']=='session/request_permission':
-                    p=message.get('params',{});title=json.dumps(p.get('toolCall',{}),ensure_ascii=False)
-                    denied=bool(re.search(r'(?i)\b(sudo|mainnet|force.push|git push[^\n]*(?: main\b| master\b)|repo delete|payment.execute|transfer.funds)\b',title))
-                    kind='reject_once' if denied else 'allow_once'
+                    p=message.get('params',{});self.permission_count+=1
+                    allowed=self.permission_count<=12 and permission_allowed(p.get('toolCall',{}),self.role,self.allowed_tools,self.cwd)
+                    kind='allow_once' if allowed else 'reject_once'
                     option=next((o for o in p.get('options',[]) if o.get('kind')==kind),None)
                     result={'outcome':{'outcome':'selected','optionId':option['optionId']}} if option else {'outcome':{'outcome':'cancelled'}}
                     self.write({'jsonrpc':'2.0','id':message['id'],'result':result})
@@ -107,7 +138,9 @@ def run(args):
             wt.parent.mkdir(parents=True,exist_ok=True)
             subprocess.run(['git','-C',str(cwd),'worktree','add','-b','ck/'+args.job,str(wt),'HEAD'],check=True,capture_output=True,text=True,timeout=30)
         if namespace(wt)!=project:raise ValueError('Existing ACP worktree has a different origin')
-        started=time.monotonic();conn=Connection(backend['command'],wt)
+        if not isinstance(task['allowed_tools'],list) or not set(task['allowed_tools']) <= {'read','search','edit','execute'}:
+            raise ValueError('allowed_tools must be a list of read/search/edit/execute')
+        started=time.monotonic();conn=Connection(backend['command'],wt,role,task['allowed_tools'])
         info=initialize(conn)
         created=conn.request('session/new',{'cwd':str(wt),'mcpServers':[]})
         sid=created['sessionId']
@@ -125,6 +158,7 @@ def run(args):
         result=conn.request('session/prompt',{'sessionId':sid,'prompt':[{'type':'text','text':prompt}]},timeout=900)
         evidence={'engine':args.engine,'transport':backend['transport'],'project':project,'cwd':str(wt),
                   'session_id':sid,'elapsed_seconds':round(time.monotonic()-started,2),'result':result,'agent_info':info.get('agentInfo'),
+                  'permission_requests':conn.permission_count,
                   'events':sanitize(conn.events) if len(json.dumps(conn.events))<12000 else None}
         # Full events are separately redacted line by line to avoid cutting JSON in half.
         company.atomic(BASE/'jobs'/args.job/'acp-events.jsonl',''.join(json.dumps(sanitize(e),ensure_ascii=False)+'\n' for e in conn.events))
