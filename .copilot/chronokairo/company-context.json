@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "confirmed_by_owner_at": "2026-10-05",
+  "projects": {
+    "workmed": {
+      "repository": "https://gitlab.com/chronokairo/workmed",
+      "role": "Chronokairo SaaS base"
+    },
+    "audiomed": {
+      "repository": "https://github.com/chronokairo/audiomed",
+      "role": "Customer-specific Workmed customization",
+      "customer": "Audiomed",
+      "commercial_status": "Customer purchased the customization; confirmed by owner",
+      "base_product": "workmed",
+      "delivery_scope": "Implement customer requirements in audiomed. Changes to the SaaS base need reuse justification and multi-tenant impact analysis.",
+      "current_delivery_issues": [56, 57, 58]
+    }
+  }
+}
