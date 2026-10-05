@@ -1,0 +1,9 @@
+{
+  "role": "coder",
+  "objective": "Implement one accepted issue in the selected Chronokairo project",
+  "scope": "Specify the actual namespace, allowed paths and exclusions before running",
+  "sources": ["Replace with the actual issue URL, specification and repository instructions"],
+  "acceptance": ["Replace with observable criteria and required verification"],
+  "allowed_tools": ["Read project files", "Edit scoped files", "Run relevant local tests"],
+  "constraints": ["No production deploy", "No real-money operations", "No external messages", "No protected-branch writes"]
+}

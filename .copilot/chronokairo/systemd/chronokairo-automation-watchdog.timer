@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Chronokairo automations every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/5:00
+Persistent=true
+Unit=chronokairo-automation-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,37 @@
+# Local credentials stay on this machine.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+auth.json
+credentials.json
+hosts.yml
+
+# Local state and dependency caches are never part of the company configuration.
+**/node_modules/
+**/__pycache__/
+*.pyc
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.lock
+!package-lock.json
+.copilot/chronokairo/preview/
+.copilot/chronokairo/jobs/
+.copilot/chronokairo/locks/
+.copilot/chronokairo/acp-worktrees/
+.copilot/chronokairo/registry.json
+.copilot/chronokairo/repositories.json
+.copilot/chronokairo/priorities.json
+.copilot/chronokairo/installation.json
+.copilot/chronokairo/backends.json
+.copilot/chronokairo/acp-diagnostics.json
+.copilot/chronokairo/source-before-unify/
+backups/
+
+# Editor / OS files.
+.DS_Store
+.idea/
+.vscode/
