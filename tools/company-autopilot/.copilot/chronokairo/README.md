@@ -83,6 +83,8 @@ app e consulta o projeto GitLab `chronokairo/finance`; o cadastro Finance não
 mantém vínculo GitHub de outra organização. Todos os origins são verificados
 pelo instalador antes de alterar o cadastro.
 
+`company_report.py` consolida diariamente as execuções do Copilot e os relatos dos agentes em `Desktop/Chronokairo/Relatorio-Empresa-AAAA-MM-DD.md`. A automação `daily-report`, às 18h America/Caracas, executa essa consolidação. O resumo diferencia runtime e entregas; custos e receita sem fonte permanecem indisponíveis. A geração manual usa `python3 ~/.copilot/chronokairo/company_report.py`.
+
 `company.py job --job <id> --route <rota> --status running` inicia o controle.
 Cada etapa usa `--step <agent_id>` e deve concluir com `--status completed
 --accepted --evidence <arquivo>`. Etapas anteriores precisam ter sido aceitas;

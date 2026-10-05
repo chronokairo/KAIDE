@@ -226,6 +226,8 @@ def configure(target, live=False):
                     'Daily-report e auditoria consultam company.py metrics para duração, falhas e aceite; custo/tokens não fornecidos permanecem unknown. '
                     'Modelo Flash ou Nemotron com timeout/504: registre a falha e tente uma única vez o modelo GLM completo cadastrado; '
                     'falha de credencial/escopo não autoriza fallback. Aos 15 minutos não inicie novas etapas e reporte o restante.')
+            if key == 'daily-report':
+                prompt += '\nRelatório obrigatório: execute python3 /home/deck/.copilot/chronokairo/company_report.py. Leia Relatorio-Empresa-<YYYY-MM-DD>.md no Desktop/Chronokairo e acrescente análise baseada em evidências, sem substituir o documento por uma confirmação vazia. Distinga status do runtime, entregas reportadas, implementação, deploy e resultado financeiro. Não execute pagamentos, merges ou deploys para gerar o relatório. O relatório deve incluir Workmed, Audiomed e Agroflow quando houver evidências. Registre o caminho do documento na resposta da automação.\n'
             columns=['id','name','prompt','model','project_id','interval','schedule_hour','schedule_day','enabled','mode','schedule_minute','workspace_type','next_run_at','agent','agent_scope']
             minute=MINUTES.get(key,0)
             values=[ident('workflow:'+key),name,prompt,provider+'/'+MODELS['reason'],projects[project],interval,hour,day,1,'autopilot',minute,'worktree',next_run(interval,hour,day,minute),root_agent,'global']
