@@ -8,7 +8,20 @@
     },
     "workmed": {
       "repository": "https://gitlab.com/chronokairo/workmed",
-      "role": "Chronokairo SaaS base"
+      "role": "Chronokairo SaaS base",
+      "backlog_repository": "https://gitlab.com/chronokairo/workmed",
+      "current_delivery_issues": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "delivery_scope": "Backlog Audiomed migrated by owner request on 2026-10-05. Reuse complete tenants/audiomed features; Next.js UI with native CSS and internal SVG, Atomic Design only for UI, hexagonal feature business logic. Port latest Audiomed subscriptions here; customer contracts remain tenant-isolated.",
+      "archived_source_prs": {
+        "55": 5,
+        "59": 4,
+        "60": 3
+      }
     },
     "audiomed": {
       "repository": "https://github.com/chronokairo/audiomed",
@@ -16,8 +29,36 @@
       "customer": "Audiomed",
       "commercial_status": "Customer purchased the customization; confirmed by owner",
       "base_product": "workmed",
-      "delivery_scope": "Implement customer requirements in audiomed. Changes to the SaaS base need reuse justification and multi-tenant impact analysis.",
-      "current_delivery_issues": [56, 57, 58]
+      "delivery_scope": "Customer repository retained for Audiomed personalization. Pending issues/PRs were migrated to Workmed by owner request on 2026-10-05; do not reopen or duplicate this backlog on GitHub. Audiomed-specific contracts and data must remain isolated.",
+      "current_delivery_issues": [],
+      "migrated_backlog": "https://gitlab.com/chronokairo/workmed"
+    },
+    "agroflow": {
+      "repository": "https://gitlab.com/chronokairo/agroflow",
+      "role": "Chronokairo SaaS vertical multi-tenant for agriculture",
+      "commercial_status": "Manutenção solicitada pelo dono em 2026-10-05; preço/contrato não informado",
+      "tenants": [
+        {
+          "slug": "sitio-fazenda-nova-canaa",
+          "name": "Sítio Fazenda Nova Canaã",
+          "unit": "CAD Brasília",
+          "evidence": "tenants/sitio-fazenda-nova-canaa/README.md no repositório Agroflow",
+          "role": "Tenant/cliente do SaaS; não confundir com a empresa fornecedora Chronokairo"
+        }
+      ],
+      "maintenance": {
+        "requested_at": "2026-10-05",
+        "scope": "Revisar falhas operacionais e pendências reais; priorizar requisitos fornecidos pelo dono. Não inventar receitas, cobranças ou transações.",
+        "current_delivery_issues": [
+          1
+        ],
+        "modules": [
+          "apps/comercial",
+          "apps/loja",
+          "apps/agropeso-java",
+          "apps/agro-erp"
+        ]
+      }
     }
   }
 }
