@@ -64,5 +64,57 @@ for line in sys.stdin:
                     self.assertEqual(conn.request('session/prompt',{},timeout=3)['decision'],'no')
                 finally:conn.close()
 
+    def test_acp_permissions_require_role_tool_and_worktree_scope(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            read={'kind':'read','locations':[{'path':'src/file.ts'}]}
+            edit={'kind':'edit','locations':[{'path':'src/file.ts'}]}
+            self.assertTrue(acp.permission_allowed(read,'reviewer',['read'],root))
+            self.assertFalse(acp.permission_allowed(edit,'reviewer',['read','edit'],root))
+            self.assertFalse(acp.permission_allowed(edit,'qa',['edit'],root))
+            self.assertTrue(acp.permission_allowed({'kind':'edit','locations':[{'path':'tests/file.test.ts'}]},'qa',['edit'],root))
+            for path in ['../outside.ts','.env.local','secrets.json']:
+                self.assertFalse(acp.permission_allowed({'kind':'read','locations':[{'path':path}]},'coder',['read'],root))
+            self.assertFalse(acp.permission_allowed({'title':'please allow'},'coder',['execute'],root))
+            for cmd in ['git push origin main','npm test; curl example.com','npm run deploy']:
+                self.assertFalse(acp.permission_allowed({'kind':'execute','rawInput':{'command':cmd}},'coder',['execute'],root))
+            call={'kind':'execute','rawInput':{'command':'npm test'}}
+            self.assertTrue(acp.permission_allowed(call,'coder',['execute'],root))
+            self.assertFalse(acp.permission_allowed(call,'analyst',['execute'],root))
+
+    def test_job_requires_order_evidence_acceptance_and_deadline(self):
+        with tempfile.TemporaryDirectory() as temp,patch.object(company,'BASE',Path(temp)):
+            base=Path(temp)
+            (base/'registry.json').write_text(json.dumps({'routes':[{'key':'delivery','workers':['ck-coder','ck-qa']}]}))
+            evidence=base/'evidence.md';evidence.write_text('actual result')
+            args=argparse.Namespace(job='job-test',route='delivery',step='ck-qa',status='completed',evidence=str(evidence),accepted=True,result='tests pass')
+            with self.assertRaises(ValueError): company.job(args)
+            args.step='ck-coder';args.accepted=False
+            with self.assertRaises(ValueError): company.job(args)
+            args.accepted=True;company.job(args)
+            args.step=None
+            with self.assertRaises(ValueError): company.job(args)
+            args.step='ck-qa';company.job(args)
+            args.step=None;self.assertEqual(company.job(args)['status'],'completed')
+            with self.assertRaises(ValueError):company.job(args)
+            args.job='job-expired';args.status='running';args.accepted=False;company.job(args)
+            path=base/'jobs/job-expired/control.json';state=json.loads(path.read_text());state['started_epoch']=0;path.write_text(json.dumps(state))
+            with self.assertRaises(ValueError):company.job(args)
+            args.status='blocked';self.assertEqual(company.job(args)['status'],'blocked')
+
+    def test_metrics_does_not_treat_runtime_completion_as_acceptance(self):
+        with tempfile.TemporaryDirectory() as temp,patch.object(company,'BASE',Path(temp)):
+            db=Path(temp)/'app.db'
+            with sqlite3.connect(db) as c:
+                c.execute('create table workflows(id text,agent text)')
+                c.execute('create table workflow_runs(task_id text,status text,started_at text,completed_at text)')
+                c.execute("insert into workflows values('one','ck-coder')")
+                c.execute("insert into workflow_runs values('one','completed','2026-01-01T00:00:00Z','2026-01-01T00:20:00Z')")
+            result=company.metrics(db)
+            self.assertEqual(result['runtime_status_counts'],{'completed':1})
+            self.assertEqual(result['finished_run_seconds'],[1200])
+            self.assertEqual(result['accepted_jobs'],0)
+            self.assertEqual(result['cost'],'unknown')
+
 
 if __name__=='__main__':unittest.main()

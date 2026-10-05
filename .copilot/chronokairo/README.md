@@ -14,7 +14,7 @@ Coordenação/planos/revisão: z-ai/glm-5.3. Tarefas pequenas: z-ai/glm-5.3-flas
 
 Codex, Claude, OpenCode e agy são backends de execução via terminal, não providers de modelo no seletor do app. OpenCode tem ACP nativo; Codex e Claude usam adaptadores ACP fixados no package.json/lockfile; agy usa uma ponte local ACP sobre sua CLI print, sem alegar suporte ACP nativo. Os runtimes usam suas credenciais e modelos existentes, sem copiá-los entre sistemas.
 
-O runner acp.py valida o remote Chronokairo, adquire lock, cria worktree ck/<job_id>, limita cada prompt a 15 minutos, captura evidências e registra bloqueios. Um end_turn não comprova aceite; o coordenador precisa verificar diff e testes. Inicialização ACP não comprova inferência ou acesso a todos os modelos. Para revisão, inclua o diff/commit específico nas fontes: a worktree começa em HEAD.
+O runner acp.py valida o remote Chronokairo, adquire lock, cria worktree ck/<job_id>, limita a sessão ACP inteira a 15 minutos, captura evidências e registra bloqueios. Um end_turn não comprova aceite; o coordenador precisa verificar diff e testes. Inicialização ACP não comprova inferência ou acesso a todos os modelos. Para revisão, inclua o diff/commit específico nas fontes: a worktree começa em HEAD.
 
 ```bash
 python3 ~/.copilot/chronokairo/acp.py diagnose
@@ -74,6 +74,37 @@ configure.py valida em cópia SQLite temporária e cria backup consistente antes
 Backups privados ficam em ~/.copilot/backups, fora do repositório. Para recuperar, feche os processos que usam o banco e restaure pela API SQLite backup. Não misture snapshots com WAL de outra execução. O exemplo Issue triage foi removido após backup e verificação.
 
 Ferramentas são filtradas nos perfis; shell e runtimes externos continuam com as permissões de seus ambientes. Worktree e prompts não são um sandbox completo. SLA, orçamento interno, sequências e gates são instruções; o runner ACP impõe timeout e os helpers impõem namespace/locks em suas próprias operações. Comandos fora dos helpers não recebem essas garantias automaticamente.
+
+### Controles operacionais
+
+Perfis leem a política comum de `POLICY.md`; operações de inventário, locks e
+relatórios pertencem aos coordenadores. Finance usa ck-ai como base de início do
+app e consulta o projeto GitLab `chronokairo/finance`; o cadastro Finance não
+mantém vínculo GitHub de outra organização. Todos os origins são verificados
+pelo instalador antes de alterar o cadastro.
+
+`company.py job --job <id> --route <rota> --status running` inicia o controle.
+Cada etapa usa `--step <agent_id>` e deve concluir com `--status completed
+--accepted --evidence <arquivo>`. Etapas anteriores precisam ter sido aceitas;
+o job só conclui depois de todas as etapas. Após 15 minutos o helper rejeita
+novos estados running; registre blocked e continue em um novo ciclo delimitado.
+Isso não cancela a sessão Copilot: o watchdog alerta execuções longas e o
+coordenador deve encerrar o ciclo. Jobs em andamento não são interrompidos pela
+instalação. Estados históricos permanecem preservados.
+
+`company.py metrics` consulta o histórico em modo somente leitura e distingue
+status do runtime, jobs com aceite registrado, duração e execuções acima de
+15 minutos. Custos e tokens ausentes permanecem unknown. Jobs antigos sem
+control.json não são considerados aceitos por inferência.
+
+ACP limita a sessão inteira a 15 minutos e a 12 solicitações de permissão.
+Autoriza solicitações estruturadas conforme allowed_tools/papel e paths dentro
+da worktree, rejeitando chamadas opacas. Reviewer/analyst não recebem escrita
+ou shell; QA só pode editar arquivos de testes. Shell aprovado se limita a
+comandos explícitos de verificação local. Publicação cabe ao coordenador após
+verificar o resultado. Esses controles cobrem solicitações ACP recebidas, não
+operações que um backend execute sem pedir permissão; scripts npm e processos
+locais não constituem sandbox. Falta de capacidade é registrada como bloqueio.
 
 Validação inclui integridade SQLite, foreign keys, modelos cadastrados, leitura real das automações pela API do app, descoberta de agentes, autenticação GitHub/GitLab, acesso git a ai/payments, locks e deduplicação/redação de relatórios. Um ciclo real de prioridades foi iniciado; resultados de negócio não são presumidos neste README.
 

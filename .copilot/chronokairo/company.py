@@ -155,6 +155,34 @@ def claim(args,release=False):
         f.seek(0);f.truncate();json.dump(data,f);f.flush();os.fsync(f.fileno())
     return {'project':project,'job':job,'released':release}
 
+def job(args):
+    safe_id(args.job)
+    routes=json.loads((BASE/'registry.json').read_text())['routes']
+    route=next((r for r in routes if r['key']==args.route),None)
+    if not route: raise ValueError('Unknown route')
+    path=BASE/'jobs'/args.job/'control.json'
+    path.parent.mkdir(parents=True,exist_ok=True)
+    with (path.parent/'control.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        now=time.time()
+        state=json.loads(path.read_text()) if path.exists() else {'job_id':args.job,'route':args.route,'started_epoch':now,'steps':{},'status':'running'}
+        if state['route']!=args.route: raise ValueError('Job belongs to a different route')
+        if state['status']=='completed': raise ValueError('Completed job cannot be rerun')
+        if args.status=='running' and now-state['started_epoch']>=900: raise ValueError('Job deadline exceeded; report blocked and resume in a new bounded cycle')
+        if args.step:
+            if args.step not in route['workers']: raise ValueError('Worker is outside route')
+            previous=route['workers'][:route['workers'].index(args.step)]
+            if any(state['steps'].get(p,{}).get('status')!='completed' for p in previous): raise ValueError('Previous stages must be accepted first')
+        if args.status=='completed':
+            if not args.accepted or not args.evidence or not Path(args.evidence).is_file(): raise ValueError('Completion requires verified acceptance and an existing evidence file')
+            if not args.step and any(state['steps'].get(p,{}).get('status')!='completed' for p in route['workers']): raise ValueError('All stages must complete before the job')
+        entry={'status':args.status,'heartbeat_epoch':now,'result':redact(args.result or ''),'evidence':args.evidence,'accepted':bool(args.accepted)}
+        if args.step:state['steps'][args.step]=entry
+        else:state['status']=args.status
+        state['heartbeat_epoch']=now
+        atomic(path,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+    return state
+
 def watchdog():
     c=sqlite3.connect('file:'+str(Path.home()/'.copilot/data.db')+'?mode=ro',uri=True)
     rows=c.execute("select r.id,w.name,r.error_message,r.started_at from workflow_runs r join workflows w on w.id=r.task_id where w.agent like 'ck-%' and r.status='failed'").fetchall()
@@ -162,6 +190,10 @@ def watchdog():
         report('ck-control-auditor','failed-'+safe_id(run),'blocker',
                f'Automação falhou: {name}\nInício: {started}\nErro informado pelo app: {redact(error or "sem detalhe")}\nPróximo passo: conferir modelo NVIDIA, sessão e logs do app; corrigir a causa e repetir a execução. Nenhum resultado de negócio foi presumido.',event_id='failed-'+run)
     for run,name,sid in c.execute("select r.id,w.name,r.session_id from workflow_runs r join workflows w on w.id=r.task_id where w.agent like 'ck-%' and r.status='running' and r.session_id is not null"):
+        started=c.execute('select started_at from workflow_runs where id=?',(run,)).fetchone()[0]
+        if started and (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(started.replace('Z','+00:00'))).total_seconds()>900:
+            report('ck-control-auditor','deadline-'+safe_id(run),'blocker',
+                   f'Limite de 15 minutos excedido: {name}. A sessão ainda está running no app. Verifique evidências e finalize/retome somente a etapa pendente. O watchdog não cancela sessões nem presume falha ou sucesso.',event_id='deadline-'+run)
         try:
             safe_id(sid)
             path=Path.home()/'.copilot/session-state'/sid/'events.jsonl'
@@ -190,10 +222,34 @@ def watchdog():
     c.close()
     return {'failed_runs_checked':len(rows)}
 
+def metrics(app_db=None):
+    database=Path(app_db) if app_db else Path.home()/'.copilot/data.db'
+    c=sqlite3.connect('file:'+str(database)+'?mode=ro',uri=True)
+    rows=c.execute("select r.status,r.started_at,r.completed_at from workflow_runs r join workflows w on w.id=r.task_id where w.agent like 'ck-%'").fetchall()
+    c.close()
+    durations=[];overdue=0;counts={}
+    now=dt.datetime.now(dt.timezone.utc)
+    for status,start,end in rows:
+        counts[status]=counts.get(status,0)+1
+        if not start:continue
+        started=dt.datetime.fromisoformat(start.replace('Z','+00:00'))
+        if end:durations.append(round((dt.datetime.fromisoformat(end.replace('Z','+00:00'))-started).total_seconds(),2))
+        elif status=='running' and (now-started).total_seconds()>900:overdue+=1
+    controls=[]
+    for path in (BASE/'jobs').glob('*/control.json'):
+        try:controls.append(json.loads(path.read_text()))
+        except (ValueError,OSError):continue
+    return {'scope':'all retained managed runs','runtime_status_counts':counts,'finished_run_seconds':durations,
+            'running_over_15_minutes':overdue,'accepted_jobs':sum(x.get('status')=='completed' for x in controls),
+            'controlled_jobs':len(controls),'cost':'unknown','tokens':'unknown',
+            'note':'Runtime completed is not business acceptance; historical jobs without control.json are excluded from accepted_jobs.'}
+
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='command',required=True)
     sub.add_parser('inventory');sub.add_parser('watchdog')
     r=sub.add_parser('report');r.add_argument('--agent',required=True);r.add_argument('--job',required=True);r.add_argument('--kind',choices=['daily','blocker'],required=True);r.add_argument('--message',required=True)
+    j=sub.add_parser('job');j.add_argument('--job',required=True);j.add_argument('--route',required=True);j.add_argument('--step');j.add_argument('--status',choices=['running','completed','blocked','needs_approval'],required=True);j.add_argument('--evidence');j.add_argument('--accepted',action='store_true');j.add_argument('--result')
+    sub.add_parser('metrics')
     for name in ['claim','release']:
         q=sub.add_parser(name);q.add_argument('project');q.add_argument('--job',required=True)
     q=sub.add_parser('create-project');q.add_argument('slug');q.add_argument('--forge',choices=['github','gitlab','both'],default='both');q.add_argument('--business-case',required=True);q.add_argument('--job',required=True)
@@ -205,6 +261,8 @@ def main():
         elif args.command=='report':result=report(args.agent,args.job,args.kind,args.message)
         elif args.command=='create-project':result=create_project(args)
         elif args.command=='clone':result=clone(args)
+        elif args.command=='job':result=job(args)
+        elif args.command=='metrics':result=metrics()
         else:result=claim(args,args.command=='release')
         print(json.dumps(result,ensure_ascii=False))
     except Exception as e:

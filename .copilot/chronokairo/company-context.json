@@ -2,6 +2,10 @@
   "version": 1,
   "confirmed_by_owner_at": "2026-10-05",
   "projects": {
+    "finance": {
+      "repository": "https://gitlab.com/chronokairo/finance",
+      "role": "Chronokairo finance; use real authorized financial documents, never infer transactions from product source code"
+    },
     "workmed": {
       "repository": "https://gitlab.com/chronokairo/workmed",
       "role": "Chronokairo SaaS base"
