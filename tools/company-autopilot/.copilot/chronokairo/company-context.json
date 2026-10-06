@@ -200,9 +200,18 @@
     "kattegatcorp": {
       "github": "https://github.com/kattegatcorp",
       "role": "Kattegat ERP, SaaS da Chronokairo com organização própria; pausado"
+    },
+    "manausdev": {
+      "github": "https://github.com/manausdev",
+      "supabase_project": "manausdev (tzqxvkawjnhuthrsanbm, outra organização Supabase)",
+      "role": "Projeto open source da comunidade de desenvolvedores de Manaus apoiado pela Chronokairo; não é cliente nem produto da empresa"
     }
   },
   "robots": {
     "agent@chronokairo.com.br": "Usuário-robô dos agentes: caixa agent no Mail (lê todas as caixas do cache e registra classificações) e membro do Chat; nunca usa service role."
+  },
+  "environments": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "note": "Empresa em início: dados internos e dos SaaS ficam no mesmo banco de produção chronokairo-prod (your-project-ref). chronokairo-dev (your-dev-project-ref) está inativo. Isolamento entre domínios depende de RLS por organização/tenant."
   }
 }
