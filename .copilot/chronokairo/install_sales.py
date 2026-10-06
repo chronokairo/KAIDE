@@ -11,7 +11,7 @@ import night_sales
 
 ROOT=Path(__file__).resolve().parent
 HOME=Path.home()/'.copilot'
-NEW_ROUTES={'demand-pipeline','replies','referrals','partnerships'}|night_sales.KEYS
+NEW_ROUTES={'demand-pipeline','replies','referrals','partnerships','crypto-receivables'}|night_sales.KEYS
 def install(night_only=False):
     c=sqlite3.connect(HOME/'data.db',timeout=20);c.row_factory=sqlite3.Row
     c.execute('PRAGMA foreign_keys=ON')
@@ -19,7 +19,7 @@ def install(night_only=False):
     if len(providers)!=1:raise ValueError('Expected existing Nvidia provider')
     provider=providers[0]['id']
     models={r[0] for r in c.execute('SELECT model_id FROM provider_models WHERE provider_id=?',[provider])}
-    profiles=[p for p in configure.build(provider) if p['domain']=='revenue' or p['id'] in {'ck-orchestrator','ck-control-auditor'}]
+    profiles=[p for p in configure.build(provider) if p['domain']=='revenue' or p['id'] in {'ck-orchestrator','ck-control-auditor','ck-crypto-receivables','ck-finance-orchestrator'}]
     if not all(p['model'] in models for p in profiles):raise ValueError('Unregistered commercial model')
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup=HOME/'backups'/('sales-'+stamp);backup.mkdir(parents=True,exist_ok=False)
