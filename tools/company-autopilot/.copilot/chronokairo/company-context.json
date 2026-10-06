@@ -213,5 +213,19 @@
   "environments": {
     "confirmed_by_owner_at": "2026-10-06",
     "note": "Empresa em início: dados internos e dos SaaS ficam no mesmo banco de produção chronokairo-prod (your-project-ref). chronokairo-dev (your-dev-project-ref) está inativo. Isolamento entre domínios depende de RLS por organização/tenant."
+  },
+  "people": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "partners_with_data_access": [
+      "luan@chronokairo.com.br",
+      "riad@chronokairo.com.br",
+      "victor@chronokairo.com.br"
+    ],
+    "admin": "luan@chronokairo.com.br (conta principal; contas Gmail antigas descontinuadas e transferidas para ela)",
+    "employees": [
+      "adri@chronokairo.com.br"
+    ],
+    "robot": "agent@chronokairo.com.br",
+    "rule": "Somente os sócios acessam todos os dados internos; funcionários só o próprio escopo (ex.: caixa do próprio apelido no Mail)."
   }
 }
