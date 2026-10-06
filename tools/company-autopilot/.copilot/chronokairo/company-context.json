@@ -4,7 +4,7 @@
   "projects": {
     "finance": {
       "repository": "https://gitlab.com/chronokairo/finance",
-      "role": "Chronokairo finance; use real authorized financial documents, never infer transactions from product source code"
+      "role": "Chronokairo finance; use real authorized financial documents, never infer transactions from product source code. Desenvolvimento custeado pelo parceiro 5 Irmãos Navegação; o repositório contém documentos do financeiro do parceiro, separados das contas da Chronokairo."
     },
     "workmed": {
       "repository": "https://gitlab.com/chronokairo/workmed",
@@ -86,8 +86,17 @@
   "excluded_sources": [
     {
       "source": "gitlab.com/chronokairo/finance data/documents/2026/08/cc1864e7-a61b-4bcf-85aa-aae56d7cab33.pdf",
-      "reason": "Termo da Chamada Pública 01/2026-ANTAQ; dono confirmou em 2026-10-05 que não tem relação com a Chronokairo",
-      "rule": "Não lançar, cobrar, reconciliar nem tratar como oportunidade."
+      "reason": "Termo da Chamada Pública 01/2026-ANTAQ do parceiro 5 Irmãos Navegação; não é documento financeiro da Chronokairo",
+      "rule": "Não lançar, cobrar ou reconciliar como Chronokairo; não tratar como oportunidade."
+    }
+  ],
+  "partners": [
+    {
+      "name": "5 Irmãos Navegação",
+      "github_org": "5irmaosnavegacao",
+      "relationship": "Parceiro que sustenta os gastos da Chronokairo e custeou o desenvolvimento do Chronokairo Finance (informado pelo dono em 2026-10-05)",
+      "business": "Navegação/transporte aquaviário; participa da Chamada Pública 01/2026-ANTAQ (travessia BR-319 Manaus–Careiro)",
+      "rule": "Não é lead nem cliente a prospectar. Documentos dele no Finance pertencem ao financeiro do parceiro: não lançar como receita, despesa ou cobrança da Chronokairo. Aportes do parceiro só entram nas contas da Chronokairo com comprovante e classificação definidos pelo dono."
     }
   ]
 }

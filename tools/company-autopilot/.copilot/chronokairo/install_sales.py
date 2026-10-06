@@ -10,6 +10,7 @@ import sales_profiles
 
 ROOT=Path(__file__).resolve().parent
 HOME=Path.home()/'.copilot'
+NEW_ROUTES={'demand-pipeline','replies','referrals'}
 def install():
     c=sqlite3.connect(HOME/'data.db',timeout=20);c.row_factory=sqlite3.Row
     c.execute('PRAGMA foreign_keys=ON')
@@ -17,7 +18,7 @@ def install():
     if len(providers)!=1:raise ValueError('Expected existing Nvidia provider')
     provider=providers[0]['id']
     models={r[0] for r in c.execute('SELECT model_id FROM provider_models WHERE provider_id=?',[provider])}
-    profiles=[p for p in configure.build(provider) if p['domain']=='revenue']
+    profiles=[p for p in configure.build(provider) if p['domain']=='revenue' or p['id']=='ck-orchestrator']
     if not all(p['model'] in models for p in profiles):raise ValueError('Unregistered commercial model')
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup=HOME/'backups'/('sales-'+stamp);backup.mkdir(parents=True,exist_ok=False)
@@ -36,6 +37,18 @@ def install():
             if key=='proposal':prompt=prompt.replace('ck-proposal → ck-followup.','ck-proposal → ck-followup → ck-pipeline-auditor.')
             prompt+='\n<!-- sales-contract-v1 -->'+sales_profiles.route_instruction(key)
             c.execute("UPDATE workflows SET prompt=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",[prompt,configure.ident('workflow:'+key)])
+        base=c.execute('SELECT project_id,model FROM workflows WHERE id=?',[configure.ident('workflow:lead-pipeline')]).fetchone()
+        created=[]
+        for key,name,domain,steps,interval,hour,day,project in configure.FLOWS:
+            if key not in NEW_ROUTES:continue
+            prompt,root_agent=configure.route_prompt(key,domain,steps,project)
+            minute=configure.MINUTES.get(key,0)
+            row=dict(id=configure.ident('workflow:'+key),name=name,prompt=prompt,model=base['model'],project_id=base['project_id'],interval=interval,schedule_hour=hour,schedule_day=day,
+                     enabled=1,mode='autopilot',schedule_minute=minute,workspace_type='worktree',next_run_at=configure.next_run(interval,hour,day,minute),agent=root_agent,agent_scope='global')
+            if c.execute('SELECT 1 FROM workflows WHERE id=?',[row['id']]).fetchone():
+                c.execute('UPDATE workflows SET '+','.join(k+'=?' for k in row if k!='id')+",updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",[v for k,v in row.items() if k!='id']+[row['id']])
+            else:
+                c.execute('INSERT INTO workflows('+','.join(row)+') VALUES('+','.join('?' for _ in row)+')',list(row.values()));created.append(key)
         if c.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise ValueError('Integrity failure')
         if c.execute('PRAGMA foreign_key_check').fetchall():raise ValueError('Foreign key failure')
         for p in profiles:
@@ -50,6 +63,10 @@ def install():
         for route in registry['routes']:
             flow=next((f for f in configure.FLOWS if f[0]==route['key']),None)
             if flow and route['key'] in {'lead-pipeline','proposal'}:route['workers']=['ck-'+s for s in flow[3]]
+        known={r['key'] for r in registry['routes']}
+        for f in configure.FLOWS:
+            if f[0] in NEW_ROUTES and f[0] not in known:
+                registry['routes'].append(dict(key=f[0],name=f[1],domain=f[2],workers=['ck-'+w for w in f[3]],interval=f[4],hour=f[5],minute=configure.MINUTES.get(f[0],0),weekday=f[6],project=f[7]))
         registry['commercial']={'playbook':'sales-playbook.md','configuration':'sales-config.json','ledger':'sales.db','outbound_enabled':False}
         temp=registry_path.with_suffix('.tmp');temp.write_text(json.dumps(registry,ensure_ascii=False,indent=2)+'\n');temp.replace(registry_path)
         c.commit()
@@ -60,5 +77,5 @@ def install():
             else:dest.write_bytes(old)
         raise
     finally:c.close()
-    return {'commercial_profiles':len(profiles),'all_agents':len(registry['agents']),'routes_updated':5,'backup':str(backup),'outbound_enabled':False}
+    return {'commercial_profiles':len(profiles),'all_agents':len(registry['agents']),'routes_updated':5,'routes_created':created,'backup':str(backup),'outbound_enabled':False}
 if __name__=='__main__':print(json.dumps(install(),ensure_ascii=False))

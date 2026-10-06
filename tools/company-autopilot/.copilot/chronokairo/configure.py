@@ -30,7 +30,7 @@ GITHUB_READ = ['github-mcp-server/list_issues', 'github-mcp-server/issue_read',
                'github-mcp-server/list_pull_requests', 'github-mcp-server/pull_request_read',
                'github-mcp-server/get_file_contents']
 POLICY = '''Você trabalha para a Chronokairo, em português. Respeite AGENTS.md e instruções do repositório.
-Leia ~/.copilot/chronokairo/company-context.json para o mapa comercial e técnico confirmado pelo dono. Workmed GitLab é o SaaS base; as pendências Audiomed foram migradas para Workmed por pedido do dono em 2026-10-05: não reabra nem duplique o backlog no GitHub Audiomed. Reaproveite features completas de tenants/audiomed, com UI Atomic em src/components, CSS/SVG nativos e lógica de negócio hexagonal por feature; mantenha contratos/dados isolados por tenant. Agroflow GitLab também é SaaS Chronokairo, com tenant Sítio Fazenda Nova Canaã (sitio-fazenda-nova-canaa) e manutenção solicitada pelo dono; a fazenda é cliente/tenant, não a empresa fornecedora. Antes de prospectar, propor ou registrar leads, confira blocked_parties e excluded_sources em company-context.json; correspondências são descartadas sem contato.
+Leia ~/.copilot/chronokairo/company-context.json para o mapa comercial e técnico confirmado pelo dono. Workmed GitLab é o SaaS base; as pendências Audiomed foram migradas para Workmed por pedido do dono em 2026-10-05: não reabra nem duplique o backlog no GitHub Audiomed. Reaproveite features completas de tenants/audiomed, com UI Atomic em src/components, CSS/SVG nativos e lógica de negócio hexagonal por feature; mantenha contratos/dados isolados por tenant. Agroflow GitLab também é SaaS Chronokairo, com tenant Sítio Fazenda Nova Canaã (sitio-fazenda-nova-canaa) e manutenção solicitada pelo dono; a fazenda é cliente/tenant, não a empresa fornecedora. Antes de prospectar, propor ou registrar leads, confira blocked_parties, partners e excluded_sources em company-context.json; correspondências são descartadas sem contato.
 Siga plan → execute → verify → evidence → approval → merge/deploy.
 Autorização permanente do dono: trabalhar diariamente em qualquer repositório/projeto de github.com/chronokairo e gitlab.com/chronokairo, incluindo subgrupos; descobrir oportunidades de receita; criar projetos privados nessas organizações; clonar, desenvolver, testar, commitar e publicar branches ck/* e abrir PRs/MRs. Planos de trabalho reversível podem ser aceitos pelo orquestrador sem interromper o dono. Nunca trabalhe em organizações ou contas pessoais diferentes. Revalide o namespace antes de toda escrita remota. Não altere branches protegidas ou principais, permissões da organização, políticas ou billing.
 Coordenadores usam gh/glab autenticados e `python3 /home/deck/.copilot/chronokairo/company.py inventory` para atualizar o catálogo; workers recebem fontes e ferramentas compatíveis com seu papel no handoff. Consulte ~/.copilot/chronokairo/repositories.json e o backlog antes de escolher trabalho. O repositório de partida é apenas uma base; escolha qualquer projeto da Chronokairo adequado. Preserve alterações locais do humano e outros agentes; use worktree própria e não faça reset/clean destrutivo. Não force push. Priorize uma entrega pequena por ciclo e continue o estado anterior. Não crie tarefas repetidas, projetos sem caso de negócio ou relatórios vazios.
@@ -105,9 +105,12 @@ FLOWS.extend([
  ('new-business','Revenue — nova oportunidade e projeto','company',['opportunity','requirements','product-spec','project-bootstrap'],'daily',15,1,'ck-ai'),
  ('payments','Engineering — pagamentos e criptomoedas','engineering',['payments','code-reviewer','qa','security'],'daily',11,1,'ck-ai'),
  ('daily-report','Company — relatório diário ao dono','company',['control-auditor'],'daily',18,1,'ck-ai'),
+ ('demand-pipeline','Revenue — radar de demanda declarada','revenue',['demand-scout','lead-enrichment','qualification','sdr','pipeline-auditor'],'daily',8,1,'ck-ai'),
+ ('replies','Revenue — respostas e reuniões','revenue',['reply-triage','followup','pipeline-auditor'],'daily',12,1,'ck-ai'),
+ ('referrals','Revenue — indicações de clientes','revenue',['referral','pipeline-auditor'],'weekly',9,1,'ck-ai'),
 ])
 MINUTES = {key:minute for key,(_,minute) in DAILY.items()}
-MINUTES.update({'company-cycle':45,'payments':30})
+MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15})
 
 def ident(key):
     return str(uuid.uuid5(NS, key))
@@ -128,7 +131,7 @@ def build(provider):
     for key, domain, goal, kpi, model, tools in WORKERS:
         profiles.append(dict(id='ck-'+key, domain=domain, goal=goal, kpi=kpi,
                              model=MODELS[model], tools=list(dict.fromkeys(tools+(['execute'] if key in ['issue-planner','backlog','code-reviewer','security','devops'] else []))), owner='ck-'+domain+'-orchestrator', kind='worker'))
-    for key in ['sdr','pipeline-auditor']:
+    for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral']:
         goal,kpi,_ = sales_profiles.CONTRACTS[key]
         profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+['edit'],owner='ck-revenue-orchestrator',kind='worker'))
     for domain in ['revenue','product','engineering','operations','finance','people']:
@@ -174,6 +177,29 @@ def build(provider):
         p['content']=text
     return sales_profiles.augment(profiles)
 
+def route_prompt(key,domain,steps,project):
+    root_agent='ck-orchestrator' if domain in ['governance','company'] else 'ck-'+domain+'-orchestrator'
+    prompt=(f'Chronokairo automation route_key={key}. Job ID = {key}-<YYYYMMDDTHHMMSSZ>.\n'
+            f'Base local: {Path.home()}/Documents/GitHub/{project}. Leia AGENTS.md do projeto escolhido. Você pode trabalhar em qualquer projeto GitHub/GitLab da Chronokairo; esta base não limita seu escopo.\n'
+            f'Use {root_agent}. Rota obrigatória, na ordem: '+ ' → '.join('ck-'+s for s in steps)+'.\n'
+            'Passe o contrato de handoff completo para cada etapa, incluindo os resultados anteriores. Não execute etapas sem entradas reais. '
+            'Atualize inventory e considere GitHub E GitLab. Triagem consulta issues reais e propõe prioridades e donos. Backlog/Planner podem criar issues pequenas de trabalho aprovado pelo orquestrador, deduplicando primeiro. '
+            'Para implementação, selecione uma issue ou oportunidade real com plano aceito pelo orquestrador; não espere aprovação humana para trabalho reversível já autorizado. Use worktree isolada, implemente um incremento, teste e abra PR/MR sem merge/deploy. '
+            'Company-cycle escolhe até três prioridades com base em demanda, esforço e potencial de receita, salva ~/.copilot/chronokairo/priorities.json e não dispara todas as rotinas recursivamente. New-business reusa projetos existentes e só cria um novo quando o caso de negócio justificar. Payments escolhe o projeto payments do GitLab e pesquisa backlog antes de codificar. Daily-report consolida jobs e workflow failures em Desktop/Chronokairo, com links, alterações, métricas reais e pendências. '
+            'Se não houver uma integração ou fonte operacional acessível, registre blocked e a dependência; código do produto não é extrato financeiro nem ticket real. '
+            'Em auditoria, leia definições ~/.copilot/agents/ck-*.agent.md, ~/.copilot/chronokairo/registry.json e evidências locais autorizadas; não abra bancos que contêm credenciais.\n'
+            +'Leia ~/.copilot/chronokairo/POLICY.md. Use company.py job para estado/heartbeat. '
+            'Antes de executar, verifique fontes, prioridade e lock. Retome etapas incompletas; não recrie issues/PRs já vinculados. '
+            'Não trate término da sessão como aceite. Finance consulta gitlab.com/chronokairo/finance e documentos reais autorizados; '
+            'o projeto de partida ck-ai apenas fornece uma worktree compatível com o app. '
+            'Daily-report e auditoria consultam company.py metrics para duração, falhas e aceite; custo/tokens não fornecidos permanecem unknown. '
+            'Modelo Flash ou Nemotron com timeout/504: registre a falha e tente uma única vez o modelo GLM completo cadastrado; '
+            'falha de credencial/escopo não autoriza fallback. Aos 15 minutos não inicie novas etapas e reporte o restante.')
+    if key == 'daily-report':
+        prompt += '\nRelatório obrigatório: execute python3 /home/deck/.copilot/chronokairo/company_report.py. Leia Relatorio-Empresa-<YYYY-MM-DD>.md no Desktop/Chronokairo e acrescente análise baseada em evidências, sem substituir o documento por uma confirmação vazia. Distinga status do runtime, entregas reportadas, implementação, deploy e resultado financeiro. Não execute pagamentos, merges ou deploys para gerar o relatório. O relatório deve incluir Workmed, Audiomed e Agroflow quando houver evidências. Registre o caminho do documento na resposta da automação.\n'
+    prompt += sales_profiles.route_instruction(key)
+    return prompt,root_agent
+
 def configure(target, live=False):
     c=sqlite3.connect(target,timeout=20)
     c.row_factory=sqlite3.Row
@@ -185,7 +211,7 @@ def configure(target, live=False):
     registered={r[0] for r in c.execute('select model_id from provider_models where provider_id=?',(provider,))}
     assert set(MODELS.values()) <= registered, 'Missing registered model'
     profiles=build(provider)
-    assert len(profiles)==35 and len({p['id'] for p in profiles})==35
+    assert len(profiles)==38 and len({p['id'] for p in profiles})==38
     known={p['id'] for p in profiles}
     assert all('ck-'+w in known for f in FLOWS for w in f[3])
     backup=None
@@ -218,26 +244,7 @@ def configure(target, live=False):
             c.execute('update projects set github_owner=?,github_repo=?,provider_pr_binding_revision=provider_pr_binding_revision+1 where id=? and (github_owner is not ? or github_repo is not ?)',
                       (namespace.split('/')[0] if forge=='github' else None,namespace.split('/',1)[1] if forge=='github' else None,projects[name],namespace.split('/')[0] if forge=='github' else None,namespace.split('/',1)[1] if forge=='github' else None))
         for key,name,domain,steps,interval,hour,day,project in FLOWS:
-            root_agent='ck-orchestrator' if domain in ['governance','company'] else 'ck-'+domain+'-orchestrator'
-            prompt=(f'Chronokairo automation route_key={key}. Job ID = {key}-<YYYYMMDDTHHMMSSZ>.\n'
-                    f'Base local: {Path.home()}/Documents/GitHub/{project}. Leia AGENTS.md do projeto escolhido. Você pode trabalhar em qualquer projeto GitHub/GitLab da Chronokairo; esta base não limita seu escopo.\n'
-                    f'Use {root_agent}. Rota obrigatória, na ordem: '+ ' → '.join('ck-'+s for s in steps)+'.\n'
-                    'Passe o contrato de handoff completo para cada etapa, incluindo os resultados anteriores. Não execute etapas sem entradas reais. '
-                    'Atualize inventory e considere GitHub E GitLab. Triagem consulta issues reais e propõe prioridades e donos. Backlog/Planner podem criar issues pequenas de trabalho aprovado pelo orquestrador, deduplicando primeiro. '
-                    'Para implementação, selecione uma issue ou oportunidade real com plano aceito pelo orquestrador; não espere aprovação humana para trabalho reversível já autorizado. Use worktree isolada, implemente um incremento, teste e abra PR/MR sem merge/deploy. '
-                    'Company-cycle escolhe até três prioridades com base em demanda, esforço e potencial de receita, salva ~/.copilot/chronokairo/priorities.json e não dispara todas as rotinas recursivamente. New-business reusa projetos existentes e só cria um novo quando o caso de negócio justificar. Payments escolhe o projeto payments do GitLab e pesquisa backlog antes de codificar. Daily-report consolida jobs e workflow failures em Desktop/Chronokairo, com links, alterações, métricas reais e pendências. '
-                    'Se não houver uma integração ou fonte operacional acessível, registre blocked e a dependência; código do produto não é extrato financeiro nem ticket real. '
-                    'Em auditoria, leia definições ~/.copilot/agents/ck-*.agent.md, ~/.copilot/chronokairo/registry.json e evidências locais autorizadas; não abra bancos que contêm credenciais.\n'
-                    +'Leia ~/.copilot/chronokairo/POLICY.md. Use company.py job para estado/heartbeat. '
-                    'Antes de executar, verifique fontes, prioridade e lock. Retome etapas incompletas; não recrie issues/PRs já vinculados. '
-                    'Não trate término da sessão como aceite. Finance consulta gitlab.com/chronokairo/finance e documentos reais autorizados; '
-                    'o projeto de partida ck-ai apenas fornece uma worktree compatível com o app. '
-                    'Daily-report e auditoria consultam company.py metrics para duração, falhas e aceite; custo/tokens não fornecidos permanecem unknown. '
-                    'Modelo Flash ou Nemotron com timeout/504: registre a falha e tente uma única vez o modelo GLM completo cadastrado; '
-                    'falha de credencial/escopo não autoriza fallback. Aos 15 minutos não inicie novas etapas e reporte o restante.')
-            if key == 'daily-report':
-                prompt += '\nRelatório obrigatório: execute python3 /home/deck/.copilot/chronokairo/company_report.py. Leia Relatorio-Empresa-<YYYY-MM-DD>.md no Desktop/Chronokairo e acrescente análise baseada em evidências, sem substituir o documento por uma confirmação vazia. Distinga status do runtime, entregas reportadas, implementação, deploy e resultado financeiro. Não execute pagamentos, merges ou deploys para gerar o relatório. O relatório deve incluir Workmed, Audiomed e Agroflow quando houver evidências. Registre o caminho do documento na resposta da automação.\n'
-            prompt += sales_profiles.route_instruction(key)
+            prompt,root_agent=route_prompt(key,domain,steps,project)
             columns=['id','name','prompt','model','project_id','interval','schedule_hour','schedule_day','enabled','mode','schedule_minute','workspace_type','next_run_at','agent','agent_scope']
             minute=MINUTES.get(key,0)
             values=[ident('workflow:'+key),name,prompt,provider+'/'+MODELS['reason'],projects[project],interval,hour,day,1,'autopilot',minute,'worktree',next_run(interval,hour,day,minute),root_agent,'global']
