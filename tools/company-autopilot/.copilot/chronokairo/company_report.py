@@ -3,6 +3,7 @@
 import datetime as dt
 import importlib.util
 import sqlite3
+import json
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -33,6 +34,14 @@ def main():
         if error:
             body += ' Erro: ' + company.redact(error).replace('\n', ' ')[:600]
     body += '\n\n## Entregas reportadas pelos agentes\n'
+    receipt = company.DESKTOP / 'Audiomed-Workmed-Migracao-2026-10-05.json'
+    if receipt.is_file():
+        migration = json.loads(receipt.read_text())
+        body += '\nOs relatos abaixo preservam o estado informado no momento da execução. O backlog Audiomed foi migrado posteriormente; usar os destinos atuais desta tabela. Patches arquivados não equivalem a features aplicadas.\n\n| Origem histórica | Destino atual |\n|---|---|\n'
+        for entry in migration.get('issues', []) + migration.get('pullRequests', []):
+            source, destination = entry.get('source', ''), entry.get('destination', '')
+            if source.startswith('https://github.com/chronokairo/audiomed/') and destination.startswith('https://gitlab.com/chronokairo/workmed/'):
+                body += f'| {source} | {destination} |\n'
     if not entries:
         body += '\nNenhuma entrega reportada hoje.\n'
     for created, agent, job, message in entries:

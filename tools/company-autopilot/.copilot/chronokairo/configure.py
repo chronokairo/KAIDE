@@ -46,6 +46,8 @@ Limites operacionais por job: até 15 minutos, 12 chamadas de ferramentas, 1 ten
 Handoff exige objetivo, escopo, ferramentas permitidas, fontes, formato de saída, limites, critérios de aceite, job_id e contexto mínimo. Evite delegações duplicadas, recursão e workers fora da rota. Workers não delegam. Escreva evidências em .chronokairo/evidence/<job_id>/ apenas se sua ferramenta edit estiver habilitada; caso contrário, entregue-as na resposta para o orquestrador registrar.
 '''
 
+POLICY += '\nErro HTTP 429 exige encerrar a etapa e registrar blocked; não repetir continuamente nem iniciar subagentes para contornar quota. O watchdog pode interromper sessões de automações Chronokairo acima de 15 minutos quando --stop-overdue está habilitado, preservando evidências e falhas do runtime. Alertas históricos só são resolvidos com evidência usando company.py resolve-report.\n'
+
 # id, domínio, responsabilidade, sucesso, modelo, ferramentas
 WORKERS = [
  ('lead-discovery','revenue','Encontrar empresas com sinais públicos de demanda; fornecer URL, data e motivo.','Leads com fonte verificável / leads propostos','fast',READ+['web']),
@@ -63,7 +65,7 @@ WORKERS = [
  ('security','engineering','Revisar autenticação, tenant/RBAC, segredos e fronteiras de confiança com evidência; não corrigir nem fazer testes ofensivos em produção.','Achados validados com caminho e impacto','audit',READ+GITHUB_READ),
  ('devops','engineering','Preparar plano de release, health checks, rollback e infraestrutura como rascunho local; não deployar ou alterar produção.','Releases com verificação e rollback definidos','code',READ+['edit']),
  ('support-triage','operations','Classificar tickets fornecidos por fonte autorizada em urgência, produto e rota; não alterar ticket.','Tickets com categoria, evidência e rota','fast',READ),
- ('support-resolution','operations','Pesquisar base de conhecimento e preparar solução e resposta ao ticket; não enviar ao cliente.','Respostas sustentadas por documentação e passos verificáveis','reason',READ+['edit']),
+ ('support-resolution','operations','Pesquisar base de conhecimento e preparar solução e resposta ao ticket; não enviar ao cliente. Não publicar branch, PR/MR ou comentário: correções de código seguem para a rota delivery (ck-coder).','Respostas sustentadas por documentação e passos verificáveis','reason',READ+['edit']),
  ('incident','operations','Analisar logs autorizados, separar hipótese e causa comprovada, propor contenção, monitoramento e runbook; não executar em produção.','Incidentes com timeline, evidência e proposta de contenção','reason',READ+['edit']),
  ('invoice','finance','Validar documentos de faturamento fornecidos, preços e divergências; preparar minuta sem emitir, pagar ou cobrar.','Documentos verificados com divergências rastreáveis','fast',READ),
  ('reconciliation','finance','Conciliar extratos e lançamentos autorizados usando centavos/Decimal; relatar diferenças e fluxo de caixa sem movimentar valores.','Linhas conciliadas / linhas fornecidas e divergência em centavos','reason',READ),
