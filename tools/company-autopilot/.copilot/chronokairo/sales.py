@@ -42,7 +42,7 @@ def connect():
 
 def ingest(records):
     config=json.loads((BASE/'sales-config.json').read_text())
-    if not isinstance(records,list) or len(records)>config['daily_candidate_limit']:raise ValueError('Batch must contain at most 5 candidates')
+    if not isinstance(records,list) or len(records)>config['daily_candidate_limit']:raise ValueError('Batch exceeds configured candidate limit')
     prepared=[]
     for row in records:
         for field in ['company','website','segment','city','business_contact_url','demand_signal','offer','next_action']:
@@ -64,8 +64,20 @@ def ingest(records):
         if row['source_type'] not in SOURCES:raise ValueError('source_type must be referral, partner, demand, outbound or inbound')
         if row['source_type']=='referral' and not str(row.get('referred_by','')).strip():raise ValueError('Referral needs referred_by')
         if not isinstance(row['language'],str) or not 2<=len(row['language'])<=5:raise ValueError('Invalid language code')
+        if row['source_type']=='demand':
+            demand=row.get('service_request',{})
+            if not isinstance(demand,dict) or demand.get('kind') not in {'rfp','freelance','contractor','vendor_request'}:raise ValueError('Demand requires explicit service/vendor request, not employment_only')
+            if not isinstance(demand.get('excerpt'),str) or not demand['excerpt'].strip():raise ValueError('Demand requires source excerpt')
+            if demand.get('url') not in [src['url'] for src in sources]:raise ValueError('Request must reference a recorded source')
+            published=dt.date.fromisoformat(demand.get('published_at',''))
+            age=(dt.datetime.now(ZoneInfo('America/Caracas')).date()-published).days
+            if not 0<=age<=30:raise ValueError('Service request must be within 30 days')
         score=row.get('fit_score',0)
         if type(score) is not int or not 0<=score<=4:raise ValueError('Invalid fit score')
+        criteria=row.get('fit_criteria',[])
+        if (not isinstance(criteria,list) or len(criteria)!=score or any(not isinstance(x,dict) or not x.get('criterion') or not x.get('evidence') or x.get('source_url') not in [src['url'] for src in sources] for x in criteria)):
+            raise ValueError('Each fit point requires criterion, evidence and recorded source_url')
+        if len({x['criterion'] for x in criteria})!=len(criteria):raise ValueError('Duplicate fit criteria')
         qualified=score>=config['qualification_min_fit_score']
         stage='draft_ready' if qualified and isinstance(row.get('draft'),str) and row['draft'].strip() else 'qualified' if qualified else 'candidate'
         prepared.append((domain,row,stage))
@@ -73,10 +85,17 @@ def ingest(records):
     c=connect()
     try:
         with c:
+            c.execute('BEGIN IMMEDIATE')
+            today=dt.datetime.now(ZoneInfo('America/Caracas')).date()
+            existing={r['domain'] for r in c.execute('SELECT domain FROM leads')}
+            added_today=sum(dt.datetime.fromisoformat(r['created_at']).astimezone(ZoneInfo('America/Caracas')).date()==today for r in c.execute('SELECT created_at FROM leads'))
+            if added_today+len({d for d,_,_ in prepared}-existing)>config['daily_candidate_limit']:raise ValueError('Daily candidate limit exceeded across batches')
             for domain,row,stage in prepared:
                 old=c.execute('SELECT stage,details FROM leads WHERE domain=?',[domain]).fetchone()
                 if old:
                     previous=json.loads(old['details'])
+                    if previous.get('source_type','outbound')!=row['source_type']:raise ValueError('Acquisition source is immutable; use a reviewed correction')
+                    row={**previous,**row}
                     if previous.get('draft') and not row.get('draft'):row['draft']=previous['draft']
                     # Operational stages are never changed by research or a new draft.
                     if old['stage'] not in {'candidate','qualified','draft_ready'}:stage=old['stage']
@@ -90,6 +109,7 @@ def event(domain,stage,path,kind,amount=None):
     if TYPES.get(stage)!=kind:raise ValueError('Evidence kind must correspond to stage')
     evidence=Path(path).resolve()
     if not evidence.is_file() or evidence.stat().st_size==0:raise ValueError('Existing nonempty evidence file required')
+    if evidence.is_relative_to((BASE/'evidence'/'attested').resolve()) or evidence.read_bytes().startswith('Registro não verificado do operador'.encode()):raise ValueError('Operator notes are not external receipts')
     if stage=='paid' and (type(amount) is not int or amount<=0):raise ValueError('Payment needs positive integer amount_cents')
     if stage!='paid' and amount is not None:raise ValueError('Amounts belong only to payment receipts')
     digest=hashlib.sha256(evidence.read_bytes()).hexdigest()
@@ -111,15 +131,16 @@ def event(domain,stage,path,kind,amount=None):
 ATTESTABLE={'sent':'send_receipt','meeting':'meeting_confirmation','rejected':'rejection','opt_out':'opt_out'}
 
 def attest(domain,stage,channel,note):
-    """Registro do dono para envio/reunião/recusa feitos fora do sistema; venda e pagamento exigem documento."""
+    """Unverified operator note: never represents authenticated owner confirmation."""
     if stage not in ATTESTABLE:raise ValueError('Owner attestation only covers sent, meeting, rejected and opt_out')
     if not channel.strip():raise ValueError('Channel required')
     now=dt.datetime.now(ZoneInfo('America/Caracas'))
     folder=BASE/'evidence'/'attested';folder.mkdir(parents=True,exist_ok=True)
     path=folder/f"{now:%Y%m%dT%H%M%S}-{stage}-{website('https://'+domain)}.txt"
-    path.write_text(f'Declaração do dono\nEtapa: {stage}\nProspect: {domain}\nCanal: {channel}\nData: {now.isoformat()}\nNota: {note or "-"}\n')
+    path.write_text(f'Registro não verificado do operador (não comprova identidade do dono)\nEtapa solicitada: {stage}\nProspect: {domain}\nCanal: {channel}\nData: {now.isoformat()}\nNota: {note or "-"}\n')
     os.chmod(path,0o600)
-    return event(domain,stage,path,ATTESTABLE[stage])
+    return {'status':'needs_evidence','document':str(path),'stage_unchanged':True,
+            'next_action':'Provide external receipt through sales.py event; this note does not advance the funnel'}
 
 def records():
     c=connect()

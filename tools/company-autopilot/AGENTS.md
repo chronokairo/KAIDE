@@ -13,3 +13,5 @@ Revisores e QA não aprovam seu próprio código. Não é obrigatório delegar: 
 Entregas reportam evidências, testes, links e limitações. Runtime completed não significa entregue ou implantado. Relatórios e dependências ficam no Desktop/Chronokairo. Alertas históricos resolvidos permanecem auditáveis; não apagar execuções falhadas nem marcá-las como sucesso.
 
 Verificação operacional: `python3 -m unittest discover -s .copilot/chronokairo -p 'test_operations.py'`; `python3 -m py_compile` nos scripts alterados; `git diff --check`; `node .copilot/chronokairo/verify-app.mjs` quando o app estiver disponível.
+
+Preferência do dono (2026-10-06): coordenadores encaminham tarefas mecânicas delimitadas para agy ou opencode via ACP pelo runner `.copilot/chronokairo/acp.py`, seguindo POLICY.md. Workers solicitam esse encaminhamento ao coordenador, sem delegação recursiva. Exigir escopo, critérios de aceite e verificação do resultado, preservar permissões do papel e o prazo total do workflow.
