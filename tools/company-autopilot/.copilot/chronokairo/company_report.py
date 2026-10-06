@@ -2,6 +2,7 @@
 """Consolida evidências locais de agentes sem confundir execução com entrega."""
 import datetime as dt
 import importlib.util
+import json
 import sqlite3
 import json
 from pathlib import Path
@@ -50,7 +51,15 @@ def main():
     for created, agent, job, message in blockers:
         body += f'\n### {agent} — {created} — {job}\n\n{company.redact(message)}\n'
     body += '\n## Financeiro e consumo\n\nReceita recebida, despesas, tokens e custo: não disponíveis nas fontes consultadas. Contratos, preços de planos e propostas não equivalem a dinheiro recebido.\n'
-    body += '\n## Entregas assistidas e próximos passos\n\nConsultar Chronokairo-Manutencao-e-Faturamento-2026-10-05.md e Audiomed-Laura-Deploy-2026-10-05.md nesta pasta para trabalhos realizados diretamente com o dono; não atribuir essas entregas às automações. Priorizar ativação do faturamento Workmed, validação de hardware Agroflow e rollout dos patches de segurança conforme as evidências dos MRs.\n'
+    generated = {f'Relatorio-{day}.md', f'Relatorio-Empresa-{day}.md', 'PENDENCIAS.md'}
+    assisted = sorted(f.name for f in company.DESKTOP.glob(f'*{day}*.md') if f.name not in generated)
+    body += '\n## Entregas assistidas e próximos passos\n\n'
+    body += ('Documentos do dia nesta pasta, para trabalhos realizados diretamente com o dono; não atribuir essas entregas às automações: ' + ', '.join(assisted) + '.\n') if assisted else 'Nenhum documento de entrega assistida hoje.\n'
+    try:
+        priorities = json.loads((BASE / 'priorities.json').read_text())['priorities']
+        body += '\nPrioridades vigentes (priorities.json):\n' + ''.join(f"\n{p['rank']}. {p['summary']}" for p in priorities) + '\n'
+    except (OSError, ValueError, KeyError):
+        body += '\nPrioridades indisponíveis: priorities.json ausente ou inválido.\n'
     path = company.DESKTOP / f'Relatorio-Empresa-{day}.md'
     company.atomic(path, body)
     result = company.report('ck-control-auditor', 'company-summary-' + day, 'daily', f'Relatório consolidado: {path}\nExecuções de hoje: {counts}. Entregas reportadas: {len(entries)}. Dependências registradas: {len(blockers)}. Execução concluída não foi presumida como entrega de negócio.')
