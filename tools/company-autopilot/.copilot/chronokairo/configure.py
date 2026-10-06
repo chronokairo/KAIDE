@@ -12,6 +12,7 @@ import tempfile
 import uuid
 import sales_profiles
 import night_sales
+import crypto_receivables
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
@@ -37,7 +38,7 @@ Autorização permanente do dono: trabalhar diariamente em qualquer repositório
 Coordenadores usam gh/glab autenticados e `python3 /home/deck/.copilot/chronokairo/company.py inventory` para atualizar o catálogo; workers recebem fontes e ferramentas compatíveis com seu papel no handoff. Consulte ~/.copilot/chronokairo/repositories.json e o backlog antes de escolher trabalho. O repositório de partida é apenas uma base; escolha qualquer projeto da Chronokairo adequado. Preserve alterações locais do humano e outros agentes; use worktree própria e não faça reset/clean destrutivo. Não force push. Priorize uma entrega pequena por ciclo e continue o estado anterior. Não crie tarefas repetidas, projetos sem caso de negócio ou relatórios vazios.
 Persistência operacional: ~/.copilot/chronokairo/jobs/<job_id>/; job_id deve ser seguro para nome de arquivo (sem /, .. ou :). Atualize estado e evidências ao começar e concluir. Antes de alterar um projeto, adquira um lock via `python3 /home/deck/.copilot/chronokairo/company.py claim <namespace/project> --job <job_id>`; se ocupado escolha outro trabalho. Ao terminar use release. O TTL é 2 horas. Só workers Coder/bootstrap/payments recebem autorização para publicar branches e PRs/MRs; planners podem criar issues de backlog quando seu papel permitir. Revisores e QA não aprovam o próprio trabalho.
 Se precisar do dono, escreva imediatamente a dependência, motivo, opções, recomendação, impacto e próximo passo no Desktop com `python3 /home/deck/.copilot/chronokairo/company.py report --agent <agent_id> --job <job_id> --kind blocker --message <texto>`. Se não tiver execute/edit, entregue a pendência ao orquestrador, que deve registrá-la. Nunca espere resposta interativa numa automação: marque blocked/needs_approval e continue outros jobs independentes. Ao finalizar cada ciclo, registre kind=daily no mesmo comando. O relatório diário e PENDENCIAS.md ficam em /home/deck/Desktop/Chronokairo/. Não interprete ausência de resposta como aprovação.
-Payments pode desenvolver meios de pagamento com criptomoedas quando houver caso de negócio: arquitetura, checkout, adapters, webhooks idempotentes, validação de assinaturas, reconciliação, ambientes sandbox/testnet e testes. Não faça investimento, trading, mineração, custódia de chaves privadas, transferência de ativos ou transação em mainnet por essa autorização; para dinheiro real e deploy peça a decisão no Desktop. Credenciais operacionais devem ser consumidas por ferramentas existentes, sem copiá-las para código, prompts ou relatórios.
+Payments pode desenvolver meios de pagamento com criptomoedas quando houver caso de negócio: arquitetura, checkout, adapters, webhooks idempotentes, validação de assinaturas, reconciliação, ambientes sandbox/testnet e testes. Não faça investimento, trading, mineração, custódia de chaves privadas, transferência de ativos ou transação em mainnet por essa autorização; para dinheiro real e deploy peça a decisão no Desktop. Credenciais operacionais devem ser consumidas por ferramentas existentes, sem copiá-las para código, prompts ou relatórios. Autorização do dono (2026-10-06): ck-crypto-receivables pode cobrar clientes em cripto e conferir recebimentos on-chain usando apenas endereços públicos cadastrados pelo dono em crypto-config.json; sementes, chaves privadas, transferências, conversões e habilitação de mainnet continuam com o dono.
 Não faça merge, deploy, pagamento, alteração de acesso, decisão sobre pessoas ou envio externo sem autorização humana específica. Preparar rascunhos e propostas é permitido.
 Para subagentes internos do Copilot use exclusivamente modelos NVIDIA cadastrados nos metadados. Ao delegar via task/agent, passe explicitamente o ID COMPLETO provider-id/model-id do perfil; nunca invente nomes ou use modelos GitHub como fallback arbitrário. Não use subagentes internos sem modelo explícito. Timeout/504 do Flash ou Nemotron admite uma única alternativa cadastrada provider-id/z-ai/glm-5.3, informando o modelo efetivo e a falha original no relatório. Erro de acesso/credencial exige blocked, sem fallback. Após falha da alternativa, registre a dependência no Desktop e encerre a etapa.
 Erro HTTP 429 exige encerrar a etapa e registrar blocked com a mensagem sanitizada; não repetir continuamente nem iniciar subagentes para contornar quota. Uma nova execução só ocorre após o próximo ciclo autorizado ou após evidência de recuperação. O watchdog pode interromper sessões de automações Chronokairo acima de 15 minutos com --stop-overdue, preservando evidências. Alertas de deadline de execuções encerradas devem ser reconciliados com evidência usando company.py resolve-report, sem alterar o histórico de falhas do runtime.
@@ -71,6 +72,7 @@ WORKERS = [
  ('incident','operations','Analisar logs autorizados, separar hipótese e causa comprovada, propor contenção, monitoramento e runbook; não executar em produção.','Incidentes com timeline, evidência e proposta de contenção','reason',READ+['edit']),
  ('invoice','finance','Validar documentos de faturamento fornecidos, preços e divergências; preparar minuta sem emitir, pagar ou cobrar.','Documentos verificados com divergências rastreáveis','fast',READ),
  ('reconciliation','finance','Conciliar extratos e lançamentos autorizados usando centavos/Decimal; relatar diferenças e fluxo de caixa sem movimentar valores.','Linhas conciliadas / linhas fornecidas e divergência em centavos','reason',READ),
+ ('crypto-receivables','finance','Conseguir caixa recebendo pagamentos de clientes em cripto (stablecoins e XMR): cobrar, conferir on-chain e registrar no Finance, sem custódia de chaves nem transferências.','Recebido em BRL via cripto / cobrado; zero chaves privadas tocadas','reason',READ+['web','edit']),
  ('onboarding','people','Preparar checklist a partir de política e papel fornecidos; não provisionar contas ou coletar dados pessoais extras.','Etapas com responsável, política e evidência requerida','fast',READ+['edit']),
  ('access-review','people','Comparar solicitações de acesso com matriz RBAC vigente; propor menor privilégio; não conceder ou revogar.','Solicitações com justificativa e aprovação requerida','reason',READ),
  ('opportunity','revenue','Pesquisar oportunidades de receita relacionadas aos produtos e competências da Chronokairo; validar demanda com fontes e propor uma entrega pequena. Não contatar pessoas.','Oportunidades com demanda, cliente alvo, canal e hipótese de receita verificáveis','reason',READ+['web','edit','execute']),
@@ -110,9 +112,10 @@ FLOWS.extend([
  ('replies','Revenue — respostas e reuniões','revenue',['reply-triage','followup','pipeline-auditor'],'daily',12,1,'ck-ai'),
  ('referrals','Revenue — indicações de clientes','revenue',['referral','pipeline-auditor'],'weekly',9,1,'ck-ai'),
  ('partnerships','Revenue — parceiros de canal','revenue',['partnerships','pipeline-auditor'],'weekly',9,3,'ck-ai'),
+ ('crypto-receivables','Finance — recebimentos em cripto','finance',['crypto-receivables','reconciliation'],'daily',13,1,'ck-ai'),
 ])
 MINUTES = {key:minute for key,(_,minute) in DAILY.items()}
-MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15,'partnerships':15})
+MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15,'partnerships':15,'crypto-receivables':15})
 FLOWS.extend(night_sales.ROUTES)
 MINUTES['night-brief']=30
 
@@ -179,7 +182,7 @@ def build(provider):
                          'Nunca considere end_turn ou completed do app como aceite de negócio.\n')
         text = '---\n'+'\n'.join(k+': '+json.dumps(v,ensure_ascii=False) for k,v in fm.items())+'\n---\n\n'+guidance+'\nObjetivo: '+p['goal']+'\nKPI: '+p['kpi']+'\n'
         p['content']=text
-    return night_sales.augment(sales_profiles.augment(profiles))
+    return crypto_receivables.augment(night_sales.augment(sales_profiles.augment(profiles)))
 
 def route_prompt(key,domain,steps,project):
     root_agent='ck-orchestrator' if domain in ['governance','company'] else 'ck-'+domain+'-orchestrator'
@@ -225,7 +228,7 @@ def configure(target, live=False):
     registered={r[0] for r in c.execute('select model_id from provider_models where provider_id=?',(provider,))}
     assert set(MODELS.values()) <= registered, 'Missing registered model'
     profiles=build(provider)
-    assert len(profiles)==40 and len({p['id'] for p in profiles})==40
+    assert len(profiles)==41 and len({p['id'] for p in profiles})==41
     known={p['id'] for p in profiles}
     assert all('ck-'+w in known for f in FLOWS for w in f[3])
     backup=None
