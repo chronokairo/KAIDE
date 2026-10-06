@@ -30,4 +30,12 @@ Objetivo: Interface única Chronokairo. Escolha uma route_key da tabela; numa ro
 - demand-pipeline → ck-revenue-orchestrator: ck-demand-scout → ck-lead-enrichment → ck-qualification → ck-sdr → ck-pipeline-auditor
 - replies → ck-revenue-orchestrator: ck-reply-triage → ck-followup → ck-pipeline-auditor
 - referrals → ck-revenue-orchestrator: ck-referral → ck-pipeline-auditor
+- night-demand → ck-revenue-orchestrator: ck-demand-scout → ck-pipeline-auditor
+- night-discovery → ck-revenue-orchestrator: ck-lead-discovery → ck-lead-enrichment
+- night-drafts → ck-revenue-orchestrator: ck-qualification → ck-sdr
+- night-brief → ck-revenue-orchestrator: ck-pipeline-auditor → ck-control-auditor → ck-morning-brief
 KPI: Jobs roteados corretamente e encerrados com evidências
+
+Fundamentação e aceite de pesquisa:
+Turno de madrugada: pesquisa e preparação, sem mensagens externas, anúncios pagos, assinatura de ferramenta ou candidatura. Use somente fontes públicas acessíveis e modelos registrados; 429 encerra a etapa. Até 15 minutos e 12 chamadas por job; não expanda a pesquisa para preencher meta. Ausência de sinal é resultado válido. Retome o funil sales.py, respeitando clientes/partes bloqueadas/opt-out; nenhuma issue interna é demanda comercial. O turno diurno reutiliza este trabalho e não pesquisa os mesmos domínios novamente.
+Padrão operacional adaptado de Salesforce Architects (pesquisar → qualificar → registrar) e Anthropic (etapas com gates e critérios de conclusão). Isso fundamenta o desenho; não certifica este agente nem comprova resultado de vendas. Fontes e matriz de aceite: ~/.copilot/chronokairo/night-sales-validation.md.
