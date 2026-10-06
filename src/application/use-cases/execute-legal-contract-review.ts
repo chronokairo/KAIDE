@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { LegalRepositoryPort } from '@/application/ports/legal-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -9,7 +10,7 @@ import {
   LegalContractNotes,
 } from '@/domain/legal';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
 
@@ -268,7 +269,7 @@ export class ExecuteLegalContractReviewUseCase {
   private async persist(reports: ContractComplianceReport[], jobId: string): Promise<void> {
     try {
       if (reports.length > 0) {
-        await supabaseAdmin.from('audit_logs').insert({
+        await getSupabaseAdmin().from('audit_logs').insert({
           organization_id: PROD_ORGANIZATION_ID,
           user_id: PROD_USER_ID,
           action: 'LEGAL_CONTRACT_REVIEW_COMPLETED',

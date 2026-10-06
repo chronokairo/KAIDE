@@ -18,14 +18,7 @@ const requestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const { identity, sendMessage } = createChatComposition();
-    const authorization = request.headers.get('authorization');
-    // O modo server-side usa a chave NVIDIA do .env para o Control Plane local;
-    // quando existe sessão Supabase, ela continua sendo a identidade preferencial.
-    const actor = authorization
-      ? await identity.authenticate(authorization)
-      : process.env.NVIDIA_NIM_API_KEY || process.env.NVIDIA_API_KEY
-        ? { userId: process.env.CONTROL_PLANE_ACTOR_USER_ID ?? 'control-plane-env' }
-        : await identity.authenticate(null);
+    const actor = await identity.authenticate(request.headers.get('authorization'));
     const input = requestSchema.parse(await request.json());
     const result = await sendMessage.execute(actor, input);
     return NextResponse.json(result);

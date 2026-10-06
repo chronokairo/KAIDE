@@ -1,6 +1,7 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { ProjectTask, Project, TaskColumnStatus, TaskPriority } from '@/domain/engineering';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
  * Production secondary adapter for the Engineering Repository backed by Supabase.
@@ -11,7 +12,7 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
  */
 export class SupabaseEngineeringRepository implements EngineeringRepositoryPort {
   async listTasks(): Promise<ProjectTask[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('project_tasks')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -35,7 +36,7 @@ export class SupabaseEngineeringRepository implements EngineeringRepositoryPort 
   }
 
   async listProjects(): Promise<Project[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('projects')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -59,7 +60,7 @@ export class SupabaseEngineeringRepository implements EngineeringRepositoryPort 
   }
 
   async updateTaskStatus(id: string, status: TaskColumnStatus): Promise<void> {
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from('project_tasks')
       .update({ column_status: status, updated_at: new Date().toISOString() })
       .eq('id', id)

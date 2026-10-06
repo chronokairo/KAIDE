@@ -1,5 +1,6 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { Resend } from 'resend';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 import { JobEventType } from '@/domain/company';
 
 export const DEFAULT_RESEND_API_KEY =
@@ -38,12 +39,12 @@ export async function recordJobEvent(
   };
 
   try {
-    const { error } = await supabaseAdmin.from('cp_job_events').insert(eventPayload);
+    const { error } = await getSupabaseAdmin().from('cp_job_events').insert(eventPayload);
     if (error) throw error;
   } catch {
     // If cp_job_events table is not yet migrated in Supabase, persist in audit_logs
     try {
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         action: `CP_EVENT:${eventType}`,
         target: jobId,

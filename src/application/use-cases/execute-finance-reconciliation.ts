@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { FinanceRepositoryPort } from '@/application/ports/finance-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -7,7 +8,7 @@ import {
   DelinquencyForecast,
 } from '@/domain/finance';
 import { JobEntity, ApprovalGate } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
 
@@ -165,7 +166,7 @@ export class ExecuteFinanceReconciliationUseCase {
 
     // 4. Record audit entry in Supabase production
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         tool_name: 'finance.reconcile',
@@ -175,7 +176,7 @@ export class ExecuteFinanceReconciliationUseCase {
         created_at: new Date().toISOString(),
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'FINANCE_RECONCILIATION_COMPLETED',

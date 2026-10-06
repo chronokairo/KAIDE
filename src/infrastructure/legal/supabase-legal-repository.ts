@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { LegalRepositoryPort } from '@/application/ports/legal-repository-port';
 import {
   LegalCase,
@@ -10,7 +11,7 @@ import {
   LegalWitnessReference,
   LegalContractNotes,
 } from '@/domain/legal';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
  * Normalizes JSONB fields (`reporting_party`, `involved_parties`, `witnesses`)
@@ -74,7 +75,7 @@ function parseNotes(notes: unknown): LegalContractNotes | undefined {
  */
 export class SupabaseLegalRepository implements LegalRepositoryPort {
   async listCases(): Promise<LegalCase[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('legal_cases')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -115,7 +116,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
   }
 
   async listContracts(): Promise<LegalContract[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('contracts')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -141,7 +142,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
   }
 
   async saveAuditReport(report: LegalAuditReport): Promise<void> {
-    await supabaseAdmin.from('audit_logs').insert({
+    await getSupabaseAdmin().from('audit_logs').insert({
       organization_id: PROD_ORGANIZATION_ID,
       action: 'LEGAL_CASE_AUDITED',
       target: `legal_cases/${report.caseNumber}`,
@@ -157,7 +158,7 @@ export class SupabaseLegalRepository implements LegalRepositoryPort {
   }
 
   async saveContractComplianceReport(report: ContractComplianceReport): Promise<void> {
-    await supabaseAdmin.from('audit_logs').insert({
+    await getSupabaseAdmin().from('audit_logs').insert({
       organization_id: PROD_ORGANIZATION_ID,
       action: 'LEGAL_CONTRACT_REVIEWED',
       target: `contracts/${report.contractNumber}`,
