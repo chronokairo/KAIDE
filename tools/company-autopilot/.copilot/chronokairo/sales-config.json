@@ -16,37 +16,37 @@
     {
       "key": "roadmapping",
       "name": "Paid discovery / roadmapping",
-      "description": "1–2 semanas: diagnóstico, escopo, estimativa e roadmap; abatível do projeto",
-      "price_usd": null,
-      "price_brl": null,
+      "description": "1 semana (~16h): diagnóstico, escopo, estimativa e roadmap; abatido do projeto se fechado em 30 dias",
+      "price_usd": 950,
+      "price_brl": 2500,
       "deposit_percent": 100
     },
     {
       "key": "fixed-implementation",
       "name": "Fixed-scope implementation / Workmed personalization",
-      "description": "Escopo fechado com marcos, entrada antes do início",
-      "price_usd": null,
-      "price_brl": null,
+      "description": "A partir de: implantação/personalização com escopo fechado (~40h); Workmed soma a mensalidade do plano (R$149/299/499)",
+      "price_usd": 2500,
+      "price_brl": 6000,
       "deposit_percent": 50
     },
     {
       "key": "automation-sprint",
       "name": "Automation sprint",
-      "description": "Automatizar um processo empresarial com escopo fechado",
-      "price_usd": null,
-      "price_brl": null,
+      "description": "Um processo automatizado em até 2 semanas (~30h)",
+      "price_usd": 1800,
+      "price_brl": 4500,
       "deposit_percent": 50
     },
     {
       "key": "maintenance-retainer",
       "name": "Maintenance retainer",
-      "description": "Manutenção e suporte mensal com horas definidas",
-      "price_usd": null,
-      "price_brl": null,
+      "description": "Por mês: até 10h de manutenção e suporte; hora adicional R$150 / US$60",
+      "price_usd": 600,
+      "price_brl": 1500,
       "deposit_percent": 0
     }
   ],
-  "prices": "Preços null exigem aprovação do dono; agentes escrevem price on request / a definir pelo dono",
+  "prices": "Tabela inicial aprovada por delegação do dono em 2026-10-05; descontos e escopos fora da tabela exigem aprovação",
   "daily_candidate_limit": 5,
   "qualification_min_fit_score": 3,
   "outbound_enabled": false,
@@ -91,5 +91,18 @@
       "value": 0.0343,
       "source": "https://instantly.ai/cold-email-benchmark-report-2026"
     }
+  },
+  "chat": {
+    "app": "Chronokairo Chat (gitlab.com/chronokairo/chat)",
+    "workspace_id": "00000000-0000-0000-0000-000000000001",
+    "channel": "comercial-leads",
+    "credentials": "~/.config/chronokairo/chat.env com CK_CHAT_SUPABASE_URL e CK_CHAT_SUPABASE_KEY (chmod 600, fora do Git)"
+  },
+  "pricing_basis": {
+    "decided_at": "2026-10-05",
+    "hourly_brl": 150,
+    "hourly_usd": 60,
+    "rationale": "Decisão inicial pelo mercado brasileiro: hora-base de R$150, na faixa intermediária de software houses pequenas e freelancers seniores; ofertas = horas estimadas x hora-base. USD a ~US$60/h para competir no exterior abaixo de agências dos EUA/Reino Unido. Revisar após 5 propostas ou 2 vendas.",
+    "verified_market_source": null
   }
 }
