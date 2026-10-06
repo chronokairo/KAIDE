@@ -167,6 +167,7 @@ def event(domain,stage,path,kind,amount=None):
             if not lead:raise ValueError('Unknown prospect')
             if lead['stage'] in {'rejected','opt_out','paid'}:raise ValueError('Terminal stage')
             if stage not in {'rejected','opt_out'} and NEXT.get(lead['stage'])!=stage:raise ValueError('Cannot skip stages')
+            if c.execute('SELECT 1 FROM events WHERE domain=? AND evidence_sha256=? AND stage<>?',[domain,digest,stage]).fetchone():raise ValueError('Evidence already used for another stage of this prospect')
             now=dt.datetime.now(dt.timezone.utc).isoformat()
             c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?)',(event_id,domain,stage,str(evidence),digest,kind,amount,now))
             c.execute('UPDATE leads SET stage=?,updated_at=? WHERE domain=?',(stage,now,domain))

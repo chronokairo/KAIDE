@@ -70,9 +70,11 @@ class SalesTests(unittest.TestCase):
         self.assertEqual(sales.records()[0]['stage'],'opt_out')
         with self.assertRaises(ValueError):sales.event('synthetic.example.test','sent',proof,'send_receipt')
     def test_receipts_count_actual_stages_and_payment_once(self):
-        sales.ingest([lead()]);proof=self.base/'evidence.txt';proof.write_text('Synthetic lifecycle fixtures, not real business')
+        sales.ingest([lead()])
         for stage in ['sent','replied','meeting','won']:
-            sales.event('synthetic.example.test',stage,proof,sales.TYPES[stage])
+            step=self.base/f'{stage}.txt';step.write_text(f'Synthetic {stage} fixture, not real business')
+            sales.event('synthetic.example.test',stage,step,sales.TYPES[stage])
+        proof=self.base/'evidence.txt';proof.write_text('Synthetic payment fixture, not real business')
         with self.assertRaises(ValueError):sales.event('synthetic.example.test','paid',proof,'payment_receipt',0)
         sales.event('synthetic.example.test','paid',proof,'payment_receipt',12345)
         self.assertTrue(sales.event('synthetic.example.test','paid',proof,'payment_receipt',12345)['duplicate'])

@@ -20,7 +20,7 @@ class SalesChatTests(unittest.TestCase):
                       {'id':'3'*8+'-0000-0000-0000-000000000000','user_id':'owner','user_name':'Dono','content':'reitoria@ciesa.br','created_at':'2026-10-06T10:02:00Z','reply_to_id':None}]
             with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'channel_id',return_value='c'),patch.object(sales_chat,'session',return_value={'user_id':'bot-uid'}),patch.object(sales_chat,'request',return_value=messages) as request:
                 result=sales_chat.pull_chat()
-                self.assertIn('created_at=gt.1970',request.call_args[0][1])
+                self.assertIn('created_at=gte.1970',request.call_args[0][1])
             self.assertEqual([r['status'] for r in result],['saved','blocked_party'])
             self.assertIn('Yes, interested',Path(result[0]['evidence']).read_text())
             self.assertEqual(json.loads((base/'replies/cursor.json').read_text())['created_at'],'2026-10-06T10:02:00Z')
@@ -47,11 +47,17 @@ class SalesChatTests(unittest.TestCase):
     def test_service_role_is_refused(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp);(base/'sales-config.json').write_text(json.dumps({'chat':{'supabase_url':'https://x.supabase.co'}}))
-            env={'CK_CHAT_SUPABASE_ANON_KEY':'a','CK_CHAT_BOT_EMAIL':'b','CK_CHAT_BOT_PASSWORD':'c','SUPABASE_SERVICE_ROLE_KEY':'s'}
+            import base64
+            jwt=lambda role:'h.'+base64.urlsafe_b64encode(json.dumps({'role':role}).encode()).decode().rstrip('=')+'.s'
+            env={'CK_CHAT_SUPABASE_ANON_KEY':jwt('anon'),'CK_CHAT_BOT_EMAIL':'b','CK_CHAT_BOT_PASSWORD':'c','SUPABASE_SERVICE_ROLE_KEY':'s'}
             with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'CREDENTIALS',base/'none'),patch.dict('os.environ',env,clear=True):
                 with self.assertRaises(RuntimeError):sales_chat.settings()
                 del env['SUPABASE_SERVICE_ROLE_KEY']
             with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'CREDENTIALS',base/'none'),patch.dict('os.environ',env,clear=True):
                 self.assertEqual(sales_chat.settings()[0],'https://x.supabase.co')
+            env['CK_CHAT_SUPABASE_ANON_KEY']=jwt('service_role')
+            with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'CREDENTIALS',base/'none'),patch.dict('os.environ',env,clear=True):
+                with self.assertRaises(RuntimeError):sales_chat.settings()
+                with self.assertRaises(RuntimeError):sales_chat.pull()
 
 if __name__=='__main__':unittest.main()

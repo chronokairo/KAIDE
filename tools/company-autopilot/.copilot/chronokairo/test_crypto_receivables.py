@@ -45,4 +45,16 @@ class CryptoReceivablesTests(unittest.TestCase):
         with self.assertRaises(ValueError):cr.confirm(r['request_id'],TX,'950',20,ev,'5.40','PTAX')
         self.assertEqual(cr.report()['received_brl'],5130.0)
 
+    def test_expired_request_is_refused(self):
+        r=cr.request('acme.com',100,'XMR','monero-stagenet','Sprint',quote=200,quote_source='synthetic')
+        ev=self.base/'explorer.txt';ev.write_text('synthetic explorer page')
+        with cr.connect() as c:c.execute("UPDATE requests SET expires_at='2000-01-01T00:00:00+00:00' WHERE id=?",(r['request_id'],))
+        with self.assertRaises(ValueError):cr.confirm(r['request_id'],TX,'1',20,ev,'5.40','PTAX')
+
+    def test_customer_link_is_exact_or_null(self):
+        r=cr.request('med.com.br',100,'USDC','sepolia','Roadmapping')
+        ev=self.base/'explorer.txt';ev.write_text('synthetic explorer page')
+        sql=Path(cr.confirm(r['request_id'],TX,'100',20,ev,'5.40','PTAX')['finance_sql']).read_text()
+        self.assertNotIn('ILIKE',sql);self.assertIn('SELECT o.id, NULL',sql)
+
 if __name__=='__main__':unittest.main()

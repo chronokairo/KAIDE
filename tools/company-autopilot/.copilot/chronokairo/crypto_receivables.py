@@ -96,26 +96,28 @@ def confirm(request_id,tx_hash,amount,confirmations,evidence,brl_rate,rate_sourc
         if not req:raise ValueError('Cobrança desconhecida')
         if req['status']!='open':raise ValueError('Cobrança já liquidada ou cancelada')
         if c.execute('SELECT 1 FROM receipts WHERE tx_hash=?',(tx_hash,)).fetchone():raise ValueError('Transação já registrada')
+        if dt.datetime.now(dt.timezone.utc)>dt.datetime.fromisoformat(req['expires_at']):raise ValueError('Cobrança expirada: cotação vencida, decisão do dono')
         if decimal.Decimal(str(amount))<decimal.Decimal(req['expected_amount']):raise ValueError('Valor recebido abaixo do cobrado: tratar como parcial manualmente')
         needed=cfg['min_confirmations'].get(req['network'],cfg['min_confirmations']['default'])
         if int(confirmations)<needed:raise ValueError(f'Aguardar {needed} confirmações')
         cents=int((decimal.Decimal(req['amount_usd'])*decimal.Decimal(str(brl_rate))*100).quantize(decimal.Decimal(1)))
         now=dt.datetime.now(ZONE)
+        # Funil primeiro: se recusar a evidência, nada é gravado e a cobrança segue aberta.
+        lead=next((r for r in sales.records() if r['domain']==req['domain']),None)
+        funnel=sales.event(req['domain'],'paid',path,'payment_receipt',cents) if lead and lead['stage']=='won' else None
         c.execute('INSERT INTO receipts VALUES(?,?,?,?,?,?,?,?,?,?)',(tx_hash,request_id,str(amount),int(confirmations),str(path),hashlib.sha256(path.read_bytes()).hexdigest(),str(brl_rate),rate_source,cents,now.isoformat()))
         c.execute("UPDATE requests SET status='paid' WHERE id=?",(request_id,))
-    funnel=None
-    lead=next((r for r in sales.records() if r['domain']==req['domain']),None)
-    if lead and lead['stage']=='won':funnel=sales.event(req['domain'],'paid',path,'payment_receipt',cents)
-    sql=finance_sql(req,tx_hash,cents,now)
+    sql=finance_sql(req,tx_hash,cents,now,lead['company'] if lead else None)
     return {'request_id':request_id,'amount_brl':cents/100,'funnel':funnel or 'lead fora da etapa won; registrar venda antes','finance_sql':str(sql)}
 
-def finance_sql(req,tx_hash,cents,now):
+def finance_sql(req,tx_hash,cents,now,company_name=None):
     """Lançamento em accounts_receivable da platform; aplicado pelo dono enquanto não houver credencial dedicada."""
     q=lambda v:"'"+str(v).replace("'","''")+"'"
     day=now.date().isoformat()
     sql=(f"-- Recebimento em cripto {req['asset']}/{req['network']} tx {tx_hash}\n"
          "INSERT INTO public.accounts_receivable (organization_id, customer_id, description, invoice_number, amount, due_date, competence_date, received_at, received_amount, status)\n"
-         f"SELECT o.id, (SELECT id FROM public.customers WHERE organization_id=o.id AND (company ILIKE {q('%'+req['domain'].split('.')[0]+'%')}) LIMIT 1),\n"
+         # Cliente só por nome exato do funil; sem correspondência fica NULL para o dono vincular.
+         f"SELECT o.id, {'(SELECT id FROM public.customers WHERE organization_id=o.id AND company='+q(company_name)+' ORDER BY created_at LIMIT 1)' if company_name else 'NULL'},\n"
          f"  {q(req['description']+' — '+req['amount_usd']+' USD em '+req['expected_amount']+' '+req['asset']+' ('+req['network']+'), tx '+tx_hash)}, {q('CRYPTO-'+req['id'])},\n"
          f"  {cents/100:.2f}, {q(day)}, {q(day)}, {q(now.isoformat())}, {cents/100:.2f}, 'Pago'\n"
          "FROM public.organizations o WHERE o.slug='chronokairo'\n"
