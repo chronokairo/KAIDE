@@ -108,6 +108,19 @@ def event(domain,stage,path,kind,amount=None):
         return {'event_id':event_id,'duplicate':False}
     finally:c.close()
 
+ATTESTABLE={'sent':'send_receipt','meeting':'meeting_confirmation','rejected':'rejection','opt_out':'opt_out'}
+
+def attest(domain,stage,channel,note):
+    """Registro do dono para envio/reunião/recusa feitos fora do sistema; venda e pagamento exigem documento."""
+    if stage not in ATTESTABLE:raise ValueError('Owner attestation only covers sent, meeting, rejected and opt_out')
+    if not channel.strip():raise ValueError('Channel required')
+    now=dt.datetime.now(ZoneInfo('America/Caracas'))
+    folder=BASE/'evidence'/'attested';folder.mkdir(parents=True,exist_ok=True)
+    path=folder/f"{now:%Y%m%dT%H%M%S}-{stage}-{website('https://'+domain)}.txt"
+    path.write_text(f'Declaração do dono\nEtapa: {stage}\nProspect: {domain}\nCanal: {channel}\nData: {now.isoformat()}\nNota: {note or "-"}\n')
+    os.chmod(path,0o600)
+    return event(domain,stage,path,ATTESTABLE[stage])
+
 def records():
     c=connect()
     try:return [dict(r,details=json.loads(r['details'])) for r in c.execute('SELECT * FROM leads ORDER BY updated_at DESC')]
@@ -162,10 +175,12 @@ def main():
     sub.add_parser('list');sub.add_parser('report')
     a=sub.add_parser('ingest');a.add_argument('--file',required=True)
     e=sub.add_parser('event');e.add_argument('--domain',required=True);e.add_argument('--stage',choices=list(TYPES),required=True);e.add_argument('--evidence',required=True);e.add_argument('--kind',choices=list(TYPES.values()),required=True);e.add_argument('--amount-cents',type=int)
+    m=sub.add_parser('mark',help='dono registra envio, reunião, recusa ou opt-out');m.add_argument('--domain',required=True);m.add_argument('--stage',choices=list(ATTESTABLE),required=True);m.add_argument('--channel',required=True);m.add_argument('--note',default='')
     args=p.parse_args()
     if args.action=='list':result=records()
     elif args.action=='report':result=report()
     elif args.action=='ingest':result=ingest(json.loads(Path(args.file).read_text()))
+    elif args.action=='mark':result=attest(args.domain,args.stage,args.channel,args.note)
     else:result=event(args.domain,args.stage,args.evidence,args.kind,args.amount_cents)
     print(json.dumps(result,ensure_ascii=False))
 if __name__=='__main__':main()

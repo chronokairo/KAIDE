@@ -19,7 +19,7 @@ class SalesChatTests(unittest.TestCase):
                       {'id':'2'*8+'-0000-0000-0000-000000000000','user_id':'bot-uid','user_name':'bot','content':'triagem acme.com','created_at':'2026-10-06T10:01:00Z','reply_to_id':None},
                       {'id':'3'*8+'-0000-0000-0000-000000000000','user_id':'owner','user_name':'Dono','content':'reitoria@ciesa.br','created_at':'2026-10-06T10:02:00Z','reply_to_id':None}]
             with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'channel_id',return_value='c'),patch.object(sales_chat,'session',return_value={'user_id':'bot-uid'}),patch.object(sales_chat,'request',return_value=messages) as request:
-                result=sales_chat.pull()
+                result=sales_chat.pull_chat()
                 self.assertIn('created_at=gt.1970',request.call_args[0][1])
             self.assertEqual([r['status'] for r in result],['saved','blocked_party'])
             self.assertIn('Yes, interested',Path(result[0]['evidence']).read_text())
@@ -31,6 +31,18 @@ class SalesChatTests(unittest.TestCase):
             body=request.call_args[0][2]
             self.assertEqual((body['user_id'],body['reply_to_id']),('bot-uid','1'*8+'-0000-0000-0000-000000000000'))
             with self.assertRaises(ValueError):sales_chat.post('x',reply_to='bad')
+
+    def test_desktop_fallback_when_chat_not_configured(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp);inbox=base/'Respostas';inbox.mkdir()
+            (base/'sales-config.json').write_text(json.dumps({'blocked_domains':['ciesa.br']}))
+            (inbox/'acme.com.txt').write_text('Sounds good, call me next week')
+            (inbox/'x.txt').write_text('reitoria@ciesa.br no thanks')
+            with patch.object(sales_chat,'BASE',base),patch.object(sales_chat,'FALLBACK',inbox),patch.object(sales_chat,'CREDENTIALS',base/'none'),patch.dict('os.environ',{},clear=True):
+                result=sales_chat.pull()
+            self.assertEqual({r['status'] for r in result},{'saved','blocked_party'})
+            self.assertEqual(next(r for r in result if r['status']=='saved')['domain'],'acme.com')
+            self.assertEqual(sorted(f.name for f in (inbox/'processadas').iterdir()),['acme.com.txt','x.txt'])
 
     def test_service_role_is_refused(self):
         with tempfile.TemporaryDirectory() as temp:

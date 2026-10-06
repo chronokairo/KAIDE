@@ -75,7 +75,29 @@ def blocked(domain):
     config=json.loads((BASE/'sales-config.json').read_text())
     return any(domain==d or domain.endswith('.'+d) for d in config.get('blocked_domains',[]))
 
+FALLBACK=Path.home()/'Desktop/Chronokairo/Respostas'
+
+def pull_desktop():
+    """Entrada provisória até o Chat entrar em produção: arquivos .txt salvos pelo dono."""
+    folder=BASE/'replies';folder.mkdir(mode=0o700,exist_ok=True)
+    done=FALLBACK/'processadas';done.mkdir(parents=True,exist_ok=True)
+    saved=[]
+    for source in sorted(FALLBACK.glob('*.txt')):
+        text=source.read_text(errors='replace');domain=prospect_domain(source.stem+'\n'+text)
+        if not domain:saved.append({'file':source.name,'status':'needs_domain'});continue
+        if blocked(domain):saved.append({'file':source.name,'domain':domain,'status':'blocked_party'});source.replace(done/source.name);continue
+        path=folder/f"desktop-{source.stem}.txt"
+        path.write_text(f'Fonte: Desktop/Chronokairo/Respostas/{source.name}\n\n{text}\n');os.chmod(path,0o600)
+        source.replace(done/source.name)
+        saved.append({'file':source.name,'domain':domain,'evidence':str(path),'status':'saved','source':'desktop'})
+    return saved
+
 def pull():
+    try:settings()
+    except RuntimeError:return pull_desktop()
+    return pull_chat()
+
+def pull_chat():
     """Salva mensagens novas do dono como evidência local; respostas do bot e threads são ignoradas."""
     folder=BASE/'replies';folder.mkdir(mode=0o700,exist_ok=True)
     cursor_path=folder/'cursor.json'

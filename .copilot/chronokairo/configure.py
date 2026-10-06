@@ -133,7 +133,7 @@ def build(provider):
                              model=MODELS[model], tools=list(dict.fromkeys(tools+(['execute'] if key in ['issue-planner','backlog','code-reviewer','security','devops'] else []))), owner='ck-'+domain+'-orchestrator', kind='worker'))
     for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral']:
         goal,kpi,_ = sales_profiles.CONTRACTS[key]
-        profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+['edit'],owner='ck-revenue-orchestrator',kind='worker'))
+        profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+(['web'] if key=='demand-scout' else ['edit']),owner='ck-revenue-orchestrator',kind='worker'))
     for domain in ['revenue','product','engineering','operations','finance','people']:
         workers = [p['id'] for p in profiles if p['domain'] == domain and p['kind']=='worker']
         profiles.append(dict(id='ck-'+domain+'-orchestrator',domain=domain,

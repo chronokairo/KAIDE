@@ -45,9 +45,17 @@ Por origem (referral, demand, outbound, inbound): qualificados, envios, resposta
 
 Inglês por padrão; localizar para pt-BR ou es conforme país/site do lead. Escada de ofertas em sales-config.json: roadmapping pago → implantação de escopo fechado com entrada → automação → manutenção mensal; preços null exigem aprovação do dono. Primeiro toque com menos de 80 palavras e um CTA; até 3 follow-ups. Identificação do remetente, opt-out e endereço físico quando exigido (CAN-SPAM, PECR, GDPR, LGPD). LinkedIn: sem automação ou scraping (User Agreement 8.2); o dono envia manualmente. Lição 11x (TechCrunch, 24/03/2025): sem logos, cases ou métricas sem autorização.
 
+## Registro rápido do dono
+
+Depois de enviar uma abordagem, marcar reunião ou receber recusa:
+
+`python3 ~/.copilot/chronokairo/sales.py mark --domain empresa.com --stage sent --channel e-mail`
+
+Etapas aceitas: sent, meeting, rejected, opt_out. Respostas entram pela rota replies. Contrato (won) e pagamento (paid) exigem documento via `sales.py event`.
+
 ## Respostas no Chronokairo Chat
 
-Cole cada resposta recebida (e-mail, WhatsApp, LinkedIn) como mensagem nova no canal #comercial-leads, com a linha `lead: dominio.com` quando o domínio não estiver no texto. A rota replies executa `sales_chat.py pull`, salva a mensagem como evidência local, registra a etapa no funil e publica a triagem e a réplica na thread da mensagem, como "Chronokairo Agents". Publicar no canal é interno; o envio ao prospect continua com o dono. O Chat usa o Supabase único da empresa (o mesmo do Workmed); por isso a ponte entra como usuário-robô membro do workspace `chronokairo-hq`, limitado pela RLS do MR chat!1, e recusa a service role. Credenciais em `~/.config/chronokairo/chat.env`: `CK_CHAT_SUPABASE_ANON_KEY`, `CK_CHAT_BOT_EMAIL`, `CK_CHAT_BOT_PASSWORD`.
+Cole cada resposta recebida (e-mail, WhatsApp, LinkedIn) como mensagem nova no canal #comercial-leads, com a linha `lead: dominio.com` quando o domínio não estiver no texto. A rota replies executa `sales_chat.py pull`, salva a mensagem como evidência local, registra a etapa no funil e publica a triagem e a réplica na thread da mensagem, como "Chronokairo Agents". Publicar no canal é interno; o envio ao prospect continua com o dono. Enquanto o Chat não estiver em produção, salve cada resposta como `.txt` em `~/Desktop/Chronokairo/Respostas/`, com o domínio no nome do arquivo; a triagem vai para `Comercial-Respostas-<data>.md`. O Chat usa o Supabase único da empresa (o mesmo do Workmed); por isso a ponte entra como usuário-robô membro do workspace `chronokairo-hq`, limitado pela RLS do MR chat!1, e recusa a service role. Credenciais em `~/.config/chronokairo/chat.env`: `CK_CHAT_SUPABASE_ANON_KEY`, `CK_CHAT_BOT_EMAIL`, `CK_CHAT_BOT_PASSWORD`.
 
 ## Preços iniciais
 
