@@ -112,10 +112,13 @@ FLOWS.extend([
  ('replies','Revenue — respostas e reuniões','revenue',['reply-triage','followup','pipeline-auditor'],'daily',12,1,'ck-ai'),
  ('referrals','Revenue — indicações de clientes','revenue',['referral','pipeline-auditor'],'weekly',9,1,'ck-ai'),
  ('partnerships','Revenue — parceiros de canal','revenue',['partnerships','pipeline-auditor'],'weekly',9,3,'ck-ai'),
+ ('lead-sprint-1','Revenue — captação para campanha 10h30','revenue',['lead-discovery','lead-enrichment','qualification','sdr'],'daily',10,1,'ck-ai'),
+ ('lead-sprint-2','Revenue — captação para campanha 14h30','revenue',['lead-discovery','lead-enrichment','qualification','sdr'],'daily',14,1,'ck-ai'),
+ ('lead-sprint-3','Revenue — captação para campanha 16h30','revenue',['lead-discovery','lead-enrichment','qualification','sdr'],'daily',16,1,'ck-ai'),
  ('crypto-receivables','Finance — recebimentos em cripto','finance',['crypto-receivables','reconciliation'],'daily',13,1,'ck-ai'),
 ])
 MINUTES = {key:minute for key,(_,minute) in DAILY.items()}
-MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15,'partnerships':15,'crypto-receivables':15})
+MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15,'partnerships':15,'crypto-receivables':15,'lead-sprint-1':30,'lead-sprint-2':30,'lead-sprint-3':30})
 FLOWS.extend(night_sales.ROUTES)
 MINUTES['night-brief']=30
 

@@ -39,7 +39,7 @@ def augment(profiles):
     return profiles
 
 def route_instruction(key):
-    if key not in {'lead-pipeline','demand-pipeline','replies','referrals','partnerships','proposal','new-business','company-cycle','daily-report'}: return ''
+    if not key.startswith('lead-sprint') and key not in {'lead-pipeline','demand-pipeline','replies','referrals','partnerships','proposal','new-business','company-cycle','daily-report'}: return ''
     text = '\nLeia ~/.copilot/chronokairo/sales-playbook.md. Aquisição exclui Audiomed e qualquer outro cliente existente; não conte manutenção como cliente novo. Separe candidato, qualificado, mensagem pronta, envio, resposta, reunião, contrato e recebimento. Antes de trabalhar consulte python3 ~/.copilot/chronokairo/sales.py list; no fim execute sales.py report. Preserve métricas desconhecidas, não substitua por issues ou projetos.\n'
     if key == 'demand-pipeline':
         text += 'Execute radar de demanda→enriquecimento→qualificação→SDR→auditoria com até 5 sinais declarados e recentes, em inglês por padrão. Coordenador grava JSON com source_type=demand por sales.py ingest. Nenhum envio externo.\n'
@@ -47,6 +47,8 @@ def route_instruction(key):
         text += 'Execute sales_chat.py pull para as respostas novas do canal #comercial-leads do Chronokairo Chat. Após classificação, registre replied/opt_out/rejected por sales.py event com a evidência salva e publique triagem, réplica e follow-ups na thread da mensagem com sales_chat.py post --reply-to. Chat não configurado: use a entrada provisória do Desktop retornada pelo pull e grave a triagem em Desktop/Chronokairo/Comercial-Respostas-<data>.md. Sem mensagens novas, encerre sem inventar respostas. Publicar no canal interno não é envio ao prospect.\n'
     if key == 'referrals':
         text += 'Prepare o pedido de indicação e o texto de apresentação para clientes existentes, respeitando um pedido por trimestre. Registre indicados com source_type=referral e referred_by. Nenhum envio externo.\n'
+    if key.startswith('lead-sprint'):
+        text += 'Captação para a campanha de WhatsApp (até whatsapp_campaign.start em sales-config.json; depois dessa data encerre sem pesquisar). Lote de até 5 empresas NOVAS no Brasil, priorizando clínicas de saúde ocupacional e medicina do trabalho por capital/estado ainda não coberto no funil (consulte sales.py list), depois PMEs com processo manual visível. Só persista lead COMPLETO: contact_name, whatsapp E.164 comercial, email comercial, product e contact_source publicados pela própria empresa; sem esses campos, descarte e passe ao próximo. SDR prepara a mensagem de WhatsApp (até 60 palavras). Nenhum envio externo.\n'
     if key == 'partnerships':
         text += 'Execute parcerias→auditoria com até 5 parceiros de canal com fonte pública. Coordenador grava JSON com source_type=partner por sales.py ingest e entrega propostas de parceria no Desktop. Nenhum envio externo.\n'
     if key == 'lead-pipeline':
