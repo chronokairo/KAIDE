@@ -229,9 +229,18 @@
     ],
     "admin": "luan@chronokairo.com.br (conta principal; contas Gmail antigas descontinuadas e transferidas para ela)",
     "employees": [
-      "adri@chronokairo.com.br"
+      "adri@chronokairo.com.br",
+      "mari@chronokairo.com.br",
+      "jordan@chronokairo.com.br"
     ],
     "robot": "agent@chronokairo.com.br",
-    "rule": "Somente os sócios acessam todos os dados internos; funcionários só o próprio escopo (ex.: caixa do próprio apelido no Mail)."
+    "rule": "Somente os sócios acessam todos os dados internos; funcionários só o próprio escopo (ex.: caixa do próprio apelido no Mail).",
+    "mail_aliases": {
+      "financeiro": "sócios",
+      "billing": "sócios",
+      "ti": "sócios",
+      "gmail": "sócios (encaminhamento da antiga chronokairo@gmail.com)",
+      "contato": "adri"
+    }
   }
 }
