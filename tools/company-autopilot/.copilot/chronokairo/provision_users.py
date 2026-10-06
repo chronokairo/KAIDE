@@ -124,39 +124,49 @@ def password(length=20):
             return p
 
 
+def _password_file():
+    DESKTOP.mkdir(parents=True, exist_ok=True)
+    path = DESKTOP / f'Acessos-Iniciais-{dt.date.today().isoformat()}.md'
+    new_file = not path.exists()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+    os.fchmod(fd, 0o600)
+    f = os.fdopen(fd, 'a')
+    if new_file:
+        f.write('# Acessos iniciais — Chronokairo\n\nEntregar individualmente a cada pessoa e apagar este arquivo após a entrega.\n'
+                'Cada pessoa deve trocar a senha no primeiro acesso. Não enviar por e-mail nem salvar no Git.\n\n'
+                '| Login (e-mail) | Apelido | Senha inicial |\n|---|---|---|\n')
+    return path, f
+
+
 def create(emails):
+    wanted = [e.strip().lower() for e in emails]
+    invalid = [e for e in wanted if not re.fullmatch(r'[a-z0-9._-]{1,64}@' + re.escape(DOMAIN), e)]
+    if invalid:
+        raise SystemExit('Endereços inválidos (somente nome@' + DOMAIN + '): ' + ', '.join(invalid))
     key = service_key()
     headers = {'apikey': key, 'Authorization': 'Bearer ' + key}
     existing = auth_users(key)
-    created, skipped = [], []
-    for email in emails:
-        email = email.strip().lower()
-        if not email.endswith('@' + DOMAIN):
-            raise SystemExit('Somente endereços @' + DOMAIN)
-        if email in existing:
-            skipped.append(email)
-            continue
-        secret = password()
-        nickname = email.split('@')[0]
-        call(f'{SUPABASE_URL}/auth/v1/admin/users', headers, 'POST',
-             {'email': email, 'password': secret, 'email_confirm': True,
-              'user_metadata': {'nickname': nickname, 'provisioned_by': 'provision_users.py'}})
-        created.append((email, nickname, secret))
-    path = None
-    if created:
-        DESKTOP.mkdir(parents=True, exist_ok=True)
-        path = DESKTOP / f'Acessos-Iniciais-{dt.date.today().isoformat()}.md'
-        new_file = not path.exists()
-        lines = ['# Acessos iniciais — Chronokairo', '',
-                 'Entregar individualmente a cada pessoa e apagar este arquivo após a entrega.',
-                 'Cada pessoa deve trocar a senha no primeiro acesso. Não enviar por e-mail nem salvar no Git.', '',
-                 '| Login (e-mail) | Apelido | Senha inicial |', '|---|---|---|'] if new_file else []
-        lines += [f'| {e} | {n} | `{s}` |' for e, n, s in created]
-        # Acrescenta: cadastros posteriores no mesmo dia não apagam senhas ainda não entregues.
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-        with os.fdopen(fd, 'a') as f:
-            f.write('\n'.join(lines) + '\n')
-    return {'criados': [e for e, _, _ in created], 'ja_existiam': skipped, 'arquivo_senhas': str(path) if path else None}
+    created, skipped, path, f = [], [], None, None
+    try:
+        for email in wanted:
+            if email in existing:
+                skipped.append(email)
+                continue
+            secret = password()
+            nickname = email.split('@')[0]
+            call(f'{SUPABASE_URL}/auth/v1/admin/users', headers, 'POST',
+                 {'email': email, 'password': secret, 'email_confirm': True,
+                  'user_metadata': {'nickname': nickname, 'provisioned_by': 'provision_users.py'}})
+            if f is None:
+                path, f = _password_file()
+            # Grava logo após criar: uma falha no lote não deixa senha perdida.
+            f.write(f'| {email} | {nickname} | `{secret}` |\n')
+            f.flush()
+            created.append(email)
+    finally:
+        if f:
+            f.close()
+    return {'criados': created, 'ja_existiam': skipped, 'arquivo_senhas': str(path) if path else None}
 
 
 def main():
