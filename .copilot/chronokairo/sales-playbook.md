@@ -14,7 +14,7 @@ Objetivo: obter novos clientes para serviços e implantação, com foco em caixa
 | ck-followup | Rascunho de seguimento somente de contato efetivamente enviado |
 | ck-opportunity | Hipóteses externas e oferta pequena; evita desenvolvimento sem comprador |
 | ck-demand-scout | Demanda declarada recente (HN Who is hiring, vagas, compras públicas UK/US, comunidades), inglês primeiro |
-| ck-reply-triage | Classifica respostas salvas em Desktop/Chronokairo/Respostas e prepara réplica com link de agenda |
+| ck-reply-triage | Classifica respostas coladas no #comercial-leads do Chronokairo Chat e responde na thread com réplica e link de agenda |
 | ck-referral | Pedido de indicação e case para clientes existentes (Audiomed), um por trimestre |
 | ck-pipeline-auditor | Confere fonte, exclusão de cliente existente, etapas e métricas por origem |
 | ck-revenue-orchestrator | Persiste, coordena etapas e produz documento no Desktop |
@@ -44,6 +44,21 @@ Por origem (referral, demand, outbound, inbound): qualificados, envios, resposta
 ## Idioma, ofertas e conformidade
 
 Inglês por padrão; localizar para pt-BR ou es conforme país/site do lead. Escada de ofertas em sales-config.json: roadmapping pago → implantação de escopo fechado com entrada → automação → manutenção mensal; preços null exigem aprovação do dono. Primeiro toque com menos de 80 palavras e um CTA; até 3 follow-ups. Identificação do remetente, opt-out e endereço físico quando exigido (CAN-SPAM, PECR, GDPR, LGPD). LinkedIn: sem automação ou scraping (User Agreement 8.2); o dono envia manualmente. Lição 11x (TechCrunch, 24/03/2025): sem logos, cases ou métricas sem autorização.
+
+## Respostas no Chronokairo Chat
+
+Cole cada resposta recebida (e-mail, WhatsApp, LinkedIn) como mensagem nova no canal #comercial-leads, com a linha `lead: dominio.com` quando o domínio não estiver no texto. A rota replies executa `sales_chat.py pull`, salva a mensagem como evidência local, registra a etapa no funil e publica a triagem e a réplica na thread da mensagem, como "Chronokairo Agents". Publicar no canal é interno; o envio ao prospect continua com o dono. Credenciais: `~/.config/chronokairo/chat.env` com `CK_CHAT_SUPABASE_URL` e `CK_CHAT_SUPABASE_KEY`.
+
+## Preços iniciais
+
+| Oferta | BRL | USD | Entrada |
+|---|---|---|---|
+| Diagnóstico / roadmapping (1 semana) | R$ 2.500 | US$ 950 | 100% |
+| Implantação com escopo fechado (a partir de) | R$ 6.000 | US$ 2.500 | 50% |
+| Sprint de automação (1 processo) | R$ 4.500 | US$ 1.800 | 50% |
+| Manutenção mensal (até 10h) | R$ 1.500/mês | US$ 600/mês | — |
+
+Base: R$150/h e US$60/h, decisão inicial pelo mercado brasileiro sem pesquisa de preços verificada; revisar após 5 propostas ou 2 vendas.
 
 ## Persistência
 
