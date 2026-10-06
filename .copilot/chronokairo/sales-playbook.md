@@ -47,7 +47,7 @@ Inglês por padrão; localizar para pt-BR ou es conforme país/site do lead. Esc
 
 ## Respostas no Chronokairo Chat
 
-Cole cada resposta recebida (e-mail, WhatsApp, LinkedIn) como mensagem nova no canal #comercial-leads, com a linha `lead: dominio.com` quando o domínio não estiver no texto. A rota replies executa `sales_chat.py pull`, salva a mensagem como evidência local, registra a etapa no funil e publica a triagem e a réplica na thread da mensagem, como "Chronokairo Agents". Publicar no canal é interno; o envio ao prospect continua com o dono. Credenciais: `~/.config/chronokairo/chat.env` com `CK_CHAT_SUPABASE_URL` e `CK_CHAT_SUPABASE_KEY`.
+Cole cada resposta recebida (e-mail, WhatsApp, LinkedIn) como mensagem nova no canal #comercial-leads, com a linha `lead: dominio.com` quando o domínio não estiver no texto. A rota replies executa `sales_chat.py pull`, salva a mensagem como evidência local, registra a etapa no funil e publica a triagem e a réplica na thread da mensagem, como "Chronokairo Agents". Publicar no canal é interno; o envio ao prospect continua com o dono. O Chat usa o Supabase único da empresa (o mesmo do Workmed); por isso a ponte entra como usuário-robô membro do workspace `chronokairo-hq`, limitado pela RLS do MR chat!1, e recusa a service role. Credenciais em `~/.config/chronokairo/chat.env`: `CK_CHAT_SUPABASE_ANON_KEY`, `CK_CHAT_BOT_EMAIL`, `CK_CHAT_BOT_PASSWORD`.
 
 ## Preços iniciais
 
