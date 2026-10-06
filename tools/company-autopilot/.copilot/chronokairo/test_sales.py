@@ -38,7 +38,13 @@ class SalesTests(unittest.TestCase):
         self.assertEqual((funnel['qualified'],funnel['sent'],funnel['replied'],funnel['meeting']),(1,1,1,0))
         self.assertEqual((funnel['reply_rate'],funnel['meeting_rate'],funnel['win_rate']),('100%','0%','n/a'))
         self.assertEqual(sales.funnel_metrics()['outbound']['sent'],0)
-    def test_deduplication_and_no_reply_from_drafts(self):
+    def test_owner_attestation_covers_only_sent_meeting_and_exits(self):
+        sales.ingest([lead()])
+        sales.attest('synthetic.example.test','sent','e-mail','primeiro toque')
+        self.assertEqual(sales.records()[0]['stage'],'sent')
+        with self.assertRaises(ValueError):sales.attest('synthetic.example.test','won','e-mail','')
+        with self.assertRaises(ValueError):sales.attest('synthetic.example.test','meeting','e-mail','')
+
         sales.ingest([lead()]);sales.ingest([lead(website='https://www.synthetic.example.test/path')])
         self.assertEqual(len(sales.records()),1)
         metrics=sales.report();self.assertEqual(metrics['evidence_counts']['replied'],0);self.assertEqual(metrics['paid_cents'],0)

@@ -2,7 +2,7 @@
 name: "ck-demand-scout"
 description: "Encontrar demanda declarada por software, automação ou SaaS em fontes públicas, priorizando mercados de língua inglesa."
 model: "d5886588-fff7-4945-8e16-9875394f2b62/z-ai/glm-5.3"
-tools: ["read", "search", "edit"]
+tools: ["read", "search", "web"]
 include-custom-instructions: true
 metadata: {"id": "ck-demand-scout", "owner": "ck-revenue-orchestrator", "domain": "revenue", "kind": "worker", "kpi": "Sinais de compra declarados com fonte e data; % que vira resposta", "sla": "15 minutes target", "budget": "12 tool calls; 12000 output tokens; 1 retry", "provider-id": "d5886588-fff7-4945-8e16-9875394f2b62", "model-selection-id": "d5886588-fff7-4945-8e16-9875394f2b62/z-ai/glm-5.3", "trigger": "lead-pipeline,proposal,demand-pipeline,replies,referrals", "permissions": "Chronokairo namespaces only; branch/PR publishing by coder, bootstrap, payments; real money/production human gate", "risk": "read or draft only"}
 ---
