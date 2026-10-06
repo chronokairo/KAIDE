@@ -36,14 +36,19 @@
     "agroflow": {
       "repository": "https://gitlab.com/chronokairo/agroflow",
       "role": "Chronokairo SaaS vertical multi-tenant for agriculture",
-      "commercial_status": "Manutenção solicitada pelo dono em 2026-10-05; preço/contrato não informado",
+      "commercial_status": "Modelo de comissão por venda realizada pelo SaaS, confirmado pelo dono em 2026-10-05; percentual e forma de apuração ainda não informados",
       "tenants": [
         {
           "slug": "sitio-fazenda-nova-canaa",
           "name": "Sítio Fazenda Nova Canaã",
           "unit": "CAD Brasília",
           "evidence": "tenants/sitio-fazenda-nova-canaa/README.md no repositório Agroflow",
-          "role": "Tenant/cliente do SaaS; não confundir com a empresa fornecedora Chronokairo"
+          "role": "Tenant/cliente do SaaS; não confundir com a empresa fornecedora Chronokairo",
+          "commercial_model": "Comissão por venda; percentual pendente de definição pelo dono",
+          "crm_registration": "Pendente: registrar como cliente Won no Supabase da platform (public.customers/contracts); SQL preparado em Desktop/Chronokairo/Sitio-Nova-Canaa-Supabase.sql",
+          "pending": [
+            "Criar página no Instagram via Meta Business Suite para o Sítio Fazenda Nova Canaã (ação externa: exige conta e aprovação do dono)"
+          ]
         }
       ],
       "maintenance": {
@@ -59,6 +64,30 @@
           "apps/agro-erp"
         ]
       }
+    },
+    "kattegat": {
+      "repository": "https://github.com/kattegatcorp/lp",
+      "role": "SaaS ERP da Chronokairo com organização própria (kattegatcorp); módulos CRM, Financeiro, RH, Estoque e Agro",
+      "commercial_status": "Pausado: o investidor anjo abandonou o projeto (informado pelo dono em 2026-10-05). Não retomar, prospectar ou alterar sem pedido do dono."
     }
-  }
+  },
+  "blocked_parties": [
+    {
+      "names": [
+        "CIESA",
+        "WD Educacional LTDA",
+        "Grupo WD",
+        "Colégio Século"
+      ],
+      "reason": "Inadimplência relatada pelo dono em 2026-10-05",
+      "rule": "Não prospectar, propor, cadastrar como lead/oportunidade nem trabalhar para estas empresas. Os dados do seed crm#13 continuam exigindo remoção (LGPD)."
+    }
+  ],
+  "excluded_sources": [
+    {
+      "source": "gitlab.com/chronokairo/finance data/documents/2026/08/cc1864e7-a61b-4bcf-85aa-aae56d7cab33.pdf",
+      "reason": "Termo da Chamada Pública 01/2026-ANTAQ; dono confirmou em 2026-10-05 que não tem relação com a Chronokairo",
+      "rule": "Não lançar, cobrar, reconciliar nem tratar como oportunidade."
+    }
+  ]
 }

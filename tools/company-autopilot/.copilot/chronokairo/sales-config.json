@@ -1,13 +1,34 @@
 {
   "version": 1,
-  "existing_customer_domains": ["audiomedam.com.br"],
-  "existing_customer_names": ["audiomed"],
-  "icp": ["Clínicas de saúde ocupacional em Manaus/AM, depois Brasil", "Pequenas empresas brasileiras com processos manuais publicamente identificáveis"],
-  "offers": ["Implantação/personalização de software para clínica, após verificar prontidão do produto", "Automação com escopo fechado de um processo empresarial", "Manutenção pontual de software com diagnóstico e orçamento"],
+  "existing_customer_domains": [
+    "audiomedam.com.br"
+  ],
+  "existing_customer_names": [
+    "audiomed"
+  ],
+  "icp": [
+    "Clínicas de saúde ocupacional em Manaus/AM, depois Brasil",
+    "Pequenas empresas brasileiras com processos manuais publicamente identificáveis"
+  ],
+  "offers": [
+    "Implantação/personalização de software para clínica, após verificar prontidão do produto",
+    "Automação com escopo fechado de um processo empresarial",
+    "Manutenção pontual de software com diagnóstico e orçamento"
+  ],
   "prices": "Somente orçamento aprovado pelo dono por prospect; preços Audiomed não se aplicam automaticamente",
   "daily_candidate_limit": 5,
   "qualification_min_fit_score": 3,
   "outbound_enabled": false,
   "followup_min_days": 3,
-  "followup_max_count": 2
+  "followup_max_count": 2,
+  "blocked_domains": [
+    "ciesa.br"
+  ],
+  "blocked_names": [
+    "ciesa",
+    "wd educacional",
+    "grupo wd",
+    "colégio século",
+    "colegio seculo"
+  ]
 }

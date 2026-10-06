@@ -48,6 +48,9 @@ def ingest(records):
         domain=website(row['website']);website(row['business_contact_url'])
         if any(domain==d or domain.endswith('.'+d) for d in config['existing_customer_domains']) or row['company'].strip().casefold() in config['existing_customer_names']:
             raise ValueError('Existing customer is not acquisition')
+        company=row['company'].strip().casefold()
+        if any(domain==d or domain.endswith('.'+d) for d in config.get('blocked_domains',[])) or any(n in company for n in config.get('blocked_names',[])):
+            raise ValueError('Blocked party: owner-reported default, do not prospect')
         sources=row.get('sources')
         if not isinstance(sources,list) or not sources:raise ValueError('Source evidence required')
         for source in sources:
