@@ -13,6 +13,30 @@ import company
 
 
 class OperationsTests(unittest.TestCase):
+    def test_resolved_blocker_remains_auditable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp)/'state';desktop=Path(temp)/'Desktop';evidence=Path(temp)/'evidence.md'
+            evidence.write_text('Verified current runtime state')
+            with patch.object(company,'BASE',base),patch.object(company,'DESKTOP',desktop):
+                entry=company.report('ck-test','job-test','blocker','Old alert')
+                with self.assertRaises(ValueError):company.resolve_report(entry['event_id'],'done',Path(temp)/'missing')
+                company.resolve_report(entry['event_id'],'Verified',evidence)
+                company.report('ck-test','job-next','daily','Follow-up')
+                self.assertNotIn('Old alert',(desktop/'PENDENCIAS.md').read_text())
+                with sqlite3.connect(base/'reporting.db') as c:
+                    row=c.execute('select message,resolved,resolution from reports where id=?',(entry['event_id'],)).fetchone()
+                    self.assertEqual(row[:2],('Old alert',1))
+                    self.assertIn('Verified',row[2])
+
+    def test_report_returns_its_own_event_when_other_blockers_exist(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp)/'state';desktop=Path(temp)/'Desktop'
+            with patch.object(company,'BASE',base),patch.object(company,'DESKTOP',desktop):
+                company.report('ck-test','job-blocked','blocker','Another dependency')
+                result=company.report('ck-test','job-new','daily','New delivery')
+                with sqlite3.connect(base/'reporting.db') as c:
+                    self.assertEqual(c.execute('select job from reports where id=?',(result['event_id'],)).fetchone()[0],'job-new')
+
     def test_namespace_rejects_external_or_traversal(self):
         for value in ['other/project','chronokairo/../other','chronokairo/test;command']:
             with self.assertRaises(ValueError):company.scoped(value)

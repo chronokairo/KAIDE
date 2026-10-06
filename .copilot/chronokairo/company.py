@@ -132,12 +132,28 @@ def report(agent,job,kind,message,event_id=None):
         atomic(DESKTOP/('Relatorio-'+now.date().isoformat()+'.md'),daily)
         pending=c.execute("select id,created,agent,job,message from reports where kind='blocker' and resolved=0 order by created").fetchall()
         body='# Chronokairo — pendências para o dono\n\n'+('Nenhuma pendência registrada.\n' if not pending else 'Pendências registradas abaixo. Ausência de resposta não autoriza execução.\n')
-        for eid,created,a,j,m in pending:body+=f'\n## {a} — {created}\n\nID: `{eid}` · Job: `{j}`\n\n{m}\n'
+        for pending_id,created,a,j,m in pending:body+=f'\n## {a} — {created}\n\nID: `{pending_id}` · Job: `{j}`\n\n{m}\n'
         atomic(DESKTOP/'PENDENCIAS.md',body)
         c.close()
         (BASE/'reporting.db').chmod(0o600)
     atomic(BASE/'jobs'/job/'report.json',json.dumps({'agent':agent,'job':job,'kind':kind,'message':redact(message),'at':now.isoformat()},ensure_ascii=False,indent=2)+'\n')
     return {'document':str(DESKTOP/'PENDENCIAS.md' if kind=='blocker' else DESKTOP/('Relatorio-'+now.date().isoformat()+'.md')),'event_id':eid}
+
+def resolve_report(event_id, reason, evidence):
+    if not reason.strip() or not Path(evidence).is_file():
+        raise ValueError('Resolution requires a reason and an existing evidence file')
+    with (BASE/'report.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        with sqlite3.connect(BASE/'reporting.db') as c:
+            columns={r[1] for r in c.execute('pragma table_info(reports)')}
+            if 'resolution' not in columns:c.execute('alter table reports add column resolution text')
+            if 'resolved_at' not in columns:c.execute('alter table reports add column resolved_at text')
+            row=c.execute('select kind,resolved from reports where id=?',(event_id,)).fetchone()
+            if not row or row[0]!='blocker':raise ValueError('Only an existing blocker can be resolved')
+            if not row[1]:
+                c.execute('update reports set resolved=1,resolution=?,resolved_at=? where id=?',
+                          (redact(reason)+'\nEvidence: '+str(Path(evidence).resolve()),dt.datetime.now(ZONE).isoformat(timespec='seconds'),event_id))
+    return {'event_id':event_id,'resolved':True}
 
 def claim(args,release=False):
     project=scoped(args.project);job=safe_id(args.job)
@@ -183,7 +199,31 @@ def job(args):
         atomic(path,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
     return state
 
-def watchdog():
+def stopped(run,attempts=15):
+    for _ in range(attempts):
+        with sqlite3.connect('file:'+str(Path.home()/'.copilot/data.db')+'?mode=ro',uri=True) as c:
+            row=c.execute('select status from workflow_runs where id=?',(run,)).fetchone()
+        if not row or row[0]!='running':return True
+        time.sleep(1)
+    return False
+
+def reconcile_controls(now=None):
+    """Marca como blocked jobs controlados sem heartbeat após o deadline, preservando etapas e evidências."""
+    now=now or time.time();changed=[]
+    for path in (BASE/'jobs').glob('*/control.json'):
+        with (path.parent/'control.lock').open('a') as lock:
+            fcntl.flock(lock,fcntl.LOCK_EX)
+            try:state=json.loads(path.read_text())
+            except (ValueError,OSError):continue
+            if state.get('status')!='running' or now-state.get('heartbeat_epoch',0)<900 or now-state.get('started_epoch',0)<900:continue
+            for step in state['steps'].values():
+                if step.get('status')=='running':step['status']='blocked';step['result']=(step.get('result') or '')+' [reconciliado: sem heartbeat após deadline]'
+            state['status']='blocked';state['reconciled_epoch']=now
+            atomic(path,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+            changed.append(state['job_id'])
+    return changed
+
+def watchdog(stop_overdue=False):
     c=sqlite3.connect('file:'+str(Path.home()/'.copilot/data.db')+'?mode=ro',uri=True)
     rows=c.execute("select r.id,w.name,r.error_message,r.started_at from workflow_runs r join workflows w on w.id=r.task_id where w.agent like 'ck-%' and r.status='failed'").fetchall()
     for run,name,error,started in rows:
@@ -194,6 +234,16 @@ def watchdog():
         if started and (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(started.replace('Z','+00:00'))).total_seconds()>900:
             report('ck-control-auditor','deadline-'+safe_id(run),'blocker',
                    f'Limite de 15 minutos excedido: {name}. A sessão ainda está running no app. Verifique evidências e finalize/retome somente a etapa pendente. O watchdog não cancela sessões nem presume falha ou sucesso.',event_id='deadline-'+run)
+            if stop_overdue:
+                try:
+                    safe_id(sid)
+                    try:subprocess.run(['node',str(BASE/'abort_workflow_session.mjs'),sid],timeout=10,capture_output=True,text=True)
+                    except subprocess.SubprocessError:pass
+                    # O código de saída do script não comprova a interrupção; o status do runtime sim.
+                    if not stopped(run):raise ValueError('Run still running')
+                    report('ck-control-auditor','stop-'+safe_id(run),'daily',f'Interrupção solicitada ao aplicativo para {name}: limite de 15 minutos excedido. Evidências preservadas. Conferir status final no runtime; não foi presumida conclusão do trabalho.',event_id='stop-'+run)
+                except (subprocess.SubprocessError,ValueError):
+                    report('ck-control-auditor','stop-'+safe_id(run),'blocker',f'Não foi possível solicitar interrupção de {name}. Verifique o aplicativo e a sessão; não encerrar processos de outras rotinas.',event_id='stop-error-'+run)
         try:
             safe_id(sid)
             path=Path.home()/'.copilot/session-state'/sid/'events.jsonl'
@@ -220,7 +270,7 @@ def watchdog():
         if (now-when).total_seconds()>1800:
             report('ck-control-auditor','overdue-'+safe_id(wid),'blocker',f'Agenda atrasada: {name}\nHorário previsto UTC: {due}\nO scheduler ainda não avançou a agenda após 30 minutos. Verifique se o Copilot App está aberto e o computador acordado.',event_id='overdue-'+wid+'-'+now.date().isoformat())
     c.close()
-    return {'failed_runs_checked':len(rows)}
+    return {'failed_runs_checked':len(rows),'reconciled_jobs':reconcile_controls()}
 
 def metrics(app_db=None):
     database=Path(app_db) if app_db else Path.home()/'.copilot/data.db'
@@ -246,8 +296,9 @@ def metrics(app_db=None):
 
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='command',required=True)
-    sub.add_parser('inventory');sub.add_parser('watchdog')
+    sub.add_parser('inventory');sub.add_parser('watchdog').add_argument('--stop-overdue',action='store_true')
     r=sub.add_parser('report');r.add_argument('--agent',required=True);r.add_argument('--job',required=True);r.add_argument('--kind',choices=['daily','blocker'],required=True);r.add_argument('--message',required=True)
+    r=sub.add_parser('resolve-report');r.add_argument('--event-id',required=True);r.add_argument('--reason',required=True);r.add_argument('--evidence',required=True)
     j=sub.add_parser('job');j.add_argument('--job',required=True);j.add_argument('--route',required=True);j.add_argument('--step');j.add_argument('--status',choices=['running','completed','blocked','needs_approval'],required=True);j.add_argument('--evidence');j.add_argument('--accepted',action='store_true');j.add_argument('--result')
     sub.add_parser('metrics')
     for name in ['claim','release']:
@@ -257,8 +308,9 @@ def main():
     args=p.parse_args()
     try:
         if args.command=='inventory':result=inventory()
-        elif args.command=='watchdog':result=watchdog()
+        elif args.command=='watchdog':result=watchdog(args.stop_overdue)
         elif args.command=='report':result=report(args.agent,args.job,args.kind,args.message)
+        elif args.command=='resolve-report':result=resolve_report(args.event_id,args.reason,args.evidence)
         elif args.command=='create-project':result=create_project(args)
         elif args.command=='clone':result=clone(args)
         elif args.command=='job':result=job(args)
