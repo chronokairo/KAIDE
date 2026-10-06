@@ -1,0 +1,40 @@
+"""Focused commercial contracts, shared by generator and targeted installer."""
+import json
+from pathlib import Path
+
+COMMON = '''Leia ~/.copilot/chronokairo/sales-playbook.md e sales-config.json.
+O cliente pagante confirmado é Audiomed; exclua clientes existentes da aquisição.
+Projetos, issues e bugs internos não são leads. Empresa encontrada não é interesse confirmado.
+Nenhum envio de e-mail, WhatsApp, formulário ou mensagem externa está autorizado neste fluxo.
+Use somente fontes públicas empresariais; não contorne login, não compre bases, não invente contato.
+Declare unknown para orçamento, intenção, prazo e decisor quando não houver evidência.
+Entregue registros estruturados ao coordenador; ele persiste com sales.py e gera o documento Desktop.
+Não prometa disponibilidade de funcionalidades em produção sem evidência de deploy.
+'''
+CONTRACTS = {
+ 'lead-discovery': ('Encontrar novas empresas alvo para implantação de software e automações; registrar domínio, fonte e sinal público, sem contar Audiomed como aquisição.', 'Novas empresas deduplicadas com fonte e canal empresarial público', '''Pesquise até 5 empresas por ciclo, priorizando clínicas de saúde ocupacional de Manaus/AM e depois Brasil. Segundo segmento: pequenas empresas com processo manual publicamente documentado. Para cada candidato: company, website, segment, city, sources=[{url,checked_at,fact}], business_contact_url, demand_signal, offer, next_action. Canal oficial é obrigatório; ausência de sinal de compra deve ser explícita. Consulte o funil antes de pesquisar para evitar repetir empresas. Não crie repos ou issues de produto.'''),
+ 'lead-enrichment': ('Confirmar identidade, canais oficiais e contexto dos candidatos comerciais, distinguindo fato de hipótese.', 'Candidatos com identidade e canal oficial confirmado', '''Receba candidatos da descoberta; confirme domínio, localização e canal de contato no site oficial. Identifique uma hipótese específica de dor e marque como hipótese. Descarte diretórios sem confirmação, empresas homônimas e contatos pessoais sem finalidade empresarial pública. Não infira orçamento ou consentimento por existir e-mail público.'''),
+ 'qualification': ('Qualificar empresas pelo ICP e evidências de adequação, sem declarar intenção de compra.', 'Candidatos qualificados por adequação; interessados somente com resposta real', '''Pontue fit 0–4: segmento alvo, operação compatível com oferta, canal empresarial oficial, hipótese de problema sustentada por fonte (1 cada). Qualifique somente com score>=3 e canal oficial. budget/authority/need/timing ficam unknown se não confirmados. Interest é unknown até resposta real. Sem fit suficiente, rejected com motivo. Personalização Audiomed não é lead novo. A priorização serve para abordagem, não para declarar cliente.'''),
+ 'sdr': ('Preparar abordagem personalizada e convite à descoberta para candidatos qualificados, sem enviar.', 'Abordagens prontas vinculadas a candidato qualificado e próximo passo', '''Escreva mensagem curta em português: contexto empresarial verificável, problema como pergunta, oferta pequena, convite para conversa. Não afirme que o cliente precisa do produto nem invente referência ou prova social. Use Audiomed apenas como experiência de entrega sem expor dados e sem atribuir endosso. Ofertas: diagnóstico/implantação e automação com escopo fechado; preço a definir pelo dono. Entregue draft, lead_key, channel_url, source_urls, next_action e needs_approval. Um rascunho não é contato enviado.'''),
+ 'proposal': ('Preparar escopo e proposta apenas quando houver demanda real e termos aprovados, sem inventar preços ou enviar.', 'Propostas com demanda, escopo, prazo e fonte dos termos', '''Receba brief real de prospect ou solicitação do dono. Sem isso, não crie proposta formal: prepare somente perguntas de descoberta. Não transfira R$300/R$1500/R$7500 do contrato Audiomed para Workmed ou novos clientes. Preço/entrada/prazo/desconto precisam de fonte aprovada para o prospect. Registre necessidades desconhecidas no Desktop; nenhuma alteração de produto substitui venda.'''),
+ 'followup': ('Preparar próximo contato apenas para abordagens realmente enviadas, respeitando histórico e recusa.', 'Follow-ups de contatos enviados com histórico e cadência verificáveis', '''Sem comprovante de envio, produza zero follow-ups. Nunca faça seguimento de rascunhos. Recusa/opt-out encerra o contato. Use cadência de pelo menos 3 dias e máximo 2 lembretes por abordagem, salvo contexto aprovado diferente. Não envie mensagens. Não conte ausência de resposta como interesse.'''),
+ 'opportunity': ('Pesquisar demanda externa e oportunidades de serviços vendáveis; separar aquisição de demandas do cliente existente.', 'Oportunidades externas verificáveis separadas de expansão de clientes existentes', '''Leia o funil comercial. Solicitações Audiomed pertencem a existing_customer_delivery, nunca new_customer ou receita adicional sem orçamento aprovado. Não chame uma issue de receita confirmada. Antes de desenvolvimento especulativo, exija problema externo, empresa alvo e evidência; sem comprador, prepare oferta pequena de serviço e pesquisa comercial, não novo SaaS.'''),
+ 'pipeline-auditor': ('Auditar fontes e estados do funil de vendas sem aprovar trabalho próprio ou inflar resultados.', 'Métricas com evidência, sem clientes ou receitas inventados', '''Confira domínio e fontes dos candidatos, exclusão Audiomed, dedupe e score. Compare cada etapa do funil com evidência: sent exige recibo de envio; replied exige resposta do prospect; meeting exige confirmação; won exige aceite contratual; paid exige comprovante. Rascunho não prova envio; URL pública não prova resposta. Auditoria não avança estágio. Liste registros sem evidência e gere recomendações ao coordenador. Use sales.py report para números persistidos; não substitua por contagem de issues/PRs.'''),
+}
+def augment(profiles):
+    for profile in profiles:
+        key = profile['id'].removeprefix('ck-')
+        if key in CONTRACTS:
+            profile['content'] += '\nContrato comercial específico:\n' + COMMON + CONTRACTS[key][2] + '\n'
+        elif key == 'revenue-orchestrator':
+            profile['content'] += '\n' + COMMON + '''Você persiste os candidatos estruturados recebidos dos workers com sales.py ingest --file <arquivo>. Somente registros qualificados recebem SDR. Não delegue cada empresa como nova sessão: lote pequeno, até 5 empresas por ciclo. Rota lead-pipeline: descoberta → enriquecimento → qualificação → SDR → auditoria. Não precisa de proposta antes de haver resposta. Rota proposal: proposta → followup → auditoria, somente com entradas elegíveis. Leia sales.py list antes de cada ciclo e execute sales.py report ao terminar, inclusive quando não encontrar candidatos. Nenhum envio externo. Não escreva estágios sent/replied/meeting/won/paid sem evidência operacional legítima. Em falha de modelo registre blocked, preservando trabalho existente.\n'''
+    return profiles
+
+def route_instruction(key):
+    if key not in {'lead-pipeline','proposal','new-business','company-cycle','daily-report'}: return ''
+    text = '\nLeia ~/.copilot/chronokairo/sales-playbook.md. Aquisição exclui Audiomed e qualquer outro cliente existente; não conte manutenção como cliente novo. Separe candidato, qualificado, mensagem pronta, envio, resposta, reunião, contrato e recebimento. Antes de trabalhar consulte python3 ~/.copilot/chronokairo/sales.py list; no fim execute sales.py report. Preserve métricas desconhecidas, não substitua por issues ou projetos.\n'
+    if key == 'lead-pipeline':
+        text += 'Execute descoberta→enriquecimento→qualificação→SDR→auditoria em lote de até 5 empresas, entregue fontes/canais oficiais e rascunhos no Desktop. Coordenador grava JSON por sales.py ingest. Nenhum envio externo.\n'
+    if key == 'new-business':
+        text += 'Antes de requirements/spec/bootstrap, exija demanda externa confirmada ou encomenda real. Se houver apenas hipótese comercial, não execute essas etapas: prepare descoberta/oferta comercial e registre ausência de comprador. Audiomed é entrega existente, não aquisição.\n'
+    return text

@@ -10,6 +10,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import uuid
+import sales_profiles
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
@@ -77,8 +78,8 @@ WORKERS = [
 ]
 FLOWS = [
  # chave, nome, domínio, rota determinística, frequência, hora, dia, projeto
- ('lead-pipeline','Revenue — descoberta e qualificação','revenue',['lead-discovery','lead-enrichment','qualification'],'manual',9,1,'ck-ai'),
- ('proposal','Revenue — proposta e follow-up','revenue',['proposal','followup'],'manual',9,1,'ck-ai'),
+ ('lead-pipeline','Revenue — prospecção e abordagens','revenue',['lead-discovery','lead-enrichment','qualification','sdr','pipeline-auditor'],'manual',9,1,'ck-ai'),
+ ('proposal','Revenue — proposta e follow-up','revenue',['proposal','followup','pipeline-auditor'],'manual',9,1,'ck-ai'),
  ('requirements','Product — requisitos e especificação','product',['requirements','product-spec','backlog'],'manual',9,1,'ck-ai'),
  ('backlog','Product — revisão semanal do backlog','product',['backlog'],'weekly',9,1,'ck-ai'),
  ('issue-triage','Engineering — triagem diária de issues','engineering',['issue-planner'],'daily',9,1,'ck-ai'),
@@ -127,8 +128,11 @@ def build(provider):
     for key, domain, goal, kpi, model, tools in WORKERS:
         profiles.append(dict(id='ck-'+key, domain=domain, goal=goal, kpi=kpi,
                              model=MODELS[model], tools=list(dict.fromkeys(tools+(['execute'] if key in ['issue-planner','backlog','code-reviewer','security','devops'] else []))), owner='ck-'+domain+'-orchestrator', kind='worker'))
+    for key in ['sdr','pipeline-auditor']:
+        goal,kpi,_ = sales_profiles.CONTRACTS[key]
+        profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+['edit'],owner='ck-revenue-orchestrator',kind='worker'))
     for domain in ['revenue','product','engineering','operations','finance','people']:
-        workers = ['ck-'+w[0] for w in WORKERS if w[1] == domain]
+        workers = [p['id'] for p in profiles if p['domain'] == domain and p['kind']=='worker']
         profiles.append(dict(id='ck-'+domain+'-orchestrator',domain=domain,
           goal='Coordenar somente as rotas de '+domain+'; especialistas disponíveis: '+', '.join(workers)+'. Não execute o trabalho do worker. Passe o contrato completo e verifique evidências antes de concluir.',
           kpi='Etapas concluídas com evidência / etapas previstas', model=MODELS['reason'],
@@ -142,6 +146,9 @@ def build(provider):
     profiles.append(dict(id='ck-orchestrator',domain='company',goal='Interface única Chronokairo. Escolha uma route_key da tabela; numa rotina diária use prioridades e evidências disponíveis e documente lacunas no Desktop. Não invente workers ou rotas. Delegue ao domínio e consolide evidências. Rotas company são coordenadas por você diretamente, sem chamar a si mesmo; distribuía suas etapas aos especialistas/domínios. Governance vai diretamente aos dois auditores.\n'+route_table,
       kpi='Jobs roteados corretamente e encerrados com evidências',model=MODELS['reason'],tools=READ+['agent','edit','execute'],owner='Diretor Técnico / CTO',kind='root'))
     for p in profiles:
+        key=p['id'].removeprefix('ck-')
+        if key in sales_profiles.CONTRACTS:
+            p['goal'],p['kpi'],_=sales_profiles.CONTRACTS[key]
         # The app resolves BYOK agent models using provider-qualified selection IDs.
         fm = dict(name=p['id'],description=p['goal'].split('\n')[0],model=provider+'/'+p['model'],tools=p['tools'],
                   **{'include-custom-instructions':True,'metadata':{
@@ -165,7 +172,7 @@ def build(provider):
                          'Nunca considere end_turn ou completed do app como aceite de negócio.\n')
         text = '---\n'+'\n'.join(k+': '+json.dumps(v,ensure_ascii=False) for k,v in fm.items())+'\n---\n\n'+guidance+'\nObjetivo: '+p['goal']+'\nKPI: '+p['kpi']+'\n'
         p['content']=text
-    return profiles
+    return sales_profiles.augment(profiles)
 
 def configure(target, live=False):
     c=sqlite3.connect(target,timeout=20)
@@ -178,7 +185,7 @@ def configure(target, live=False):
     registered={r[0] for r in c.execute('select model_id from provider_models where provider_id=?',(provider,))}
     assert set(MODELS.values()) <= registered, 'Missing registered model'
     profiles=build(provider)
-    assert len(profiles)==33 and len({p['id'] for p in profiles})==33
+    assert len(profiles)==35 and len({p['id'] for p in profiles})==35
     known={p['id'] for p in profiles}
     assert all('ck-'+w in known for f in FLOWS for w in f[3])
     backup=None
@@ -230,6 +237,7 @@ def configure(target, live=False):
                     'falha de credencial/escopo não autoriza fallback. Aos 15 minutos não inicie novas etapas e reporte o restante.')
             if key == 'daily-report':
                 prompt += '\nRelatório obrigatório: execute python3 /home/deck/.copilot/chronokairo/company_report.py. Leia Relatorio-Empresa-<YYYY-MM-DD>.md no Desktop/Chronokairo e acrescente análise baseada em evidências, sem substituir o documento por uma confirmação vazia. Distinga status do runtime, entregas reportadas, implementação, deploy e resultado financeiro. Não execute pagamentos, merges ou deploys para gerar o relatório. O relatório deve incluir Workmed, Audiomed e Agroflow quando houver evidências. Registre o caminho do documento na resposta da automação.\n'
+            prompt += sales_profiles.route_instruction(key)
             columns=['id','name','prompt','model','project_id','interval','schedule_hour','schedule_day','enabled','mode','schedule_minute','workspace_type','next_run_at','agent','agent_scope']
             minute=MINUTES.get(key,0)
             values=[ident('workflow:'+key),name,prompt,provider+'/'+MODELS['reason'],projects[project],interval,hour,day,1,'autopilot',minute,'worktree',next_run(interval,hour,day,minute),root_agent,'global']

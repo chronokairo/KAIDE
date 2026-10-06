@@ -4,7 +4,7 @@ import datetime as dt
 import importlib.util
 import json
 import sqlite3
-import json
+import sales
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,9 @@ def main():
         body += f'\n- {name}: {status}; início {started}; fim {ended or "não informado"}.'
         if error:
             body += ' Erro: ' + company.redact(error).replace('\n', ' ')[:600]
+    commercial=sales.report()
+    body += '\n\n## Aquisição comercial\n\n'
+    body += f'Empresas novas registradas no funil: {commercial["companies"]}. Etapas com comprovantes (acumulado): {json.dumps(commercial["evidence_counts"],ensure_ascii=False)}. Recebimentos registrados neste funil: {commercial["paid_cents"]} centavos. Audiomed excluída da aquisição. Candidatos não comprovam interesse; valores não representam toda a contabilidade da empresa.\n\nDocumento comercial: {commercial["document"]}. Envios automáticos desabilitados; respostas exigem evidência operacional.\n'
     body += '\n\n## Entregas reportadas pelos agentes\n'
     receipt = company.DESKTOP / 'Audiomed-Workmed-Migracao-2026-10-05.json'
     if receipt.is_file():

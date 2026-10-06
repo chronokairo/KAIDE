@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Dedicated prospect ledger. Never sends messages or treats drafts as revenue."""
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import sqlite3
+from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
+import company
+
+BASE=Path(__file__).resolve().parent
+DESKTOP=Path.home()/'Desktop/Chronokairo'
+NEXT={'draft_ready':'sent','sent':'replied','replied':'meeting','meeting':'won','won':'paid'}
+TYPES={'sent':'send_receipt','replied':'prospect_reply','meeting':'meeting_confirmation','won':'contract_acceptance','paid':'payment_receipt','rejected':'rejection','opt_out':'opt_out'}
+def website(value):
+    parsed=urlparse(value)
+    if parsed.scheme not in {'http','https'} or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError('Expected public http(s) business URL')
+    host=parsed.hostname.lower().removeprefix('www.')
+    if host in {'localhost','127.0.0.1','::1'}:raise ValueError('Public business URL required')
+    return host
+
+def connect():
+    BASE.mkdir(parents=True,exist_ok=True)
+    c=sqlite3.connect(BASE/'sales.db',timeout=20)
+    c.row_factory=sqlite3.Row
+    c.execute('PRAGMA foreign_keys=ON')
+    c.executescript('''CREATE TABLE IF NOT EXISTS leads(
+       domain TEXT PRIMARY KEY, company TEXT NOT NULL, stage TEXT NOT NULL,
+       details TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+       CREATE TABLE IF NOT EXISTS events(
+       id TEXT PRIMARY KEY, domain TEXT NOT NULL REFERENCES leads(domain), stage TEXT NOT NULL,
+       evidence_path TEXT NOT NULL, evidence_sha256 TEXT NOT NULL, evidence_kind TEXT NOT NULL,
+       amount_cents INTEGER, created_at TEXT NOT NULL);''')
+    os.chmod(BASE/'sales.db',0o600)
+    return c
+
+def ingest(records):
+    config=json.loads((BASE/'sales-config.json').read_text())
+    if not isinstance(records,list) or len(records)>config['daily_candidate_limit']:raise ValueError('Batch must contain at most 5 candidates')
+    prepared=[]
+    for row in records:
+        for field in ['company','website','segment','city','business_contact_url','demand_signal','offer','next_action']:
+            if not isinstance(row.get(field),str) or not row[field].strip():raise ValueError('Missing '+field)
+        domain=website(row['website']);website(row['business_contact_url'])
+        if any(domain==d or domain.endswith('.'+d) for d in config['existing_customer_domains']) or row['company'].strip().casefold() in config['existing_customer_names']:
+            raise ValueError('Existing customer is not acquisition')
+        sources=row.get('sources')
+        if not isinstance(sources,list) or not sources:raise ValueError('Source evidence required')
+        for source in sources:
+            website(source['url'])
+            date=dt.date.fromisoformat(source['checked_at'])
+            if date>dt.datetime.now(ZoneInfo('America/Caracas')).date():raise ValueError('Future source date')
+            if not source.get('fact'):raise ValueError('Source fact required')
+        score=row.get('fit_score',0)
+        if type(score) is not int or not 0<=score<=4:raise ValueError('Invalid fit score')
+        qualified=score>=config['qualification_min_fit_score']
+        stage='draft_ready' if qualified and isinstance(row.get('draft'),str) and row['draft'].strip() else 'qualified' if qualified else 'candidate'
+        prepared.append((domain,row,stage))
+    now=dt.datetime.now(dt.timezone.utc).isoformat()
+    c=connect()
+    try:
+        with c:
+            for domain,row,stage in prepared:
+                old=c.execute('SELECT stage,details FROM leads WHERE domain=?',[domain]).fetchone()
+                if old:
+                    previous=json.loads(old['details'])
+                    if previous.get('draft') and not row.get('draft'):row['draft']=previous['draft']
+                    # Operational stages are never changed by research or a new draft.
+                    if old['stage'] not in {'candidate','qualified','draft_ready'}:stage=old['stage']
+                    elif old['stage']=='draft_ready' and stage=='qualified':stage='draft_ready'
+                    c.execute('UPDATE leads SET company=?,stage=?,details=?,updated_at=? WHERE domain=?',(row['company'],stage,json.dumps(row,ensure_ascii=False),now,domain))
+                else:c.execute('INSERT INTO leads VALUES(?,?,?,?,?,?)',(domain,row['company'],stage,json.dumps(row,ensure_ascii=False),now,now))
+        return {'candidates_processed':len(prepared),'new_customers_confirmed':0}
+    finally:c.close()
+
+def event(domain,stage,path,kind,amount=None):
+    if TYPES.get(stage)!=kind:raise ValueError('Evidence kind must correspond to stage')
+    evidence=Path(path).resolve()
+    if not evidence.is_file() or evidence.stat().st_size==0:raise ValueError('Existing nonempty evidence file required')
+    if stage=='paid' and (type(amount) is not int or amount<=0):raise ValueError('Payment needs positive integer amount_cents')
+    if stage!='paid' and amount is not None:raise ValueError('Amounts belong only to payment receipts')
+    digest=hashlib.sha256(evidence.read_bytes()).hexdigest()
+    event_id=hashlib.sha256((domain+'|'+stage+'|'+digest).encode()).hexdigest()
+    c=connect()
+    try:
+        with c:
+            if c.execute('SELECT id FROM events WHERE id=?',[event_id]).fetchone():return {'event_id':event_id,'duplicate':True}
+            lead=c.execute('SELECT stage FROM leads WHERE domain=?',[domain]).fetchone()
+            if not lead:raise ValueError('Unknown prospect')
+            if lead['stage'] in {'rejected','opt_out','paid'}:raise ValueError('Terminal stage')
+            if stage not in {'rejected','opt_out'} and NEXT.get(lead['stage'])!=stage:raise ValueError('Cannot skip stages')
+            now=dt.datetime.now(dt.timezone.utc).isoformat()
+            c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?)',(event_id,domain,stage,str(evidence),digest,kind,amount,now))
+            c.execute('UPDATE leads SET stage=?,updated_at=? WHERE domain=?',(stage,now,domain))
+        return {'event_id':event_id,'duplicate':False}
+    finally:c.close()
+
+def records():
+    c=connect()
+    try:return [dict(r,details=json.loads(r['details'])) for r in c.execute('SELECT * FROM leads ORDER BY updated_at DESC')]
+    finally:c.close()
+
+def report():
+    leads=records();c=connect()
+    try:
+        counts={s: c.execute('SELECT count(DISTINCT domain) FROM events WHERE stage=?',[s]).fetchone()[0] for s in TYPES}
+        paid=c.execute("SELECT coalesce(sum(amount_cents),0) FROM events WHERE stage='paid'").fetchone()[0]
+    finally:c.close()
+    day=dt.datetime.now(ZoneInfo('America/Caracas')).date().isoformat()
+    body=f'# Comercial Chronokairo — {day}\n\nFunil de aquisição; exclui Audiomed. Registros públicos não comprovam interesse.\n\n'
+    body+=f'Empresas registradas: {len(leads)}. Qualificadas/rascunhos disponíveis: {sum(r["stage"] in {"qualified","draft_ready"} for r in leads)}.\n\n'
+    body+='Etapas com comprovantes registrados (acumulado): '+', '.join(f'{s}={n}' for s,n in counts.items())+f'. Recebimentos registrados: R$ {paid/100:.2f}. Ausência de registro não prova ausência de receita fora deste funil.\n\n'
+    body+='Envios automáticos desabilitados. Respostas exigem registro de evidência; não há caixa de entrada integrada.\n'
+    if not leads:body+='\nNenhum candidato registrado ainda. Próximo ciclo: pesquisar empresas novas e preparar abordagens.\n'
+    for row in leads:
+        detail=row['details'];body+=f'\n## {row["company"]} — {row["domain"]}\n\nEstado: {row["stage"]}; adequação: {detail.get("fit_score",0)}/4.\n\nSinal/hipótese: {detail["demand_signal"]}\n\nCanal: {detail["business_contact_url"]}\n\nOferta: {detail["offer"]}\n\nPróximo passo: {detail["next_action"]}\n\n'
+        body+='Fontes: '+', '.join(s['url'] for s in detail['sources'])+'\n'
+        if row['stage'] not in {'opt_out','rejected'} and detail.get('draft'):body+='\nRascunho (não enviado):\n\n'+detail['draft']+'\n'
+    DESKTOP.mkdir(parents=True,exist_ok=True);dest=DESKTOP/f'Comercial-{day}.md'
+    company.atomic(dest,company.redact(body));os.chmod(dest,0o600)
+    return {'document':str(dest),'companies':len(leads),'evidence_counts':counts,'paid_cents':paid}
+
+def main():
+    p=argparse.ArgumentParser();sub=p.add_subparsers(dest='action',required=True)
+    sub.add_parser('list');sub.add_parser('report')
+    a=sub.add_parser('ingest');a.add_argument('--file',required=True)
+    e=sub.add_parser('event');e.add_argument('--domain',required=True);e.add_argument('--stage',choices=list(TYPES),required=True);e.add_argument('--evidence',required=True);e.add_argument('--kind',choices=list(TYPES.values()),required=True);e.add_argument('--amount-cents',type=int)
+    args=p.parse_args()
+    if args.action=='list':result=records()
+    elif args.action=='report':result=report()
+    elif args.action=='ingest':result=ingest(json.loads(Path(args.file).read_text()))
+    else:result=event(args.domain,args.stage,args.evidence,args.kind,args.amount_cents)
+    print(json.dumps(result,ensure_ascii=False))
+if __name__=='__main__':main()
