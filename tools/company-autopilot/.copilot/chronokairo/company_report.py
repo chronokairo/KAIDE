@@ -68,6 +68,12 @@ def main():
     result = company.report('ck-control-auditor', 'company-summary-' + day, 'daily', f'Relatório consolidado: {path}\nExecuções de hoje: {counts}. Entregas reportadas: {len(entries)}. Dependências registradas: {len(blockers)}. Execução concluída não foi presumida como entrega de negócio.')
     print(path)
     print(result['document'])
+    try:
+        # Registros operacionais para o ERP (ops_*); falha aqui não impede o relatório local.
+        import ops_sync
+        ops_sync.main()
+    except (Exception, SystemExit) as exc:
+        print('ops_sync falhou:', company.redact(str(exc))[:300])
 
 
 if __name__ == '__main__':
