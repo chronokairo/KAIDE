@@ -83,6 +83,8 @@ app e consulta o projeto GitLab `chronokairo/finance`; o cadastro Finance não
 mantém vínculo GitHub de outra organização. Todos os origins são verificados
 pelo instalador antes de alterar o cadastro.
 
+`company_report.py` consolida diariamente as execuções do Copilot e os relatos dos agentes em `Desktop/Chronokairo/Relatorio-Empresa-AAAA-MM-DD.md`. A automação `daily-report`, às 18h America/Caracas, executa essa consolidação. O resumo diferencia runtime e entregas; custos e receita sem fonte permanecem indisponíveis. A geração manual usa `python3 ~/.copilot/chronokairo/company_report.py`.
+
 `company.py job --job <id> --route <rota> --status running` inicia o controle.
 Cada etapa usa `--step <agent_id>` e deve concluir com `--status completed
 --accepted --evidence <arquivo>`. Etapas anteriores precisam ter sido aceitas;
@@ -109,3 +111,11 @@ locais não constituem sandbox. Falta de capacidade é registrada como bloqueio.
 Validação inclui integridade SQLite, foreign keys, modelos cadastrados, leitura real das automações pela API do app, descoberta de agentes, autenticação GitHub/GitLab, acesso git a ai/payments, locks e deduplicação/redação de relatórios. Um ciclo real de prioridades foi iniciado; resultados de negócio não são presumidos neste README.
 
 Referências: [Copilot agents](https://docs.github.com/en/copilot/reference/custom-agents-configuration), [OpenAI Docs: Codex app-server](https://learn.chatgpt.com/docs/app-server), [Codex ACP](https://github.com/agentclientprotocol/codex-acp), [Claude ACP](https://github.com/agentclientprotocol/claude-agent-acp).
+
+## Controles operacionais (2026-10-06)
+
+Inicie `company.py job` antes das etapas. O helper vincula o job ao início real da execução ativa da rota; `--workflow-run` resolve ambiguidades. Renomear o job não renova o prazo. Quando `no_work=true`, encerre sem especialistas. A fila comercial permanece no ledger e aguarda produtores ativos terminarem; pendências continuam disponíveis no próximo ciclo. O watchdog verifica sessões vencidas a cada minuto, com possível atraso de um intervalo mais o tempo de interrupção.
+
+Delegações ACP exigem `parent_job` e `worker_id` no handoff, ferramentas presentes no perfil e orçamento restante do pai. Informe também `workflow_run_id` quando existente. Após verificar o resultado, aceite a etapa com `company.py job ... --acp-job <job-da-delegação> --accepted --evidence <verificação>`. Modelo externo desconhecido permanece unknown, sem ser atribuído ao NVIDIA. Prefira agy/OpenCode para tarefas mecânicas.
+
+`install_reliability.py` mostra a atualização delimitada; `--apply` faz backup, atualiza contratos das rotas existentes e preserva modelos, horários e histórico. `test_reliability.py` cobre os defeitos observados da madrugada.

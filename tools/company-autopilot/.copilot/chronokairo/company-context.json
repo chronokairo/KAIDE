@@ -4,11 +4,49 @@
   "projects": {
     "finance": {
       "repository": "https://gitlab.com/chronokairo/finance",
-      "role": "Chronokairo finance; use real authorized financial documents, never infer transactions from product source code"
+      "role": "Chronokairo finance; use real authorized financial documents, never infer transactions from product source code. Desenvolvimento custeado pelo parceiro 5 Irmãos Navegação; o repositório contém documentos do financeiro do parceiro, separados das contas da Chronokairo."
     },
     "workmed": {
       "repository": "https://gitlab.com/chronokairo/workmed",
-      "role": "Chronokairo SaaS base"
+      "role": "Chronokairo SaaS base",
+      "backlog_repository": "https://gitlab.com/chronokairo/workmed",
+      "current_delivery_issues": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "delivery_scope": "Backlog Audiomed migrated by owner request on 2026-10-05. Reuse complete tenants/audiomed features; Next.js UI with native CSS and internal SVG, Atomic Design only for UI, hexagonal feature business logic. Port latest Audiomed subscriptions here; customer contracts remain tenant-isolated.",
+      "archived_source_prs": {
+        "55": 5,
+        "59": 4,
+        "60": 3
+      },
+      "architecture": "ADR 0013: features em src/features/{atendimento,cadastros,exames-vencidos,faturamento,esocial}, isolamento por clinic_id, UI Atomic com CSS Modules/SVG nativo; consome @chronokairo/platform. Auth já no Supabase (ADR 0009/0010).",
+      "production": "https://workmed.chronokairo.com.br (OpenNext Cloudflare); main b98c5ab em 2026-10-06",
+      "migration_plan": {
+        "phases": [
+          "1 cadastros (empresas, trabalhadores, exames)",
+          "2 atendimento completo com emissão real de ASO",
+          "3 exames vencidos NR-7",
+          "4 faturamento e fechamento de guias",
+          "5 eSocial S-2220/S-2240 e dashboard"
+        ],
+        "firebase_to_supabase_pending": [
+          "funcionarios",
+          "empresas_clientes (CNAE, grau de risco, PCMSO)",
+          "exames_catalogo (Tabela 27)",
+          "cargos_setores_riscos (Tabela 24)",
+          "senhas_diarias + gerar_proxima_senha",
+          "atendimentos (colunas clínicas, recibo S-2220)",
+          "audit_logs",
+          "Storage bucket medical-records",
+          "Realtime da fila",
+          "outbox offline",
+          "RLS por tenant"
+        ],
+        "source": "tenants/audiomed (9 páginas com features reais: atendimento, pendências de exames, cadastros, exames vencidos, faturamento, caixa, eSocial, dashboard, configurações)"
+      }
     },
     "audiomed": {
       "repository": "https://github.com/chronokairo/audiomed",
@@ -16,8 +54,178 @@
       "customer": "Audiomed",
       "commercial_status": "Customer purchased the customization; confirmed by owner",
       "base_product": "workmed",
-      "delivery_scope": "Implement customer requirements in audiomed. Changes to the SaaS base need reuse justification and multi-tenant impact analysis.",
-      "current_delivery_issues": [56, 57, 58]
+      "delivery_scope": "Customer repository retained for Audiomed personalization. Pending issues/PRs were migrated to Workmed by owner request on 2026-10-05; do not reopen or duplicate this backlog on GitHub. Audiomed-specific contracts and data must remain isolated.",
+      "current_delivery_issues": [],
+      "migrated_backlog": "https://gitlab.com/chronokairo/workmed"
+    },
+    "agroflow": {
+      "repository": "https://gitlab.com/chronokairo/agroflow",
+      "role": "Chronokairo SaaS vertical multi-tenant for agriculture",
+      "commercial_status": "Modelo de comissão por venda realizada pelo SaaS, confirmado pelo dono em 2026-10-05; percentual e forma de apuração ainda não informados",
+      "tenants": [
+        {
+          "slug": "sitio-fazenda-nova-canaa",
+          "name": "Sítio Fazenda Nova Canaã",
+          "unit": "CAD Brasília",
+          "evidence": "tenants/sitio-fazenda-nova-canaa/README.md no repositório Agroflow",
+          "role": "Tenant/cliente do SaaS; não confundir com a empresa fornecedora Chronokairo",
+          "commercial_model": "Comissão por venda; percentual pendente de definição pelo dono",
+          "crm_registration": "Pendente: registrar como cliente Won no Supabase da platform (public.customers/contracts); SQL preparado em Desktop/Chronokairo/Sitio-Nova-Canaa-Supabase.sql",
+          "pending": [
+            "Criar página no Instagram via Meta Business Suite para o Sítio Fazenda Nova Canaã (ação externa: exige conta e aprovação do dono)"
+          ]
+        }
+      ],
+      "maintenance": {
+        "requested_at": "2026-10-05",
+        "scope": "Revisar falhas operacionais e pendências reais; priorizar requisitos fornecidos pelo dono. Não inventar receitas, cobranças ou transações.",
+        "current_delivery_issues": [
+          1
+        ],
+        "modules": [
+          "apps/comercial",
+          "apps/loja",
+          "apps/agropeso-java",
+          "apps/agro-erp"
+        ]
+      }
+    },
+    "kattegat": {
+      "repository": "https://github.com/kattegatcorp/lp",
+      "role": "SaaS ERP da Chronokairo com organização própria (kattegatcorp); módulos CRM, Financeiro, RH, Estoque e Agro",
+      "commercial_status": "Pausado: o investidor anjo abandonou o projeto (informado pelo dono em 2026-10-05). Não retomar, prospectar ou alterar sem pedido do dono."
     }
+  },
+  "blocked_parties": [
+    {
+      "names": [
+        "CIESA",
+        "WD Educacional LTDA",
+        "Grupo WD",
+        "Colégio Século"
+      ],
+      "reason": "Inadimplência relatada pelo dono em 2026-10-05",
+      "rule": "Não prospectar, propor, cadastrar como lead/oportunidade nem trabalhar para estas empresas. Os dados do seed crm#13 continuam exigindo remoção (LGPD)."
+    }
+  ],
+  "excluded_sources": [
+    {
+      "source": "gitlab.com/chronokairo/finance data/documents/2026/08/cc1864e7-a61b-4bcf-85aa-aae56d7cab33.pdf",
+      "reason": "Termo da Chamada Pública 01/2026-ANTAQ do parceiro 5 Irmãos Navegação; não é documento financeiro da Chronokairo",
+      "rule": "Não lançar, cobrar ou reconciliar como Chronokairo; não tratar como oportunidade."
+    }
+  ],
+  "partners": [
+    {
+      "name": "5 Irmãos Navegação",
+      "github_org": "5irmaosnavegacao",
+      "relationship": "Parceiro que sustenta os gastos da Chronokairo e custeou o desenvolvimento do Chronokairo Finance (informado pelo dono em 2026-10-05)",
+      "business": "Navegação/transporte aquaviário; participa da Chamada Pública 01/2026-ANTAQ (travessia BR-319 Manaus–Careiro)",
+      "rule": "Não é lead nem cliente a prospectar. Documentos dele no Finance pertencem ao financeiro do parceiro: não lançar como receita, despesa ou cobrança da Chronokairo. Aportes do parceiro só entram nas contas da Chronokairo com comprovante e classificação definidos pelo dono."
+    },
+    {
+      "name": "3dnet",
+      "relationship": "Parceiro da Chronokairo, assim como a 5 Irmãos Navegação (informado pelo dono em 2026-10-06)",
+      "rule": "Não é lead nem cliente a prospectar; detalhes da parceria a confirmar com o dono."
+    }
+  ],
+  "systems_policy": {
+    "rule": "Sistemas proprietários; terceiros só como infraestrutura ou obrigação externa",
+    "confirmed_by_owner_at": "2026-10-06",
+    "not_used": [
+      "HubSpot",
+      "Notion",
+      "Zendesk",
+      "Slack",
+      "Calendly",
+      "Mailchimp",
+      "Trello"
+    ],
+    "allowed_third_party": [
+      "GitHub/GitLab (hospedagem de código)",
+      "Cloudflare",
+      "Supabase",
+      "Resend (infraestrutura do Mail)",
+      "provedores de modelo configurados",
+      "gateways de pagamento e banco via chronokairo/payments",
+      "NFS-e Nacional/Receita/prefeitura",
+      "contador"
+    ]
+  },
+  "systems": {
+    "shared_package": "gitlab.com/chronokairo/platform (@chronokairo/platform: auth, ui, sdk, events, observability, database, security, config). Consumidores: workmed, mail, support, chat, crm (e demais SaaS internos); audiomed é personalização de cliente e não usa platform.",
+    "crm": "gitlab.com/chronokairo/crm — leads, pipeline, propostas, agenda, campanhas (crm.chronokairo.com.br)",
+    "support": "gitlab.com/chronokairo/support — helpdesk e tickets (support.chronokairo.com.br)",
+    "chat": "gitlab.com/chronokairo/chat — comunicação interna",
+    "mail": "github.com/chronokairo/mail — e-mail corporativo próprio sobre Resend (infraestrutura de envio/recebimento). Cada funcionário tem login próprio e vê só as mensagens do seu apelido (ex.: adri vê adri@chronokairo.com.br); admin (luan) vê todos. Credencial Resend no projeto env (arquivo .env, nunca ler/exibir). Prospecção fria não sai pelo Resend (política de uso do provedor); respostas de prospects recebidas no Mail são fonte para ck-reply-triage quando houver acesso por usuário-robô.",
+    "marketing": "gitlab.com/chronokairo/marketing — campanhas, formulários, SEO",
+    "finance": "gitlab.com/chronokairo/finance + tabelas finance da platform (finance.chronokairo.com.br)",
+    "payments": "gitlab.com/chronokairo/payments — abstração de gateways",
+    "legal": "gitlab.com/chronokairo/legal — contratos e LGPD",
+    "people": "gitlab.com/chronokairo/people — pessoas e acessos",
+    "projects": "gitlab.com/chronokairo/projects — projetos, cronogramas e releases",
+    "knowledge": "repositórios e ADRs (docs/adr); sem Notion",
+    "bi": "gitlab.com/chronokairo/bi — painéis executivos",
+    "secrets": "gitlab.com/chronokairo/vault — cofre de segredos",
+    "control": "gitlab.com/chronokairo/control — cockpit, scheduler e release gate",
+    "infra": "gitlab.com/chronokairo/nimbus — provisionamento e DevOps",
+    "ai": "gitlab.com/chronokairo/ai + chronokairo/cli — agentes, RAG e harness",
+    "saas": "workmed e agroflow consomem platform; audiomed é personalização de cliente e não usa platform"
+  },
+  "hardware": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "workstation": "Acer Nitro com SteamOS — terminal administrativo do dono; hoje também executa o Copilot App e os agentes (dependência a migrar para a nuvem)",
+    "phone": "iPhone 7 com WhatsApp Business +5592993796345 — canal comercial da campanha 1 a 1",
+    "rule": "Produção não roda nestes equipamentos; nada crítico deve existir só neles"
+  },
+  "organizations": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "chronokairo": {
+      "github": "https://github.com/chronokairo",
+      "gitlab": "https://gitlab.com/chronokairo",
+      "role": "Empresa principal: produtos, SaaS e operação"
+    },
+    "rlv-projects": {
+      "github": "https://github.com/rlv-projects",
+      "role": "Projetos de ex-clientes sem vínculo atual, reutilizáveis como base de SaaS. Antes de reaproveitar: remover dados, marcas e segredos dos clientes e confirmar direitos com o dono."
+    },
+    "anamnesic": {
+      "github": "https://github.com/anamnesic",
+      "role": "Setor de pesquisa (P&D)"
+    },
+    "loopedsouls": {
+      "github": "https://github.com/loopedsouls",
+      "role": "Setor de desenvolvimento de jogos, com objetivo de gerar receita"
+    },
+    "kattegatcorp": {
+      "github": "https://github.com/kattegatcorp",
+      "role": "Kattegat ERP, SaaS da Chronokairo com organização própria; pausado"
+    },
+    "manausdev": {
+      "github": "https://github.com/manausdev",
+      "supabase_project": "manausdev (tzqxvkawjnhuthrsanbm, outra organização Supabase)",
+      "role": "Projeto open source da comunidade de desenvolvedores de Manaus apoiado pela Chronokairo; não é cliente nem produto da empresa"
+    }
+  },
+  "robots": {
+    "agent@chronokairo.com.br": "Usuário-robô dos agentes: caixa agent no Mail (lê todas as caixas do cache e registra classificações) e membro do Chat; nunca usa service role."
+  },
+  "environments": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "note": "Empresa em início: dados internos e dos SaaS ficam no mesmo banco de produção chronokairo-prod (your-project-ref). chronokairo-dev (your-dev-project-ref) está inativo. Isolamento entre domínios depende de RLS por organização/tenant."
+  },
+  "people": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "partners_with_data_access": [
+      "luan@chronokairo.com.br",
+      "riad@chronokairo.com.br",
+      "victor@chronokairo.com.br"
+    ],
+    "admin": "luan@chronokairo.com.br (conta principal; contas Gmail antigas descontinuadas e transferidas para ela)",
+    "employees": [
+      "adri@chronokairo.com.br"
+    ],
+    "robot": "agent@chronokairo.com.br",
+    "rule": "Somente os sócios acessam todos os dados internos; funcionários só o próprio escopo (ex.: caixa do próprio apelido no Mail)."
   }
 }
