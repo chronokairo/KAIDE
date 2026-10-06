@@ -7,16 +7,13 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL =
+export const SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eufyppwpnxmxeinabwyi.supabase.co';
 
 const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1ZnlwcHdwbnhteGVpbmFid3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMTI1MjIsImV4cCI6MjEwMTg4ODUyMn0.CoOa4ofKbscoQ20JAHlo4cw6cg-YAs9BSy0doy72DO4';
 
-const SUPABASE_SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1ZnlwcHdwbnhteGVpbmFid3lpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjMxMjUyMiwiZXhwIjoyMTAxODg4NTIyfQ.aYkt-ZBSSKfeMqCLL6s64XwVOG1nNo6CtnaSmtJwMEU';
 
 /** ID da Organização Oficial ChronoKairo no Supabase de Produção */
 export const PROD_ORGANIZATION_ID = 'e0f6b749-d7b9-5ea8-9b80-c1d919bf7aaf';
@@ -32,13 +29,6 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
   },
 });
 
-/** Cliente Supabase com Chave de Serviço Administrativa para rotas de backend e auditoria */
-export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
 
 export async function getAuthSession() {
   try {

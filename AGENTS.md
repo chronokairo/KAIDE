@@ -76,7 +76,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 
 ## Source Control & Forge Integration Rules (ADR-0038)
 
-- **Dual-Forge Mirroring**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters sobre `CliRunnerPort` seguro contra shell injection).
+- **Histórico de Dual-Forge Mirroring (substituído pela ADR-0041)**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters sobre `CliRunnerPort` seguro contra shell injection).
 - **Rastreabilidade Fina (Traceability)**: Commits, branches e PRs/MRs devem referenciar tarefas de backlog (`SECP-*`, `AUDIO-ASO-*`, `TSK-*`, etc.) seguindo o padrão *Conventional Commits* (`feat(scope): ...`, `fix(scope): ...`).
 - **Língua Pura nos Domínios e Portas**: Entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
 - **Human Gate em Escopo (`scope_baseline`)**: O job `coder.sync_sprint` submete reconciliações de status de sprint como propostas com evidência fotográfica/textual. Nenhuma alteração em `project_tasks.column_status` ocorre sem aprovação humana explícita no Control Plane.
@@ -168,3 +168,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+Migração autorizada (2026-10-06): AI é produto interno e o repositório canônico passa a ser GitHub chronokairo/ai; GitLab mantém histórico auditável. Não reintroduzir credenciais administrativas em módulos importados por browser nem permitir autenticação implícita por presença de chave do provedor. Consolidação permanece em branch até revisão.

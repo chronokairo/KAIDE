@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { CompanyControlPlanePort, CompanyStateSnapshot } from '@/application/ports/company-control-plane-port';
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
@@ -27,7 +28,7 @@ import { ExecuteLegalContractReviewUseCase } from '@/application/use-cases/execu
 import { ExecuteCoderSprintSyncUseCase } from '@/application/use-cases/execute-coder-sprint-sync';
 import { ExecuteProductMilestoneSpecUseCase } from '@/application/use-cases/execute-product-milestone-spec';
 import { ExecuteSupportTriageUseCase } from '@/application/use-cases/execute-support-triage';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
@@ -62,13 +63,13 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
   async getSnapshot(): Promise<CompanyStateSnapshot> {
     // 1. Carrega colaboradores reais do Supabase oficial
-    const { data: dbEmployees } = await supabaseAdmin
+    const { data: dbEmployees } = await getSupabaseAdmin()
       .from('employees')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID);
 
     // 2. Carrega tarefas reais de projetos do Supabase oficial
-    const { data: dbTasks } = await supabaseAdmin
+    const { data: dbTasks } = await getSupabaseAdmin()
       .from('project_tasks')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -76,11 +77,11 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // 3. Carrega execuções de tools e logs de auditoria do banco
     const [execCountRes, auditCountRes] = await Promise.all([
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('ai_tool_executions')
         .select('count', { count: 'exact', head: true })
         .eq('organization_id', PROD_ORGANIZATION_ID),
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('audit_logs')
         .select('count', { count: 'exact', head: true })
         .eq('organization_id', PROD_ORGANIZATION_ID),
@@ -359,7 +360,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // Persistência real no banco de dados Supabase de Produção
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         tool_name: `control_plane.${job.stage}`,
@@ -369,7 +370,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
         created_at: new Date().toISOString(),
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'CONTROL_PLANE_JOB_SUBMITTED',
@@ -517,7 +518,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // Persist real human approval to Supabase audit log
     try {
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'HUMAN_GATE_APPROVAL',
@@ -608,7 +609,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
 
     // Persist real human rejection to Supabase audit log
     try {
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'HUMAN_GATE_REJECTION',

@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { FinanceRepositoryPort } from '@/application/ports/finance-repository-port';
 import {
   Receivable,
@@ -8,7 +9,7 @@ import {
   ReceivableAllocation,
   ReceivableStatus,
 } from '@/domain/finance';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
  * Production secondary adapter for the Financial Repository backed by Supabase.
@@ -19,7 +20,7 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
  */
 export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   async listReceivables(): Promise<Receivable[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('accounts_receivable')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -49,7 +50,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listPayables(): Promise<Payable[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('accounts_payable')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -73,7 +74,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listFinancialAccounts(): Promise<FinancialAccount[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('financial_accounts')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID);
@@ -96,7 +97,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listContracts(): Promise<ContractSummary[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('contracts')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -121,7 +122,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listServiceInvoices(): Promise<ServiceInvoice[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('service_invoices')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -151,7 +152,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
   }
 
   async listReceivableAllocations(): Promise<ReceivableAllocation[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('service_invoice_receivable_allocations')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID);
@@ -187,7 +188,7 @@ export class SupabaseFinanceRepository implements FinanceRepositoryPort {
       updatePayload.received_amount = receivedAmountBrl;
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from('accounts_receivable')
       .update(updatePayload)
       .eq('id', id)

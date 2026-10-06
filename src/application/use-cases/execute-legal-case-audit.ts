@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { LegalRepositoryPort } from '@/application/ports/legal-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -9,7 +10,7 @@ import {
   LegalAuditJobResult,
 } from '@/domain/legal';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
@@ -290,7 +291,7 @@ export class ExecuteLegalCaseAuditUseCase {
   private async persistAudit(reports: LegalAuditReport[], jobId: string): Promise<void> {
     try {
       if (reports.length > 0) {
-        await supabaseAdmin.from('audit_logs').insert({
+        await getSupabaseAdmin().from('audit_logs').insert({
           organization_id: PROD_ORGANIZATION_ID,
           user_id: PROD_USER_ID,
           action: 'LEGAL_CASE_AUDIT_COMPLETED',

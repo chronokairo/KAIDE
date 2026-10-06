@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { SupportRepositoryPort } from '@/application/ports/support-repository-port';
 import {
   ConversationMessage,
@@ -7,7 +8,7 @@ import {
   SupportIncident,
   SupportTicket,
 } from '@/domain/support';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 /**
  * Production secondary adapter for the Support Repository backed by Supabase.
@@ -21,7 +22,7 @@ import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
  */
 export class SupabaseSupportRepository implements SupportRepositoryPort {
   async listTickets(): Promise<SupportTicket[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('support_tickets')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -46,7 +47,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
   }
 
   async listIncidents(): Promise<SupportIncident[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('support_incidents')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -70,7 +71,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
   }
 
   async listConversations(): Promise<ConversationThread[]> {
-    const { data: conversations, error } = await supabaseAdmin
+    const { data: conversations, error } = await getSupabaseAdmin()
       .from('ai_conversations')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -84,7 +85,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
     const conversationIds = conversations.map((c) => c.id);
     if (conversationIds.length === 0) return [];
 
-    const { data: messages, error: msgError } = await supabaseAdmin
+    const { data: messages, error: msgError } = await getSupabaseAdmin()
       .from('ai_messages')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -122,7 +123,7 @@ export class SupabaseSupportRepository implements SupportRepositoryPort {
   }
 
   async saveFaqEntry(entry: FaqEntry): Promise<void> {
-    await supabaseAdmin.from('audit_logs').insert({
+    await getSupabaseAdmin().from('audit_logs').insert({
       organization_id: PROD_ORGANIZATION_ID,
       action: 'SUPPORT_FAQ_PROPOSED',
       target: `faq/${entry.id}`,

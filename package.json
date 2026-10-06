@@ -16,9 +16,9 @@
     "start": "next start -p 3010",
     "test": "npx vitest run",
     "typecheck": "tsc --noEmit",
-    "job:commercial:followup": "tsx scripts/execute-commercial-followup.ts",
-    "job:commercial:daily": "tsx scripts/execute-commercial-daily.ts",
-    "job:qa:review_pr": "tsx scripts/execute-qa-pr-review.ts",
+    "job:commercial:followup": "node --conditions=react-server --import tsx scripts/execute-commercial-followup.ts",
+    "job:commercial:daily": "node --conditions=react-server --import tsx scripts/execute-commercial-daily.ts",
+    "job:qa:review_pr": "node --conditions=react-server --import tsx scripts/execute-qa-pr-review.ts",
     "tauri": "tauri",
     "tauri:dev": "tauri dev"
   },
@@ -47,7 +47,8 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "systeminformation": "^5.33.13",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "server-only": "^0.0.1"
   },
   "overrides": {
     "undici": "^7.30.0",

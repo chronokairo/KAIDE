@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -10,7 +11,7 @@ import {
   MilestoneSpecJobResult,
 } from '@/domain/engineering';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
@@ -312,7 +313,7 @@ export class ExecuteProductMilestoneSpecUseCase {
 
   private async persist(jobId: string, reports: MilestoneSpecReport[]): Promise<void> {
     try {
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'PRODUCT_MILESTONE_SPEC_GENERATED',

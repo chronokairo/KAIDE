@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { FinanceRepositoryPort } from '@/application/ports/finance-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -6,7 +7,7 @@ import {
   BillingDivergence,
 } from '@/domain/finance';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b';
 
@@ -106,7 +107,7 @@ export class ExecuteFinanceNfeAllocationUseCase {
     }
 
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         tool_name: 'finance.nfe_allocation',
@@ -116,7 +117,7 @@ export class ExecuteFinanceNfeAllocationUseCase {
         created_at: new Date().toISOString(),
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'FINANCE_NFE_ALLOCATION_AUDIT_COMPLETED',

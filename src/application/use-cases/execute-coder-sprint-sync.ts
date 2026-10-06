@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { EngineeringRepositoryPort } from '@/application/ports/engineering-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import { SourceControlPort } from '@/application/ports/source-control-port';
@@ -11,7 +12,7 @@ import {
 } from '@/domain/engineering';
 import { ForgeActivity, TaskForgeEvidence, ForgeChangeRequest, ForgeCommit } from '@/domain/source-control';
 import { JobEntity, ApprovalGate } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
@@ -287,7 +288,7 @@ export class ExecuteCoderSprintSyncUseCase {
 
   private async persist(jobId: string, approvalId: string, report: SprintSyncReport): Promise<void> {
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         tool_name: 'coder.sync_sprint',
@@ -297,7 +298,7 @@ export class ExecuteCoderSprintSyncUseCase {
         created_at: new Date().toISOString(),
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'CODER_SPRINT_SYNC_PROPOSED',

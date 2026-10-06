@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { SupportRepositoryPort } from '@/application/ports/support-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -10,7 +11,7 @@ import {
   SupportTriageJobResult,
 } from '@/domain/support';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 const PROD_USER_ID = '50e35fa5-3bbb-4769-ac0d-b8d13738056b'; // Luan Nery / Tech Lead Owner
 
@@ -225,7 +226,7 @@ export class ExecuteSupportTriageUseCase {
         await Promise.all(faqs.map((f) => this.supportRepo.saveFaqEntry!(f)));
       }
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'SUPPORT_HISTORY_TRIAGED',
