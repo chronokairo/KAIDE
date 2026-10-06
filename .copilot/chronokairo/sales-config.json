@@ -1,0 +1,171 @@
+{
+  "version": 2,
+  "existing_customer_domains": [
+    "audiomedam.com.br"
+  ],
+  "existing_customer_names": [
+    "audiomed"
+  ],
+  "icp": [
+    "SMBs in English-speaking markets with manual processes or legacy systems that need custom software, integrations or automation",
+    "Companies publicly requesting developers, automation or SaaS implementation (job posts, RFPs, HN Who is hiring)",
+    "Clínicas de saúde ocupacional no Brasil (Workmed), começando por Manaus/AM e indicações da Audiomed",
+    "Produtores e distribuidores agro do Norte do Brasil (Agroflow)"
+  ],
+  "offers": [
+    {
+      "key": "roadmapping",
+      "name": "Paid discovery / roadmapping",
+      "description": "1 semana (~16h): diagnóstico, escopo, estimativa e roadmap; abatido do projeto se fechado em 30 dias",
+      "price_usd": 950,
+      "price_brl": 2500,
+      "deposit_percent": 100
+    },
+    {
+      "key": "fixed-implementation",
+      "name": "Fixed-scope implementation / Workmed personalization",
+      "description": "A partir de: implantação/personalização com escopo fechado (~40h); Workmed soma a mensalidade do plano (R$149/299/499)",
+      "price_usd": 2500,
+      "price_brl": 6000,
+      "deposit_percent": 50
+    },
+    {
+      "key": "automation-sprint",
+      "name": "Automation sprint",
+      "description": "Um processo automatizado em até 2 semanas (~30h)",
+      "price_usd": 1800,
+      "price_brl": 4500,
+      "deposit_percent": 50
+    },
+    {
+      "key": "maintenance-retainer",
+      "name": "Maintenance retainer",
+      "description": "Por mês: até 10h de manutenção e suporte; hora adicional R$150 / US$60",
+      "price_usd": 600,
+      "price_brl": 1500,
+      "deposit_percent": 0
+    }
+  ],
+  "prices": "Tabela inicial aprovada por delegação do dono em 2026-10-05; descontos e escopos fora da tabela exigem aprovação",
+  "daily_candidate_limit": 5,
+  "qualification_min_fit_score": 3,
+  "outbound_enabled": false,
+  "followup_min_days": 3,
+  "followup_max_count": 2,
+  "blocked_domains": [
+    "ciesa.br"
+  ],
+  "blocked_names": [
+    "3dnet",
+    "5 irmaos",
+    "5 irmãos",
+    "ciesa",
+    "cinco irmãos",
+    "colegio seculo",
+    "colégio século",
+    "grupo wd",
+    "wd educacional"
+  ],
+  "default_language": "en",
+  "supported_languages": [
+    "en",
+    "pt-BR",
+    "es"
+  ],
+  "markets": [
+    "US",
+    "UK",
+    "CA",
+    "AU",
+    "BR"
+  ],
+  "booking_link": null,
+  "sender_identity": {
+    "name": null,
+    "email": null,
+    "postal_address": null,
+    "whatsapp": "+5592993796345"
+  },
+  "references_authorized": [],
+  "daily_send_cap": 20,
+  "benchmarks": {
+    "cold_email_reply_rate": {
+      "value": 0.0343,
+      "source": "https://instantly.ai/cold-email-benchmark-report-2026"
+    }
+  },
+  "chat": {
+    "app": "Chronokairo Chat (gitlab.com/chronokairo/chat)",
+    "supabase_url": "https://your-project-ref.supabase.co",
+    "database": "Supabase único da empresa (o mesmo do Workmed)",
+    "workspace_slug": "chronokairo-hq",
+    "channel": "comercial-leads",
+    "credentials": "~/.config/chronokairo/chat.env (chmod 600, fora do Git): CK_CHAT_SUPABASE_ANON_KEY, CK_CHAT_BOT_EMAIL, CK_CHAT_BOT_PASSWORD; service role é recusada",
+    "deployment": "Não publicado em 2026-10-05: GitLab Pages chat-dccc27.gitlab.io sem deploys; CI só faz lint/build",
+    "requires": "MR chat!1 (RLS e autenticação) aplicado no banco e usuário-robô membro do workspace"
+  },
+  "pricing_basis": {
+    "decided_at": "2026-10-05",
+    "hourly_brl": 150,
+    "hourly_usd": 60,
+    "rationale": "Decisão inicial pelo mercado brasileiro: hora-base de R$150, na faixa intermediária de software houses pequenas e freelancers seniores; ofertas = horas estimadas x hora-base. USD a ~US$60/h para competir no exterior abaixo de agências dos EUA/Reino Unido. Revisar após 5 propostas ou 2 vendas.",
+    "verified_market_source": null
+  },
+  "partner_program": {
+    "commission_percent_first_year": 15,
+    "paid_after": "recebimento do cliente",
+    "attribution": "primeiro parceiro a registrar o lead com evidência",
+    "term_months": 12,
+    "rationale": "Decisão inicial: 15% sobre o primeiro ano pago, faixa comum em programas de indicação de software/serviços B2B; revisar após os 3 primeiros parceiros"
+  },
+  "products": {
+    "workmed": {
+      "name": "Workmed — sistema para clínicas de saúde ocupacional (ASO, PCMSO, agenda e faturamento)",
+      "segments": [
+        "saúde ocupacional",
+        "medicina do trabalho",
+        "SST"
+      ]
+    },
+    "agroflow": {
+      "name": "Agroflow — vendas, distribuição, balança e gestão de gado para produtores",
+      "segments": [
+        "agro",
+        "distribuição de alimentos"
+      ]
+    },
+    "roadmapping": {
+      "name": "Diagnóstico pago / roadmapping (1 semana)",
+      "segments": [
+        "todos"
+      ]
+    },
+    "fixed-implementation": {
+      "name": "Implantação ou sistema sob medida com escopo fechado",
+      "segments": [
+        "todos"
+      ]
+    },
+    "automation-sprint": {
+      "name": "Sprint de automação de um processo",
+      "segments": [
+        "todos"
+      ]
+    },
+    "maintenance-retainer": {
+      "name": "Manutenção mensal de software",
+      "segments": [
+        "empresas com sistema próprio"
+      ]
+    }
+  },
+  "whatsapp_campaign": {
+    "start": "2026-10-31",
+    "mode": "1 a 1 manual pelo link wa.me, sem disparador",
+    "per_day": 20,
+    "rules": "Somente WhatsApp comercial publicado no site oficial ou em perfil empresarial da própria empresa; mensagem personalizada; identificar Chronokairo; parar no primeiro pedido de não contato (sales.py mark --stage opt_out).",
+    "sender": "+5592993796345",
+    "device": "iPhone 7 com WhatsApp Business"
+  },
+  "booking": "Agenda própria do CRM (crm.chronokairo.com.br); não usar Calendly/Cal.com"
+}

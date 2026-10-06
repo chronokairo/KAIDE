@@ -4,5 +4,5 @@ ConditionPathExists=%h/.copilot/data.db
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 %h/.copilot/chronokairo/company.py watchdog
+ExecStart=/usr/bin/python3 %h/.copilot/chronokairo/company.py watchdog --stop-overdue
 NoNewPrivileges=true
