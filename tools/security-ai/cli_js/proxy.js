@@ -1,11 +1,12 @@
 import { chromium } from 'playwright';
+import { requireApiKey } from './application/configuration.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import http from 'http';
 import https from 'https';
 import { networkInterfaces } from 'os';
 
 const TARGET = 'https://japiim.com.br';
-const API_KEY = 'sk-30798826180844d2a159c9381030c4a3';
+const API_KEY = requireApiKey(process.env);
 const SESSION_FILE = 'session.json';
 const MODELS_CACHE_FILE = 'models.json';
 const PORT = 3000;
@@ -67,7 +68,7 @@ async function tryRestoreSession() {
     const result = await new Promise((resolve, reject) => {
       const r = https.get({
         hostname: targetUrl.hostname, port: 443, path: '/api/v1/models',
-        timeout: 15000, rejectUnauthorized: false,
+        timeout: 15000, rejectUnauthorized: true,
         headers: { Authorization: `Bearer ${API_KEY}`, Cookie: cookieHeader(),
           'User-Agent': 'Mozilla/5.0' },
       }, (resp) => { let d = ''; resp.on('data', c => d += c); resp.on('end', () => resolve(d)); });
@@ -115,7 +116,7 @@ function forwardRequest(req, res, targetPath) {
       const url = new URL(`${TARGET}${targetPath}`);
       const options = {
         hostname: url.hostname, port: 443, path: url.pathname + url.search,
-        method: req.method, rejectUnauthorized: false,
+        method: req.method, rejectUnauthorized: true,
         headers: {
           Authorization: `Bearer ${API_KEY}`,
           Cookie: cookieHeader(),
