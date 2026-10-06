@@ -109,9 +109,10 @@ FLOWS.extend([
  ('demand-pipeline','Revenue — radar de demanda declarada','revenue',['demand-scout','lead-enrichment','qualification','sdr','pipeline-auditor'],'daily',8,1,'ck-ai'),
  ('replies','Revenue — respostas e reuniões','revenue',['reply-triage','followup','pipeline-auditor'],'daily',12,1,'ck-ai'),
  ('referrals','Revenue — indicações de clientes','revenue',['referral','pipeline-auditor'],'weekly',9,1,'ck-ai'),
+ ('partnerships','Revenue — parceiros de canal','revenue',['partnerships','pipeline-auditor'],'weekly',9,3,'ck-ai'),
 ])
 MINUTES = {key:minute for key,(_,minute) in DAILY.items()}
-MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15})
+MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15,'partnerships':15})
 FLOWS.extend(night_sales.ROUTES)
 MINUTES['night-brief']=30
 
@@ -134,9 +135,9 @@ def build(provider):
     for key, domain, goal, kpi, model, tools in WORKERS:
         profiles.append(dict(id='ck-'+key, domain=domain, goal=goal, kpi=kpi,
                              model=MODELS[model], tools=list(dict.fromkeys(tools+(['execute'] if key in ['issue-planner','backlog','code-reviewer','security','devops'] else []))), owner='ck-'+domain+'-orchestrator', kind='worker'))
-    for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral','morning-brief']:
+    for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral','morning-brief','partnerships']:
         goal,kpi,_ = sales_profiles.CONTRACTS[key]
-        profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+(['web'] if key=='demand-scout' else ['edit']),owner='ck-revenue-orchestrator',kind='worker'))
+        profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+(['web'] if key in ('demand-scout','partnerships') else ['edit']),owner='ck-revenue-orchestrator',kind='worker'))
     for domain in ['revenue','product','engineering','operations','finance','people']:
         workers = [p['id'] for p in profiles if p['domain'] == domain and p['kind']=='worker']
         profiles.append(dict(id='ck-'+domain+'-orchestrator',domain=domain,
@@ -224,7 +225,7 @@ def configure(target, live=False):
     registered={r[0] for r in c.execute('select model_id from provider_models where provider_id=?',(provider,))}
     assert set(MODELS.values()) <= registered, 'Missing registered model'
     profiles=build(provider)
-    assert len(profiles)==39 and len({p['id'] for p in profiles})==39
+    assert len(profiles)==40 and len({p['id'] for p in profiles})==40
     known={p['id'] for p in profiles}
     assert all('ck-'+w in known for f in FLOWS for w in f[3])
     backup=None
