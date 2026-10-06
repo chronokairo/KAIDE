@@ -26,6 +26,18 @@ class SalesTests(unittest.TestCase):
     def test_blocked_party_rejected(self):
         for value in [lead(company='Colégio Século Manaus'),lead(company='WD Educacional LTDA'),lead(website='https://portal.ciesa.br')]:
             with self.assertRaises(ValueError):sales.ingest([value])
+    def test_source_type_and_funnel_metrics(self):
+        with self.assertRaises(ValueError):sales.ingest([lead(source_type='spam')])
+        with self.assertRaises(ValueError):sales.ingest([lead(source_type='referral')])
+        sales.ingest([lead(source_type='referral',referred_by='Audiomed',language='pt-BR')])
+        evidence=self.base/'receipt.txt';evidence.write_text('Synthetic fixture only')
+        sales.event('synthetic.example.test','sent',evidence,'send_receipt')
+        reply=self.base/'reply.txt';reply.write_text('Synthetic reply')
+        sales.event('synthetic.example.test','replied',reply,'prospect_reply')
+        funnel=sales.funnel_metrics()['referral']
+        self.assertEqual((funnel['qualified'],funnel['sent'],funnel['replied'],funnel['meeting']),(1,1,1,0))
+        self.assertEqual((funnel['reply_rate'],funnel['meeting_rate'],funnel['win_rate']),('100%','0%','n/a'))
+        self.assertEqual(sales.funnel_metrics()['outbound']['sent'],0)
     def test_deduplication_and_no_reply_from_drafts(self):
         sales.ingest([lead()]);sales.ingest([lead(website='https://www.synthetic.example.test/path')])
         self.assertEqual(len(sales.records()),1)
@@ -62,7 +74,8 @@ class SalesTests(unittest.TestCase):
         self.assertEqual(sales.records(),[])
     def test_generator_has_registered_models_and_complete_routes(self):
         profiles=configure.build('synthetic-provider');ids={p['id'] for p in profiles}
-        self.assertEqual(len(ids),35);self.assertIn('ck-sdr',ids);self.assertIn('ck-pipeline-auditor',ids)
+        self.assertEqual(len(ids),38)
+        for agent in ['ck-sdr','ck-pipeline-auditor','ck-demand-scout','ck-reply-triage','ck-referral']:self.assertIn(agent,ids)
         for flow in configure.FLOWS:self.assertTrue(all('ck-'+w in ids for w in flow[3]))
         for p in profiles:
             if p['domain']=='revenue':self.assertIn('Contrato comercial específico' if p['kind']=='worker' else 'sales.py',p['content'])

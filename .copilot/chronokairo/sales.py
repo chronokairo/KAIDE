@@ -14,6 +14,8 @@ import company
 BASE=Path(__file__).resolve().parent
 DESKTOP=Path.home()/'Desktop/Chronokairo'
 NEXT={'draft_ready':'sent','sent':'replied','replied':'meeting','meeting':'won','won':'paid'}
+SOURCES={'referral','demand','outbound','inbound'}
+FUNNEL=['qualified','sent','replied','meeting','won','paid']
 TYPES={'sent':'send_receipt','replied':'prospect_reply','meeting':'meeting_confirmation','won':'contract_acceptance','paid':'payment_receipt','rejected':'rejection','opt_out':'opt_out'}
 def website(value):
     parsed=urlparse(value)
@@ -58,6 +60,10 @@ def ingest(records):
             date=dt.date.fromisoformat(source['checked_at'])
             if date>dt.datetime.now(ZoneInfo('America/Caracas')).date():raise ValueError('Future source date')
             if not source.get('fact'):raise ValueError('Source fact required')
+        row.setdefault('source_type','outbound');row.setdefault('language','en')
+        if row['source_type'] not in SOURCES:raise ValueError('source_type must be referral, demand, outbound or inbound')
+        if row['source_type']=='referral' and not str(row.get('referred_by','')).strip():raise ValueError('Referral needs referred_by')
+        if not isinstance(row['language'],str) or not 2<=len(row['language'])<=5:raise ValueError('Invalid language code')
         score=row.get('fit_score',0)
         if type(score) is not int or not 0<=score<=4:raise ValueError('Invalid fit score')
         qualified=score>=config['qualification_min_fit_score']
@@ -107,14 +113,38 @@ def records():
     try:return [dict(r,details=json.loads(r['details'])) for r in c.execute('SELECT * FROM leads ORDER BY updated_at DESC')]
     finally:c.close()
 
+ORDER=['candidate','qualified','draft_ready','sent','replied','meeting','won','paid']
+
+def funnel_metrics():
+    """Conta quem alcançou cada etapa por origem; etapas operacionais exigem evento com comprovante."""
+    c=connect()
+    try:
+        reached={r['domain']:{r2['stage'] for r2 in c.execute('SELECT stage FROM events WHERE domain=?',[r['domain']])} for r in c.execute('SELECT domain FROM leads')}
+        leads={r['domain']:(json.loads(r['details']).get('source_type','outbound'),r['stage']) for r in c.execute('SELECT domain,stage,details FROM leads')}
+    finally:c.close()
+    rate=lambda a,b:f'{100*a/b:.0f}%' if b else 'n/a'
+    result={}
+    for source in sorted(SOURCES|{s for s,_ in leads.values()}):
+        rows=[(d,stage) for d,(s,stage) in leads.items() if s==source]
+        row={'qualified':sum(stage in ORDER and ORDER.index(stage)>=1 for _,stage in rows)}
+        for step in FUNNEL[1:]:row[step]=sum(step in reached[d] for d,_ in rows)
+        row.update(reply_rate=rate(row['replied'],row['sent']),meeting_rate=rate(row['meeting'],row['replied']),win_rate=rate(row['won'],row['meeting']))
+        result[source]=row
+    return result
+
 def report():
     leads=records();c=connect()
     try:
         counts={s: c.execute('SELECT count(DISTINCT domain) FROM events WHERE stage=?',[s]).fetchone()[0] for s in TYPES}
         paid=c.execute("SELECT coalesce(sum(amount_cents),0) FROM events WHERE stage='paid'").fetchone()[0]
     finally:c.close()
+    funnel=funnel_metrics()
     day=dt.datetime.now(ZoneInfo('America/Caracas')).date().isoformat()
     body=f'# Comercial Chronokairo — {day}\n\nFunil de aquisição; exclui Audiomed. Registros públicos não comprovam interesse.\n\n'
+    body+='## Métricas por origem (acumulado, com comprovante)\n\n| Origem | '+' | '.join(FUNNEL)+' | resposta/envio | reunião/resposta | venda/reunião |\n|'+'---|'*(len(FUNNEL)+4)+'\n'
+    for source,row in funnel.items():
+        body+=f'| {source} | '+' | '.join(str(row[s]) for s in FUNNEL)+' | '+' | '.join(row[k] for k in ['reply_rate','meeting_rate','win_rate'])+' |\n'
+    body+='\nTaxas com denominador zero aparecem como n/a. Qualificado mede adequação, não interesse.\n\n'
     body+=f'Empresas registradas: {len(leads)}. Qualificadas/rascunhos disponíveis: {sum(r["stage"] in {"qualified","draft_ready"} for r in leads)}.\n\n'
     body+='Etapas com comprovantes registrados (acumulado): '+', '.join(f'{s}={n}' for s,n in counts.items())+f'. Recebimentos registrados: R$ {paid/100:.2f}. Ausência de registro não prova ausência de receita fora deste funil.\n\n'
     body+='Envios automáticos desabilitados. Respostas exigem registro de evidência; não há caixa de entrada integrada.\n'
@@ -125,7 +155,7 @@ def report():
         if row['stage'] not in {'opt_out','rejected'} and detail.get('draft'):body+='\nRascunho (não enviado):\n\n'+detail['draft']+'\n'
     DESKTOP.mkdir(parents=True,exist_ok=True);dest=DESKTOP/f'Comercial-{day}.md'
     company.atomic(dest,company.redact(body));os.chmod(dest,0o600)
-    return {'document':str(dest),'companies':len(leads),'evidence_counts':counts,'paid_cents':paid}
+    return {'document':str(dest),'companies':len(leads),'evidence_counts':counts,'paid_cents':paid,'funnel':funnel}
 
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='action',required=True)

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "existing_customer_domains": [
     "audiomedam.com.br"
   ],
@@ -7,15 +7,46 @@
     "audiomed"
   ],
   "icp": [
-    "Clínicas de saúde ocupacional em Manaus/AM, depois Brasil",
-    "Pequenas empresas brasileiras com processos manuais publicamente identificáveis"
+    "SMBs in English-speaking markets with manual processes or legacy systems that need custom software, integrations or automation",
+    "Companies publicly requesting developers, automation or SaaS implementation (job posts, RFPs, HN Who is hiring)",
+    "Clínicas de saúde ocupacional no Brasil (Workmed), começando por Manaus/AM e indicações da Audiomed",
+    "Produtores e distribuidores agro do Norte do Brasil (Agroflow)"
   ],
   "offers": [
-    "Implantação/personalização de software para clínica, após verificar prontidão do produto",
-    "Automação com escopo fechado de um processo empresarial",
-    "Manutenção pontual de software com diagnóstico e orçamento"
+    {
+      "key": "roadmapping",
+      "name": "Paid discovery / roadmapping",
+      "description": "1–2 semanas: diagnóstico, escopo, estimativa e roadmap; abatível do projeto",
+      "price_usd": null,
+      "price_brl": null,
+      "deposit_percent": 100
+    },
+    {
+      "key": "fixed-implementation",
+      "name": "Fixed-scope implementation / Workmed personalization",
+      "description": "Escopo fechado com marcos, entrada antes do início",
+      "price_usd": null,
+      "price_brl": null,
+      "deposit_percent": 50
+    },
+    {
+      "key": "automation-sprint",
+      "name": "Automation sprint",
+      "description": "Automatizar um processo empresarial com escopo fechado",
+      "price_usd": null,
+      "price_brl": null,
+      "deposit_percent": 50
+    },
+    {
+      "key": "maintenance-retainer",
+      "name": "Maintenance retainer",
+      "description": "Manutenção e suporte mensal com horas definidas",
+      "price_usd": null,
+      "price_brl": null,
+      "deposit_percent": 0
+    }
   ],
-  "prices": "Somente orçamento aprovado pelo dono por prospect; preços Audiomed não se aplicam automaticamente",
+  "prices": "Preços null exigem aprovação do dono; agentes escrevem price on request / a definir pelo dono",
   "daily_candidate_limit": 5,
   "qualification_min_fit_score": 3,
   "outbound_enabled": false,
@@ -25,10 +56,40 @@
     "ciesa.br"
   ],
   "blocked_names": [
+    "5 irmaos",
+    "5 irmãos",
     "ciesa",
-    "wd educacional",
-    "grupo wd",
+    "cinco irmãos",
+    "colegio seculo",
     "colégio século",
-    "colegio seculo"
-  ]
+    "grupo wd",
+    "wd educacional"
+  ],
+  "default_language": "en",
+  "supported_languages": [
+    "en",
+    "pt-BR",
+    "es"
+  ],
+  "markets": [
+    "US",
+    "UK",
+    "CA",
+    "AU",
+    "BR"
+  ],
+  "booking_link": null,
+  "sender_identity": {
+    "name": null,
+    "email": null,
+    "postal_address": null
+  },
+  "references_authorized": [],
+  "daily_send_cap": 20,
+  "benchmarks": {
+    "cold_email_reply_rate": {
+      "value": 0.0343,
+      "source": "https://instantly.ai/cold-email-benchmark-report-2026"
+    }
+  }
 }
