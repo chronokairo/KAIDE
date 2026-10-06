@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Dedicated prospect ledger. Never sends messages or treats drafts as revenue."""
 import argparse
+import csv
 import datetime as dt
 import hashlib
 import json
 import os
 from pathlib import Path
 import sqlite3
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
+import re
 from zoneinfo import ZoneInfo
 import company
 
@@ -40,6 +42,48 @@ def connect():
     os.chmod(BASE/'sales.db',0o600)
     return c
 
+PHONE=re.compile(r'\+[1-9]\d{9,14}')
+MAIL=re.compile(r'[^@\s]+@[^@\s]+\.[a-z]{2,24}',re.I)
+
+def contact(row):
+    """Contato comercial publicado pela empresa; campo vazio é preferível a contato pessoal ou inferido."""
+    for field in ['contact_name','whatsapp','email','product']:
+        if field in row and row[field] is not None and not isinstance(row[field],str):raise ValueError('Invalid '+field)
+    if row.get('whatsapp'):
+        digits='+'+re.sub(r'\D','',row['whatsapp'])
+        if not PHONE.fullmatch(digits):raise ValueError('WhatsApp must be E.164, e.g. +5592999999999')
+        row['whatsapp']=digits
+    if row.get('email') and not MAIL.fullmatch(row['email'].strip()):raise ValueError('Invalid email')
+    if (row.get('whatsapp') or row.get('email') or row.get('contact_name')):
+        source=row.get('contact_source')
+        if not isinstance(source,str):raise ValueError('contact_source URL required for published contact data')
+        website(source)
+    products=json.loads((BASE/'sales-config.json').read_text()).get('products',{})
+    if row.get('product') and products and row['product'] not in products:raise ValueError('Unknown product; use sales-config.json products')
+
+def campaign_ready(row):
+    d=row['details']
+    return row['stage'] in {'qualified','draft_ready'} and all(d.get(k) for k in ['contact_name','whatsapp','email','product'])
+
+def campaign(start,per_day):
+    """Agenda envios 1 a 1 a partir de start; o dono envia cada mensagem pelo link wa.me."""
+    config=json.loads((BASE/'sales-config.json').read_text());products=config.get('products',{})
+    rows=sorted([r for r in records() if campaign_ready(r)],key=lambda r:(-r['details'].get('fit_score',0),r['domain']))
+    day=dt.date.fromisoformat(start);out=[]
+    for i,r in enumerate(rows):
+        d=r['details'];when=day+dt.timedelta(days=i//per_day)
+        text=d.get('draft') or ''
+        out.append({'send_on':when.isoformat(),'company':r['company'],'contact_name':d['contact_name'],'whatsapp':d['whatsapp'],'email':d['email'],
+                    'product':d['product'],'product_name':products.get(d['product'],{}).get('name',d['product']),'domain':r['domain'],
+                    'wa_link':'https://wa.me/'+d['whatsapp'].lstrip('+')+('?text='+quote(text) if text else ''),'message':text,'contact_source':d.get('contact_source','')})
+    missing=[{'company':r['company'],'domain':r['domain'],'missing':[k for k in ['contact_name','whatsapp','email','product'] if not r['details'].get(k)]}
+             for r in records() if r['stage'] in {'qualified','draft_ready'} and not campaign_ready(r)]
+    DESKTOP.mkdir(parents=True,exist_ok=True);path=DESKTOP/f'WhatsApp-Campanha-{start}.csv'
+    with path.open('w',newline='') as f:
+        w=csv.DictWriter(f,fieldnames=['send_on','company','contact_name','whatsapp','email','product','product_name','domain','wa_link','message','contact_source']);w.writeheader();w.writerows(out)
+    os.chmod(path,0o600)
+    return {'file':str(path),'ready':len(out),'per_day':per_day,'last_day':out[-1]['send_on'] if out else None,'incomplete':missing}
+
 def ingest(records):
     config=json.loads((BASE/'sales-config.json').read_text())
     if not isinstance(records,list) or len(records)>config['daily_candidate_limit']:raise ValueError('Batch exceeds configured candidate limit')
@@ -50,6 +94,7 @@ def ingest(records):
         domain=website(row['website']);website(row['business_contact_url'])
         if any(domain==d or domain.endswith('.'+d) for d in config['existing_customer_domains']) or row['company'].strip().casefold() in config['existing_customer_names']:
             raise ValueError('Existing customer is not acquisition')
+        contact(row)
         company=row['company'].strip().casefold()
         if any(domain==d or domain.endswith('.'+d) for d in config.get('blocked_domains',[])) or any(n in company for n in config.get('blocked_names',[])):
             raise ValueError('Blocked party: owner-reported default, do not prospect')
@@ -142,6 +187,7 @@ def attest(domain,stage,channel,note):
     return {'status':'needs_evidence','document':str(path),'stage_unchanged':True,
             'next_action':'Provide external receipt through sales.py event; this note does not advance the funnel'}
 
+
 def records():
     c=connect()
     try:return [dict(r,details=json.loads(r['details'])) for r in c.execute('SELECT * FROM leads ORDER BY updated_at DESC')]
@@ -197,10 +243,12 @@ def main():
     a=sub.add_parser('ingest');a.add_argument('--file',required=True)
     e=sub.add_parser('event');e.add_argument('--domain',required=True);e.add_argument('--stage',choices=list(TYPES),required=True);e.add_argument('--evidence',required=True);e.add_argument('--kind',choices=list(TYPES.values()),required=True);e.add_argument('--amount-cents',type=int)
     m=sub.add_parser('mark',help='dono registra envio, reunião, recusa ou opt-out');m.add_argument('--domain',required=True);m.add_argument('--stage',choices=list(ATTESTABLE),required=True);m.add_argument('--channel',required=True);m.add_argument('--note',default='')
+    c=sub.add_parser('campaign',help='lista de WhatsApp 1 a 1');c.add_argument('--start',required=True);c.add_argument('--per-day',type=int,default=20)
     args=p.parse_args()
     if args.action=='list':result=records()
     elif args.action=='report':result=report()
     elif args.action=='ingest':result=ingest(json.loads(Path(args.file).read_text()))
+    elif args.action=='campaign':result=campaign(args.start,args.per_day)
     elif args.action=='mark':result=attest(args.domain,args.stage,args.channel,args.note)
     else:result=event(args.domain,args.stage,args.evidence,args.kind,args.amount_cents)
     print(json.dumps(result,ensure_ascii=False))

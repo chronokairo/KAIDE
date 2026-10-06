@@ -115,5 +115,52 @@
     "attribution": "primeiro parceiro a registrar o lead com evidência",
     "term_months": 12,
     "rationale": "Decisão inicial: 15% sobre o primeiro ano pago, faixa comum em programas de indicação de software/serviços B2B; revisar após os 3 primeiros parceiros"
+  },
+  "products": {
+    "workmed": {
+      "name": "Workmed — sistema para clínicas de saúde ocupacional (ASO, PCMSO, agenda e faturamento)",
+      "segments": [
+        "saúde ocupacional",
+        "medicina do trabalho",
+        "SST"
+      ]
+    },
+    "agroflow": {
+      "name": "Agroflow — vendas, distribuição, balança e gestão de gado para produtores",
+      "segments": [
+        "agro",
+        "distribuição de alimentos"
+      ]
+    },
+    "roadmapping": {
+      "name": "Diagnóstico pago / roadmapping (1 semana)",
+      "segments": [
+        "todos"
+      ]
+    },
+    "fixed-implementation": {
+      "name": "Implantação ou sistema sob medida com escopo fechado",
+      "segments": [
+        "todos"
+      ]
+    },
+    "automation-sprint": {
+      "name": "Sprint de automação de um processo",
+      "segments": [
+        "todos"
+      ]
+    },
+    "maintenance-retainer": {
+      "name": "Manutenção mensal de software",
+      "segments": [
+        "empresas com sistema próprio"
+      ]
+    }
+  },
+  "whatsapp_campaign": {
+    "start": "2026-10-31",
+    "mode": "1 a 1 manual pelo link wa.me, sem disparador",
+    "per_day": 20,
+    "rules": "Somente WhatsApp comercial publicado no site oficial ou em perfil empresarial da própria empresa; mensagem personalizada; identificar Chronokairo; parar no primeiro pedido de não contato (sales.py mark --stage opt_out)."
   }
 }
