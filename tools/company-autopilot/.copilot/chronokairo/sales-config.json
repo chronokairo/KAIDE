@@ -94,9 +94,13 @@
   },
   "chat": {
     "app": "Chronokairo Chat (gitlab.com/chronokairo/chat)",
-    "workspace_id": "00000000-0000-0000-0000-000000000001",
+    "supabase_url": "https://your-project-ref.supabase.co",
+    "database": "Supabase único da empresa (o mesmo do Workmed)",
+    "workspace_slug": "chronokairo-hq",
     "channel": "comercial-leads",
-    "credentials": "~/.config/chronokairo/chat.env com CK_CHAT_SUPABASE_URL e CK_CHAT_SUPABASE_KEY (chmod 600, fora do Git)"
+    "credentials": "~/.config/chronokairo/chat.env (chmod 600, fora do Git): CK_CHAT_SUPABASE_ANON_KEY, CK_CHAT_BOT_EMAIL, CK_CHAT_BOT_PASSWORD; service role é recusada",
+    "deployment": "Não publicado em 2026-10-05: GitLab Pages chat-dccc27.gitlab.io sem deploys; CI só faz lint/build",
+    "requires": "MR chat!1 (RLS e autenticação) aplicado no banco e usuário-robô membro do workspace"
   },
   "pricing_basis": {
     "decided_at": "2026-10-05",

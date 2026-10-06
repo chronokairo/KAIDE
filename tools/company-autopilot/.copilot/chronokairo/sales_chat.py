@@ -12,12 +12,12 @@ import company
 
 BASE=Path(__file__).resolve().parent
 CREDENTIALS=Path.home()/'.config/chronokairo/chat.env'
-BOT_ID='00000000-0000-4000-8000-00000000c4a7'
 BOT_NAME='Chronokairo Agents'
 HOST=r'((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24})'
 EXPLICIT=re.compile(r'^\s*(?:lead|dom[ií]nio|domain)\s*:\s*(?:https?://)?(?:www\.)?'+HOST,re.I|re.M)
 EMAIL=re.compile(r'[\w.+-]+@'+HOST,re.I)
 BARE=re.compile(r'(?<![\w.@-])(?:https?://)?(?:www\.)?'+HOST+r'(?![\w-])',re.I)
+_session={}
 
 def prospect_domain(text):
     for pattern in [EXPLICIT,EMAIL,BARE]:
@@ -26,30 +26,47 @@ def prospect_domain(text):
     return None
 
 def settings():
+    """Usuário-robô do Chat com RLS; a service role do banco único da empresa não é aceita."""
     config=json.loads((BASE/'sales-config.json').read_text()).get('chat',{})
     values={}
     if CREDENTIALS.is_file():
         for line in CREDENTIALS.read_text().splitlines():
             if '=' in line and not line.lstrip().startswith('#'):
                 key,value=line.split('=',1);values[key.strip()]=value.strip().strip('"\'')
-    url=os.environ.get('CK_CHAT_SUPABASE_URL') or values.get('CK_CHAT_SUPABASE_URL')
-    key=os.environ.get('CK_CHAT_SUPABASE_KEY') or values.get('CK_CHAT_SUPABASE_KEY')
-    if not url or not key:
-        raise RuntimeError(f'Chronokairo Chat não configurado: defina CK_CHAT_SUPABASE_URL e CK_CHAT_SUPABASE_KEY em {CREDENTIALS}')
+    get=lambda name:os.environ.get(name) or values.get(name)
+    url=get('CK_CHAT_SUPABASE_URL') or config.get('supabase_url')
+    needed={'CK_CHAT_SUPABASE_ANON_KEY':get('CK_CHAT_SUPABASE_ANON_KEY'),'CK_CHAT_BOT_EMAIL':get('CK_CHAT_BOT_EMAIL'),'CK_CHAT_BOT_PASSWORD':get('CK_CHAT_BOT_PASSWORD')}
+    missing=[k for k,v in needed.items() if not v]
+    if missing or not url:
+        raise RuntimeError(f'Chronokairo Chat não configurado: defina {", ".join(missing) or "CK_CHAT_SUPABASE_URL"} em {CREDENTIALS}')
+    if get('CK_CHAT_SUPABASE_KEY') or get('SUPABASE_SERVICE_ROLE_KEY'):
+        raise RuntimeError('Service role não é aceita: o banco é único da empresa; use o usuário-robô do Chat')
     if urllib.parse.urlparse(url).scheme!='https':raise RuntimeError('CK_CHAT_SUPABASE_URL deve usar https')
-    return url.rstrip('/'),key,config
+    return url.rstrip('/'),needed,config
 
-def request(method,path,body=None):
-    url,key,_=settings()
+def _call(method,url,anon,token,body=None):
     data=None if body is None else json.dumps(body).encode()
-    req=urllib.request.Request(url+'/rest/v1/'+path,data=data,method=method,headers={
-        'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json','Prefer':'return=representation'})
+    req=urllib.request.Request(url,data=data,method=method,headers={
+        'apikey':anon,'Authorization':'Bearer '+token,'Content-Type':'application/json','Prefer':'return=representation'})
     with urllib.request.urlopen(req,timeout=20) as response:
         return json.loads(response.read() or b'[]')
 
+def session():
+    if not _session:
+        url,needed,_=settings();anon=needed['CK_CHAT_SUPABASE_ANON_KEY']
+        auth=_call('POST',url+'/auth/v1/token?grant_type=password',anon,anon,{'email':needed['CK_CHAT_BOT_EMAIL'],'password':needed['CK_CHAT_BOT_PASSWORD']})
+        _session.update(url=url,anon=anon,token=auth['access_token'],user_id=auth['user']['id'])
+    return _session
+
+def request(method,path,body=None):
+    s=session()
+    return _call(method,s['url']+'/rest/v1/'+path,s['anon'],s['token'],body)
+
 def channel_id():
     _,_,config=settings()
-    q=urllib.parse.urlencode({'select':'id','name':'eq.'+config.get('channel','comercial-leads'),'workspace_id':'eq.'+config['workspace_id']})
+    workspaces=request('GET','workspaces?'+urllib.parse.urlencode({'select':'id','slug':'eq.'+config.get('workspace_slug','chronokairo-hq')}))
+    if len(workspaces)!=1:raise RuntimeError('Workspace do Chat não encontrado; o robô precisa ser membro')
+    q=urllib.parse.urlencode({'select':'id','name':'eq.'+config.get('channel','comercial-leads'),'workspace_id':'eq.'+workspaces[0]['id']})
     rows=request('GET','channels?'+q)
     if len(rows)!=1:raise RuntimeError('Canal comercial não encontrado ou ambíguo no Chronokairo Chat')
     return rows[0]['id']
@@ -68,7 +85,7 @@ def pull():
     saved=[]
     for message in request('GET','messages?'+q):
         cursor['created_at']=message['created_at']
-        if message['user_id']==BOT_ID:continue
+        if message['user_id']==session()['user_id']:continue
         domain=prospect_domain(message['content'])
         if not domain:
             saved.append({'message_id':message['id'],'status':'needs_domain'});continue
@@ -84,7 +101,7 @@ def pull():
 
 def post(content,reply_to=None):
     """Publica triagem e rascunhos no canal interno; não é envio ao prospect."""
-    body={'channel_id':channel_id(),'user_id':BOT_ID,'user_name':BOT_NAME,'content':company.redact(content)[:8000]}
+    body={'channel_id':channel_id(),'user_id':session()['user_id'],'user_name':BOT_NAME,'content':company.redact(content)[:8000]}
     if reply_to:
         if not re.fullmatch(r'[0-9a-f-]{36}',reply_to):raise ValueError('reply_to must be a message UUID')
         body['reply_to_id']=reply_to
