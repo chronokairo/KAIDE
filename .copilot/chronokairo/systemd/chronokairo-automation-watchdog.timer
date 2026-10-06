@@ -1,8 +1,8 @@
 [Unit]
-Description=Check Chronokairo automations every five minutes
+Description=Check Chronokairo automations every minute
 
 [Timer]
-OnCalendar=*-*-* *:00/5:00
+OnCalendar=*-*-* *:00/1:00
 Persistent=true
 Unit=chronokairo-automation-watchdog.service
 

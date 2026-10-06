@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Typed company utilities: scoped inventory, private project creation and Desktop reports."""
 import argparse
+from contextlib import closing
 import datetime as dt
 import fcntl
 import hashlib
@@ -8,6 +9,8 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
+import uuid
 import sqlite3
 import subprocess
 import time
@@ -171,6 +174,62 @@ def claim(args,release=False):
         f.seek(0);f.truncate();json.dump(data,f);f.flush();os.fsync(f.fileno())
     return {'project':project,'job':job,'released':release}
 
+def runtime_binding(route, run_id=None):
+    """Resolve the app's immutable start time, never a worker supplied timestamp."""
+    db=Path.home()/'.copilot/data.db'
+    if not db.exists():
+        if run_id:raise ValueError('Runtime database unavailable')
+        return None
+    workflow=str(uuid.uuid5(uuid.UUID('37a4dbb0-8ebc-4733-9391-e3fb5e4457a8'),'workflow:'+route))
+    with closing(sqlite3.connect('file:'+str(db)+'?mode=ro',uri=True)) as c:
+        rows=c.execute("select id,started_at,status,session_id from workflow_runs where task_id=? and "+('id=?' if run_id else "status='running'"),[workflow,run_id] if run_id else [workflow]).fetchall()
+    if len(rows)>1:raise ValueError('Ambiguous runtime; provide --workflow-run')
+    if not rows:
+        if run_id:raise ValueError('Workflow run does not belong to route')
+        return None
+    rid,started,status,sid=rows[0]
+    if not started:raise ValueError('Runtime start unavailable')
+    return {'workflow_run_id':rid,'session_id':sid,'deadline_epoch':dt.datetime.fromisoformat(started.replace('Z','+00:00')).timestamp()+900,'runtime_status':status}
+
+def verify_worker_model(state,worker):
+    """Accept runtime evidence, never an agent's assertion about its own model."""
+    sid=state.get('session_id')
+    if not sid:raise ValueError('Worker acceptance requires runtime session evidence')
+    safe_id(sid)
+    registry=json.loads((BASE/'registry.json').read_text())
+    profile=next(p for p in registry['agents'] if p['id']==worker)
+    expected=profile['model_selection_id']
+    observed=[];failed=[]
+    path=Path.home()/'.copilot/session-state'/sid/'events.jsonl'
+    for line in path.read_text().splitlines():
+        try:event=json.loads(line)
+        except ValueError:continue
+        data=event.get('data',{})
+        if data.get('agentName',data.get('agentType'))!=worker:continue
+        if event.get('type')=='subagent.failed':failed.append(str(data).lower())
+        if event.get('type')=='subagent.completed':observed.append(data.get('model'))
+    if not observed:raise ValueError('No completed worker runtime evidence: '+worker)
+    actual=observed[-1]
+    fallback=expected.split('/')[0]+'/z-ai/glm-5.3'
+    allowed_fallback=actual==fallback and any('timeout' in e or '504' in e for e in failed) and not any('429' in e or 'credential' in e for e in failed)
+    if actual!=expected and not allowed_fallback:raise ValueError('Worker model mismatch: '+worker+' expected '+expected+' observed '+str(actual))
+    return {'requested_model':expected,'observed_model':actual,'fallback':actual!=expected}
+
+
+def node_executable():
+    config=json.loads((BASE/'backends.json').read_text())
+    search=config.get('path_prefix','')+os.pathsep+os.environ.get('PATH','')
+    node=shutil.which('node',path=search)
+    if not node:raise OSError('Node unavailable in configured backend PATH')
+    return node
+
+def stop_run(run,sid):
+    safe_id(sid)
+    result=subprocess.run([node_executable(),str(BASE/'abort_workflow_session.mjs'),sid],timeout=10,capture_output=True,text=True)
+    # A successful RPC is insufficient: check the actual workflow status.
+    if not stopped(run):raise ValueError('Run still running after abort (exit '+str(result.returncode)+')')
+
+
 def job(args):
     safe_id(args.job)
     routes=json.loads((BASE/'registry.json').read_text())['routes']
@@ -184,7 +243,25 @@ def job(args):
         state=json.loads(path.read_text()) if path.exists() else {'job_id':args.job,'route':args.route,'started_epoch':now,'steps':{},'status':'running'}
         if state['route']!=args.route: raise ValueError('Job belongs to a different route')
         if state['status']=='completed': raise ValueError('Completed job cannot be rerun')
-        if args.status=='running' and now-state['started_epoch']>=900: raise ValueError('Job deadline exceeded; report blocked and resume in a new bounded cycle')
+        binding=runtime_binding(args.route,state.get('workflow_run_id') or getattr(args,'workflow_run',None))
+        if binding:state.update(binding)
+        state['deadline_epoch']=min(state.get('deadline_epoch',state['started_epoch']+900),state['started_epoch']+900)
+        if now>=state['deadline_epoch'] or (binding and binding['runtime_status']!='running'):
+            state['status']='blocked';state['deadline_exceeded']=now>=state['deadline_epoch']
+            state['heartbeat_epoch']=now
+            atomic(path,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+            if args.status in {'running','completed'}:raise ValueError('Workflow deadline exceeded or runtime stopped; resume only in a new scheduled run')
+        if not state['steps'] and args.status=='running' and args.route=='night-drafts':
+            import night_sales
+            gate=night_sales.preflight(args.route)
+            state['input_gate']=gate
+            if gate['status']!='ready':
+                state['status']='blocked' if gate['status']=='blocked' else 'completed'
+                state['no_work']=gate['status']=='empty';state['heartbeat_epoch']=now
+                evidence=path.parent/'input-gate.json';atomic(evidence,json.dumps(gate,ensure_ascii=False,indent=2)+'\n')
+                state['evidence']=str(evidence)
+                atomic(path,json.dumps(state,ensure_ascii=False,indent=2)+'\n')
+                return state
         if args.step:
             if args.step not in route['workers']: raise ValueError('Worker is outside route')
             previous=route['workers'][:route['workers'].index(args.step)]
@@ -192,7 +269,19 @@ def job(args):
         if args.status=='completed':
             if not args.accepted or not args.evidence or not Path(args.evidence).is_file(): raise ValueError('Completion requires verified acceptance and an existing evidence file')
             if not args.step and any(state['steps'].get(p,{}).get('status')!='completed' for p in route['workers']): raise ValueError('All stages must complete before the job')
+        model_evidence={}
+        if args.status=='completed' and args.step and state.get('workflow_run_id'):
+            acp_job=getattr(args,'acp_job',None)
+            if acp_job:
+                safe_id(acp_job)
+                proof=json.loads((BASE/'jobs'/acp_job/'acp-result.json').read_text())
+                profile=next(p for p in json.loads((BASE/'registry.json').read_text())['agents'] if p['id']==args.step)
+                if proof.get('worker_id')!=args.step or proof.get('parent_job')!=args.job or proof.get('workflow_run_id')!=state['workflow_run_id'] or proof.get('result',{}).get('stopReason')!='end_turn':raise ValueError('ACP evidence does not belong to this completed step')
+                if not set(proof.get('allowed_tools',[]))<=set(profile['tools']):raise ValueError('ACP tools exceed worker permissions')
+                model_evidence={'backend':proof['engine'],'acp_job':acp_job,'observed_model':'unknown; external backend','coordinator_accepted':True}
+            else:model_evidence=verify_worker_model(state,args.step)
         entry={'status':args.status,'heartbeat_epoch':now,'result':redact(args.result or ''),'evidence':args.evidence,'accepted':bool(args.accepted)}
+        entry.update(model_evidence)
         if args.step:state['steps'][args.step]=entry
         else:state['status']=args.status
         state['heartbeat_epoch']=now
@@ -233,16 +322,12 @@ def watchdog(stop_overdue=False):
         started=c.execute('select started_at from workflow_runs where id=?',(run,)).fetchone()[0]
         if started and (dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(started.replace('Z','+00:00'))).total_seconds()>900:
             report('ck-control-auditor','deadline-'+safe_id(run),'blocker',
-                   f'Limite de 15 minutos excedido: {name}. A sessão ainda está running no app. Verifique evidências e finalize/retome somente a etapa pendente. O watchdog não cancela sessões nem presume falha ou sucesso.',event_id='deadline-'+run)
+                   f'Limite de 15 minutos excedido: {name}. A sessão ainda está running no app. Verifique evidências e finalize/retome somente a etapa pendente. O watchdog solicita interrupção quando --stop-overdue está ativo; não presume conclusão do trabalho.',event_id='deadline-'+run)
             if stop_overdue:
                 try:
-                    safe_id(sid)
-                    try:subprocess.run(['node',str(BASE/'abort_workflow_session.mjs'),sid],timeout=10,capture_output=True,text=True)
-                    except subprocess.SubprocessError:pass
-                    # O código de saída do script não comprova a interrupção; o status do runtime sim.
-                    if not stopped(run):raise ValueError('Run still running')
+                    stop_run(run,sid)
                     report('ck-control-auditor','stop-'+safe_id(run),'daily',f'Interrupção solicitada ao aplicativo para {name}: limite de 15 minutos excedido. Evidências preservadas. Conferir status final no runtime; não foi presumida conclusão do trabalho.',event_id='stop-'+run)
-                except (subprocess.SubprocessError,ValueError):
+                except (OSError,subprocess.SubprocessError,ValueError):
                     report('ck-control-auditor','stop-'+safe_id(run),'blocker',f'Não foi possível solicitar interrupção de {name}. Verifique o aplicativo e a sessão; não encerrar processos de outras rotinas.',event_id='stop-error-'+run)
         try:
             safe_id(sid)
@@ -290,7 +375,7 @@ def metrics(app_db=None):
         try:controls.append(json.loads(path.read_text()))
         except (ValueError,OSError):continue
     return {'scope':'all retained managed runs','runtime_status_counts':counts,'finished_run_seconds':durations,
-            'running_over_15_minutes':overdue,'accepted_jobs':sum(x.get('status')=='completed' for x in controls),
+            'running_over_15_minutes':overdue,'accepted_jobs':sum(x.get('status')=='completed' and not x.get('no_work') for x in controls),'empty_jobs':sum(bool(x.get('no_work')) for x in controls),
             'controlled_jobs':len(controls),'cost':'unknown','tokens':'unknown',
             'note':'Runtime completed is not business acceptance; historical jobs without control.json are excluded from accepted_jobs.'}
 
@@ -299,7 +384,7 @@ def main():
     sub.add_parser('inventory');sub.add_parser('watchdog').add_argument('--stop-overdue',action='store_true')
     r=sub.add_parser('report');r.add_argument('--agent',required=True);r.add_argument('--job',required=True);r.add_argument('--kind',choices=['daily','blocker'],required=True);r.add_argument('--message',required=True)
     r=sub.add_parser('resolve-report');r.add_argument('--event-id',required=True);r.add_argument('--reason',required=True);r.add_argument('--evidence',required=True)
-    j=sub.add_parser('job');j.add_argument('--job',required=True);j.add_argument('--route',required=True);j.add_argument('--step');j.add_argument('--status',choices=['running','completed','blocked','needs_approval'],required=True);j.add_argument('--evidence');j.add_argument('--accepted',action='store_true');j.add_argument('--result')
+    j=sub.add_parser('job');j.add_argument('--job',required=True);j.add_argument('--route',required=True);j.add_argument('--step');j.add_argument('--status',choices=['running','completed','blocked','needs_approval'],required=True);j.add_argument('--evidence');j.add_argument('--accepted',action='store_true');j.add_argument('--result');j.add_argument('--workflow-run');j.add_argument('--acp-job')
     sub.add_parser('metrics')
     for name in ['claim','release']:
         q=sub.add_parser(name);q.add_argument('project');q.add_argument('--job',required=True)

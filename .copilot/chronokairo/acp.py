@@ -122,9 +122,27 @@ def run(args):
     company.safe_id(args.job)
     cwd=Path(args.cwd).resolve();project=namespace(cwd)
     task=json.loads(Path(args.task_file).read_text())
-    for field in ['objective','scope','sources','acceptance','allowed_tools']:
+    for field in ['objective','scope','sources','acceptance','allowed_tools','parent_job','worker_id']:
         if not task.get(field):raise ValueError('Missing handoff field: '+field)
+    control=BASE/'jobs'/task.get('parent_job',args.job)/'control.json'
+    company.safe_id(task.get('parent_job',args.job))
+    deadline=time.time()+900
+    parent_state={}
+    if control.exists():
+        state=json.loads(control.read_text());parent_state=state
+        if task.get('workflow_run_id') and task['workflow_run_id']!=state.get('workflow_run_id'):raise ValueError('Workflow run differs from parent')
+        binding=company.runtime_binding(state['route'],state.get('workflow_run_id'))
+        deadline=min(deadline,(binding or state).get('deadline_epoch',state['started_epoch']+900))
+        if state.get('status')!='running' or (binding and binding['runtime_status']!='running'):raise ValueError('Parent job is not running')
+    elif task.get('parent_job'):raise ValueError('Parent control file missing')
+    # Persist standalone deadline too: retrying this job cannot reset its budget.
+    budget_path=BASE/'jobs'/args.job/'acp-budget.json'
+    if budget_path.exists():deadline=min(deadline,json.loads(budget_path.read_text())['deadline_epoch'])
+    if deadline<=time.time():raise ValueError('ACP parent/session deadline exceeded')
+    company.atomic(budget_path,json.dumps({'deadline_epoch':deadline}))
     config=json.loads((BASE/'backends.json').read_text());backend=config['engines'][args.engine]
+    profile=next((p for p in json.loads((BASE/'registry.json').read_text())['agents'] if p['id']==task['worker_id']),None)
+    if not profile or not isinstance(task['allowed_tools'],list) or not set(task['allowed_tools'])<=set(profile['tools']):raise ValueError('ACP worker or tools differ from registered profile')
     role=task.get('role','coder')
     if role not in ['coder','reviewer','qa','analyst']:raise ValueError('Unsupported role')
     class Lock:pass
@@ -141,6 +159,7 @@ def run(args):
         if not isinstance(task['allowed_tools'],list) or not set(task['allowed_tools']) <= {'read','search','edit','execute'}:
             raise ValueError('allowed_tools must be a list of read/search/edit/execute')
         started=time.monotonic();conn=Connection(backend['command'],wt,role,task['allowed_tools'])
+        conn.deadline=min(conn.deadline,time.monotonic()+max(0,deadline-time.time()))
         info=initialize(conn)
         created=conn.request('session/new',{'cwd':str(wt),'mcpServers':[]})
         sid=created['sessionId']
@@ -157,6 +176,7 @@ def run(args):
                 'Não publique nada antes de o coordenador verificar o diff. Orçamento: 15 minutos e uma tentativa por backend.\n'+json.dumps(task,ensure_ascii=False))
         result=conn.request('session/prompt',{'sessionId':sid,'prompt':[{'type':'text','text':prompt}]},timeout=900)
         evidence={'engine':args.engine,'transport':backend['transport'],'project':project,'cwd':str(wt),
+                  'worker_id':task.get('worker_id'),'parent_job':task.get('parent_job'),'workflow_run_id':parent_state.get('workflow_run_id'),'role':role,'allowed_tools':task['allowed_tools'],
                   'session_id':sid,'elapsed_seconds':round(time.monotonic()-started,2),'result':result,'agent_info':info.get('agentInfo'),
                   'permission_requests':conn.permission_count,
                   'events':sanitize(conn.events) if len(json.dumps(conn.events))<12000 else None}

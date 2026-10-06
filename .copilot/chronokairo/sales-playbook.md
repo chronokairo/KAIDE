@@ -51,7 +51,7 @@ Depois de enviar uma abordagem, marcar reunião ou receber recusa:
 
 `python3 ~/.copilot/chronokairo/sales.py mark --domain empresa.com --stage sent --channel e-mail`
 
-Etapas aceitas: sent, meeting, rejected, opt_out. Respostas entram pela rota replies. Contrato (won) e pagamento (paid) exigem documento via `sales.py event`.
+O comando mark salva apenas uma anotação não verificada, sem avançar o funil nem comprovar identidade do dono. Para sent, meeting, rejected e opt_out, forneça comprovante externo por sales.py event. A anotação gerada não é aceita como comprovante. Respostas entram pela rota replies. Contrato (won) e pagamento (paid) exigem documento via `sales.py event`.
 
 ## Respostas no Chronokairo Chat
 
@@ -91,3 +91,9 @@ O documento e métricas ficam em `Desktop/Chronokairo/Comercial-YYYY-MM-DD.md`; 
 - [Anthropic: etapas compostas, routing e critérios verificáveis](https://www.anthropic.com/engineering/building-effective-agents).
 
 Adaptação Chronokairo: reutilizar especialistas existentes, acrescentar SDR e auditor do funil, sem comprar ferramenta/base nem aumentar complexidade antes de medir resultados. Não reproduz integrações proprietárias Salesforce ou promete conversão de vendas.
+
+## Validação operacional de candidatos
+
+Cada ponto de `fit_score` exige uma entrada em `fit_criteria` com `criterion`, `evidence` e `source_url` presente em `sources`; score zero usa lista vazia. Demanda declarada exige `service_request` com `kind` (rfp, freelance, contractor ou vendor_request), `excerpt`, `url` presente em sources e `published_at` ISO dos últimos 30 dias. Vaga full-time isolada não é pedido de fornecedor. O limite diário agrega novos domínios de todas as ingestões; atualização de domínio existente não consome nova vaga. A origem de aquisição não muda por reingestão.
+
+Link de agenda é opcional; uma pergunta de interesse é suficiente. Requisitos legais devem citar fonte aplicável ao país/canal. Não generalizar exigências de um país para outro.

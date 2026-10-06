@@ -10,6 +10,7 @@ import configure
 def lead(**values):
     return dict({'company':'Synthetic Clinic','website':'https://synthetic.example.test','segment':'occupational','city':'Manaus',
         'business_contact_url':'https://synthetic.example.test/contact','demand_signal':'Hypothesis, not buyer intent',
+        'fit_criteria':[{'criterion':str(i),'evidence':'Synthetic evidence','source_url':'https://synthetic.example.test'} for i in range(3)],
         'offer':'Scoped service','next_action':'Review draft','fit_score':3,'draft':'Synthetic draft',
         'sources':[{'url':'https://synthetic.example.test','checked_at':'2026-10-05','fact':'Official business website'}]},**values)
 
@@ -40,10 +41,12 @@ class SalesTests(unittest.TestCase):
         self.assertEqual(sales.funnel_metrics()['outbound']['sent'],0)
     def test_owner_attestation_covers_only_sent_meeting_and_exits(self):
         sales.ingest([lead()])
-        sales.attest('synthetic.example.test','sent','e-mail','primeiro toque')
-        self.assertEqual(sales.records()[0]['stage'],'sent')
+        result=sales.attest('synthetic.example.test','sent','e-mail','primeiro toque')
+        self.assertEqual(result['status'],'needs_evidence')
+        self.assertEqual(sales.records()[0]['stage'],'draft_ready')
+        with self.assertRaises(ValueError):sales.event('synthetic.example.test','sent',result['document'],'send_receipt')
         with self.assertRaises(ValueError):sales.attest('synthetic.example.test','won','e-mail','')
-        with self.assertRaises(ValueError):sales.attest('synthetic.example.test','meeting','e-mail','')
+        self.assertEqual(sales.attest('synthetic.example.test','meeting','e-mail','')['status'],'needs_evidence')
 
         sales.ingest([lead()]);sales.ingest([lead(website='https://www.synthetic.example.test/path')])
         self.assertEqual(len(sales.records()),1)
