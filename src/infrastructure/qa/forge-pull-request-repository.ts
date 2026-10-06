@@ -1,8 +1,9 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
 import { GitHubPort } from '@/application/ports/github-port';
 import { GhCliGitHubAdapter } from '@/infrastructure/git/gh-cli-github-adapter';
 import { PullRequest, PullRequestReviewReport } from '@/domain/qa';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 export interface ForgePullRequestRepositoryOptions {
   github?: GitHubPort;
@@ -113,7 +114,7 @@ export class ForgePullRequestRepository implements PullRequestRepositoryPort {
     this.reports.set(report.prId, { ...report });
 
     try {
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         action: 'QA_PULL_REQUEST_REVIEW_RECORDED',
         target: `pull_requests/${report.prId}`,

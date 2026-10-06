@@ -1,6 +1,7 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { Lead, FollowupDraft } from '@/domain/commercial';
-import { supabaseAdmin, PROD_ORGANIZATION_ID, PROD_USER_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID, PROD_USER_ID } from '@/shared/supabase';
 
 export class SupabaseLeadRepository implements LeadRepositoryPort {
   private draftsCache: Map<string, FollowupDraft> = new Map();
@@ -8,7 +9,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
   constructor(private readonly organizationId: string = PROD_ORGANIZATION_ID) {}
 
   async listLeadsAwaitingFollowup(): Promise<Lead[]> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('leads')
       .select('*')
       .eq('organization_id', this.organizationId)
@@ -63,7 +64,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
   }
 
   async getLeadById(id: string): Promise<Lead | null> {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from('leads')
       .select('*')
       .eq('id', id)
@@ -99,7 +100,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
 
     // Registra a atividade no Supabase oficial
     try {
-      await supabaseAdmin.from('crm_activities').insert({
+      await getSupabaseAdmin().from('crm_activities').insert({
         organization_id: this.organizationId,
         user_id: PROD_USER_ID,
         lead_id: draft.leadId,
@@ -132,7 +133,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
     if (status === 'dispatched' && draft) {
       // Registra execução de tool e log de auditoria no Supabase oficial de produção
       try {
-        await supabaseAdmin.from('ai_tool_executions').insert({
+        await getSupabaseAdmin().from('ai_tool_executions').insert({
           organization_id: this.organizationId,
           user_id: PROD_USER_ID,
           tool_name: 'commercial.dispatch_message',
@@ -142,7 +143,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
           created_at: new Date().toISOString(),
         });
 
-        await supabaseAdmin.from('audit_logs').insert({
+        await getSupabaseAdmin().from('audit_logs').insert({
           organization_id: this.organizationId,
           user_id: PROD_USER_ID,
           action: 'COMMERCIAL_FOLLOWUP_DISPATCHED',
@@ -175,7 +176,7 @@ export class SupabaseLeadRepository implements LeadRepositoryPort {
       payload.notes = notes;
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from('leads')
       .update(payload)
       .eq('id', leadId)

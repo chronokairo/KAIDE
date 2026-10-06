@@ -4,7 +4,12 @@
 import { supabase } from '@/shared/supabase';
 import { decryptVaultSecret, encryptVaultSecret } from '@/shared/crypto-vault';
 
-const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com';
+const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+
+function normalizeBaseUrl(value: string): string {
+  const base = value.replace(/\/+$/, '');
+  return base === 'https://integrate.api.nvidia.com' ? `${base}/v1` : base;
+}
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 export interface ResolvedCredential {
@@ -38,7 +43,7 @@ export function createNvidiaCredentialService(): NvidiaCredentialService {
         if (envApiKey) {
           return {
             apiKey: envApiKey,
-            baseUrl: process.env.NVIDIA_NIM_BASE_URL || NVIDIA_BASE_URL,
+            baseUrl: normalizeBaseUrl(process.env.NVIDIA_NIM_BASE_URL || NVIDIA_BASE_URL),
             model: process.env.NVIDIA_NIM_MODEL || DEFAULT_MODEL,
           };
         }
@@ -59,7 +64,7 @@ export function createNvidiaCredentialService(): NvidiaCredentialService {
           return null;
         }
 
-        return { apiKey, baseUrl: raw.base_url || NVIDIA_BASE_URL, model: raw.model || DEFAULT_MODEL };
+        return { apiKey, baseUrl: normalizeBaseUrl(raw.base_url || NVIDIA_BASE_URL), model: raw.model || DEFAULT_MODEL };
       },
 
       async getStatus(userId: string) {

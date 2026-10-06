@@ -4,6 +4,23 @@ import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import { JobEntity } from '@/domain/company';
 
+// Isolate this unit test: never read or write live company data.
+vi.mock('@/infrastructure/persistence/supabase-admin', () => ({
+  getSupabaseAdmin: () => {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      update: () => query,
+      insert: async () => ({ error: null }),
+      order: async () => ({ error: null, data: Array.from({ length: 13 }, (_, i) => ({
+        id: `test-lead-${i}`, name: `Contact ${i}`, company: `Test company ${i}`,
+        email: `contact-${i}@example.test`, status: 'qualified', segment: 'software',
+      })) }),
+    };
+    return { from: () => query };
+  },
+}));
+
 describe('ExecuteCommercialDailyUseCase (commercial.daily)', () => {
   it('executes commercial.daily, performs company analysis, and opens human approval gate', async () => {
     const mockLeadRepo: LeadRepositoryPort = {

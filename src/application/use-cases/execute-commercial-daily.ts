@@ -1,8 +1,9 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { LeadRepositoryPort } from '@/application/ports/lead-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import { FollowupDraft } from '@/domain/commercial';
 import { JobEntity, ApprovalGate } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID, PROD_USER_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID, PROD_USER_ID } from '@/shared/supabase';
 
 export interface EnterpriseLeadRecord {
   id: string;
@@ -66,7 +67,7 @@ export class ExecuteCommercialDailyUseCase {
   ) {}
 
   async execute(): Promise<CommercialDailyJobResult> {
-    const { data: rawLeads, error } = await supabaseAdmin
+    const { data: rawLeads, error } = await getSupabaseAdmin()
       .from('leads')
       .select('*')
       .eq('organization_id', PROD_ORGANIZATION_ID)
@@ -94,7 +95,7 @@ export class ExecuteCommercialDailyUseCase {
 
       // Update lead approach notes in Supabase CRM
       try {
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from('leads')
           .update({
             approach: analysis.solutionAngle,
@@ -170,7 +171,7 @@ export class ExecuteCommercialDailyUseCase {
     }
 
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         tool_name: 'commercial.daily',
@@ -180,7 +181,7 @@ export class ExecuteCommercialDailyUseCase {
         created_at: timestamp,
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         user_id: PROD_USER_ID,
         action: 'COMMERCIAL_DAILY_PROPOSED',

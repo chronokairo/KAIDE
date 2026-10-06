@@ -1,3 +1,4 @@
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { PullRequestRepositoryPort } from '@/application/ports/pr-repository-port';
 import { CompanyControlPlanePort } from '@/application/ports/company-control-plane-port';
 import {
@@ -7,7 +8,7 @@ import {
   QaReviewJobResult,
 } from '@/domain/qa';
 import { JobEntity } from '@/domain/company';
-import { supabaseAdmin, PROD_ORGANIZATION_ID } from '@/shared/supabase';
+import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
 export class ExecuteQaPrReviewUseCase {
   constructor(
@@ -76,7 +77,7 @@ export class ExecuteQaPrReviewUseCase {
     }
 
     try {
-      await supabaseAdmin.from('ai_tool_executions').insert({
+      await getSupabaseAdmin().from('ai_tool_executions').insert({
         organization_id: PROD_ORGANIZATION_ID,
         tool_name: 'qa.review_pr',
         execution_type: 'READ',
@@ -85,7 +86,7 @@ export class ExecuteQaPrReviewUseCase {
         created_at: new Date().toISOString(),
       });
 
-      await supabaseAdmin.from('audit_logs').insert({
+      await getSupabaseAdmin().from('audit_logs').insert({
         organization_id: PROD_ORGANIZATION_ID,
         action: 'QA_PULL_REQUEST_REVIEW_COMPLETED',
         target: 'Pull Requests / Git Repositories',
