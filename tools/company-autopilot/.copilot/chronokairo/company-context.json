@@ -98,5 +98,53 @@
       "business": "Navegação/transporte aquaviário; participa da Chamada Pública 01/2026-ANTAQ (travessia BR-319 Manaus–Careiro)",
       "rule": "Não é lead nem cliente a prospectar. Documentos dele no Finance pertencem ao financeiro do parceiro: não lançar como receita, despesa ou cobrança da Chronokairo. Aportes do parceiro só entram nas contas da Chronokairo com comprovante e classificação definidos pelo dono."
     }
-  ]
+  ],
+  "systems_policy": {
+    "rule": "Sistemas proprietários; terceiros só como infraestrutura ou obrigação externa",
+    "confirmed_by_owner_at": "2026-10-06",
+    "not_used": [
+      "HubSpot",
+      "Notion",
+      "Zendesk",
+      "Slack",
+      "Calendly",
+      "Mailchimp",
+      "Trello"
+    ],
+    "allowed_third_party": [
+      "GitHub/GitLab (hospedagem de código)",
+      "Cloudflare",
+      "Supabase",
+      "provedores de modelo configurados",
+      "gateways de pagamento e banco via chronokairo/payments",
+      "NFS-e Nacional/Receita/prefeitura",
+      "contador"
+    ]
+  },
+  "systems": {
+    "shared_package": "gitlab.com/chronokairo/platform (@chronokairo/platform: auth, ui, sdk, events, observability, database, security, config)",
+    "crm": "gitlab.com/chronokairo/crm — leads, pipeline, propostas, agenda, campanhas (crm.chronokairo.com.br)",
+    "support": "gitlab.com/chronokairo/support — helpdesk e tickets (support.chronokairo.com.br)",
+    "chat": "gitlab.com/chronokairo/chat — comunicação interna",
+    "mail": "github.com/chronokairo/mail — e-mail transacional",
+    "marketing": "gitlab.com/chronokairo/marketing — campanhas, formulários, SEO",
+    "finance": "gitlab.com/chronokairo/finance + tabelas finance da platform (finance.chronokairo.com.br)",
+    "payments": "gitlab.com/chronokairo/payments — abstração de gateways",
+    "legal": "gitlab.com/chronokairo/legal — contratos e LGPD",
+    "people": "gitlab.com/chronokairo/people — pessoas e acessos",
+    "projects": "gitlab.com/chronokairo/projects — projetos, cronogramas e releases",
+    "knowledge": "repositórios e ADRs (docs/adr); sem Notion",
+    "bi": "gitlab.com/chronokairo/bi — painéis executivos",
+    "secrets": "gitlab.com/chronokairo/vault — cofre de segredos",
+    "control": "gitlab.com/chronokairo/control — cockpit, scheduler e release gate",
+    "infra": "gitlab.com/chronokairo/nimbus — provisionamento e DevOps",
+    "ai": "gitlab.com/chronokairo/ai + chronokairo/cli — agentes, RAG e harness",
+    "saas": "workmed e agroflow consomem platform; audiomed é personalização de cliente e não usa platform"
+  },
+  "hardware": {
+    "confirmed_by_owner_at": "2026-10-06",
+    "workstation": "Acer Nitro com SteamOS — terminal administrativo do dono; hoje também executa o Copilot App e os agentes (dependência a migrar para a nuvem)",
+    "phone": "iPhone 7 com WhatsApp Business +5592993796345 — canal comercial da campanha 1 a 1",
+    "rule": "Produção não roda nestes equipamentos; nada crítico deve existir só neles"
+  }
 }

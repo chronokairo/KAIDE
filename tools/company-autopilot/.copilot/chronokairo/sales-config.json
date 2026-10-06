@@ -82,7 +82,8 @@
   "sender_identity": {
     "name": null,
     "email": null,
-    "postal_address": null
+    "postal_address": null,
+    "whatsapp": "+5592993796345"
   },
   "references_authorized": [],
   "daily_send_cap": 20,
@@ -161,6 +162,9 @@
     "start": "2026-10-31",
     "mode": "1 a 1 manual pelo link wa.me, sem disparador",
     "per_day": 20,
-    "rules": "Somente WhatsApp comercial publicado no site oficial ou em perfil empresarial da própria empresa; mensagem personalizada; identificar Chronokairo; parar no primeiro pedido de não contato (sales.py mark --stage opt_out)."
-  }
+    "rules": "Somente WhatsApp comercial publicado no site oficial ou em perfil empresarial da própria empresa; mensagem personalizada; identificar Chronokairo; parar no primeiro pedido de não contato (sales.py mark --stage opt_out).",
+    "sender": "+5592993796345",
+    "device": "iPhone 7 com WhatsApp Business"
+  },
+  "booking": "Agenda própria do CRM (crm.chronokairo.com.br); não usar Calendly/Cal.com"
 }
