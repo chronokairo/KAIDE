@@ -23,6 +23,9 @@ class SalesTests(unittest.TestCase):
     def test_existing_customer_rejected(self):
         for value in [lead(company='Audiomed'),lead(website='https://www.audiomedam.com.br'),lead(website='https://app.audiomedam.com.br')]:
             with self.assertRaises(ValueError):sales.ingest([value])
+    def test_blocked_party_rejected(self):
+        for value in [lead(company='Colégio Século Manaus'),lead(company='WD Educacional LTDA'),lead(website='https://portal.ciesa.br')]:
+            with self.assertRaises(ValueError):sales.ingest([value])
     def test_deduplication_and_no_reply_from_drafts(self):
         sales.ingest([lead()]);sales.ingest([lead(website='https://www.synthetic.example.test/path')])
         self.assertEqual(len(sales.records()),1)
