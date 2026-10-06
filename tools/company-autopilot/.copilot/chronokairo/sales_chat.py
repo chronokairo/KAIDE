@@ -126,7 +126,7 @@ def pull_chat():
         domain=prospect_domain(message['content'])
         if not domain:
             pending=folder/f"needs-domain-{message['id'][:8]}.txt"
-            pending.write_text(f"Fonte: Chronokairo Chat #comercial-leads, mensagem {message['id']} em {message['created_at']}\nResponder na thread com lead: dominio.com\n\n{message['content']}\n");os.chmod(pending,0o600)
+            pending.write_text(f"Fonte: Chronokairo Chat #comercial-leads, mensagem {message['id']} em {message['created_at']}\nPublique uma nova mensagem no canal com a resposta e a linha lead: dominio.com\n\n{message['content']}\n");os.chmod(pending,0o600)
             saved.append({'message_id':message['id'],'status':'needs_domain','evidence':str(pending)});continue
         if blocked(domain):
             saved.append({'message_id':message['id'],'domain':domain,'status':'blocked_party'});continue

@@ -31,6 +31,9 @@ Objetivo: Interface única Chronokairo. Escolha uma route_key da tabela; numa ro
 - replies → ck-revenue-orchestrator: ck-reply-triage → ck-followup → ck-pipeline-auditor
 - referrals → ck-revenue-orchestrator: ck-referral → ck-pipeline-auditor
 - partnerships → ck-revenue-orchestrator: ck-partnerships → ck-pipeline-auditor
+- lead-sprint-1 → ck-revenue-orchestrator: ck-lead-discovery → ck-lead-enrichment → ck-qualification → ck-sdr
+- lead-sprint-2 → ck-revenue-orchestrator: ck-lead-discovery → ck-lead-enrichment → ck-qualification → ck-sdr
+- lead-sprint-3 → ck-revenue-orchestrator: ck-lead-discovery → ck-lead-enrichment → ck-qualification → ck-sdr
 - crypto-receivables → ck-finance-orchestrator: ck-crypto-receivables → ck-reconciliation
 - night-demand → ck-revenue-orchestrator: ck-demand-scout → ck-pipeline-auditor
 - night-discovery → ck-revenue-orchestrator: ck-lead-discovery → ck-lead-enrichment
