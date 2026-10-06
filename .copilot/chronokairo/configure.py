@@ -11,6 +11,7 @@ import sqlite3
 import tempfile
 import uuid
 import sales_profiles
+import night_sales
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent
@@ -111,6 +112,8 @@ FLOWS.extend([
 ])
 MINUTES = {key:minute for key,(_,minute) in DAILY.items()}
 MINUTES.update({'company-cycle':45,'payments':30,'demand-pipeline':45,'replies':30,'referrals':15})
+FLOWS.extend(night_sales.ROUTES)
+MINUTES['night-brief']=30
 
 def ident(key):
     return str(uuid.uuid5(NS, key))
@@ -131,7 +134,7 @@ def build(provider):
     for key, domain, goal, kpi, model, tools in WORKERS:
         profiles.append(dict(id='ck-'+key, domain=domain, goal=goal, kpi=kpi,
                              model=MODELS[model], tools=list(dict.fromkeys(tools+(['execute'] if key in ['issue-planner','backlog','code-reviewer','security','devops'] else []))), owner='ck-'+domain+'-orchestrator', kind='worker'))
-    for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral']:
+    for key in ['sdr','pipeline-auditor','demand-scout','reply-triage','referral','morning-brief']:
         goal,kpi,_ = sales_profiles.CONTRACTS[key]
         profiles.append(dict(id='ck-'+key,domain='revenue',goal=goal,kpi=kpi,model=MODELS['reason'],tools=READ+(['web'] if key=='demand-scout' else ['edit']),owner='ck-revenue-orchestrator',kind='worker'))
     for domain in ['revenue','product','engineering','operations','finance','people']:
@@ -175,10 +178,20 @@ def build(provider):
                          'Nunca considere end_turn ou completed do app como aceite de negócio.\n')
         text = '---\n'+'\n'.join(k+': '+json.dumps(v,ensure_ascii=False) for k,v in fm.items())+'\n---\n\n'+guidance+'\nObjetivo: '+p['goal']+'\nKPI: '+p['kpi']+'\n'
         p['content']=text
-    return sales_profiles.augment(profiles)
+    return night_sales.augment(sales_profiles.augment(profiles))
 
 def route_prompt(key,domain,steps,project):
     root_agent='ck-orchestrator' if domain in ['governance','company'] else 'ck-'+domain+'-orchestrator'
+    if key in night_sales.KEYS:
+        return (f'Chronokairo automation route_key={key}. Job ID = {key}-<YYYYMMDDTHHMMSSZ>.\n'
+          f'Coordenador: {root_agent}. Base de sessão: {Path.home()}/Documents/GitHub/{project}; não implementar código de produto nem criar issues nesta rota.\n'
+          'Leia ~/.copilot/chronokairo/POLICY.md, sales-playbook.md, night-sales-validation.md e sales-config.json. '
+          'Rota obrigatória: '+' → '.join('ck-'+s for s in steps)+'. '
+          'Passe objetivo, escopo, fontes, ferramentas, modelo COMPLETO registrado, formato, limites e aceite a cada especialista. Workers não delegam. '
+          'Coordenador consulta sales.py list antes de começar, persiste apenas fontes verificadas e gera sales.py report ao terminar. '
+          'Registre heartbeat e estado com company.py job antes/depois de cada etapa; resultados sem evidência não são aceitos. '
+          'Use company.py report para bloqueios e entrega diária no Desktop. Não enviar mensagens externas ou contratar serviços.\n'
+          +night_sales.instruction(key),root_agent)
     prompt=(f'Chronokairo automation route_key={key}. Job ID = {key}-<YYYYMMDDTHHMMSSZ>.\n'
             f'Base local: {Path.home()}/Documents/GitHub/{project}. Leia AGENTS.md do projeto escolhido. Você pode trabalhar em qualquer projeto GitHub/GitLab da Chronokairo; esta base não limita seu escopo.\n'
             f'Use {root_agent}. Rota obrigatória, na ordem: '+ ' → '.join('ck-'+s for s in steps)+'.\n'
@@ -211,7 +224,7 @@ def configure(target, live=False):
     registered={r[0] for r in c.execute('select model_id from provider_models where provider_id=?',(provider,))}
     assert set(MODELS.values()) <= registered, 'Missing registered model'
     profiles=build(provider)
-    assert len(profiles)==38 and len({p['id'] for p in profiles})==38
+    assert len(profiles)==39 and len({p['id'] for p in profiles})==39
     known={p['id'] for p in profiles}
     assert all('ck-'+w in known for f in FLOWS for w in f[3])
     backup=None

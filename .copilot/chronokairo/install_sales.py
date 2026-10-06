@@ -7,18 +7,19 @@ from pathlib import Path
 import sqlite3
 import configure
 import sales_profiles
+import night_sales
 
 ROOT=Path(__file__).resolve().parent
 HOME=Path.home()/'.copilot'
-NEW_ROUTES={'demand-pipeline','replies','referrals'}
-def install():
+NEW_ROUTES={'demand-pipeline','replies','referrals'}|night_sales.KEYS
+def install(night_only=False):
     c=sqlite3.connect(HOME/'data.db',timeout=20);c.row_factory=sqlite3.Row
     c.execute('PRAGMA foreign_keys=ON')
     providers=c.execute("SELECT id FROM model_providers WHERE name='Nvidia'").fetchall()
     if len(providers)!=1:raise ValueError('Expected existing Nvidia provider')
     provider=providers[0]['id']
     models={r[0] for r in c.execute('SELECT model_id FROM provider_models WHERE provider_id=?',[provider])}
-    profiles=[p for p in configure.build(provider) if p['domain']=='revenue' or p['id']=='ck-orchestrator']
+    profiles=[p for p in configure.build(provider) if p['domain']=='revenue' or p['id'] in {'ck-orchestrator','ck-control-auditor'}]
     if not all(p['model'] in models for p in profiles):raise ValueError('Unregistered commercial model')
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup=HOME/'backups'/('sales-'+stamp);backup.mkdir(parents=True,exist_ok=False)
@@ -29,7 +30,7 @@ def install():
     before=[]
     try:
         c.execute('BEGIN IMMEDIATE')
-        for key in ['lead-pipeline','proposal','new-business','company-cycle','daily-report']:
+        for key in ([] if night_only else ['lead-pipeline','proposal','new-business','company-cycle','daily-report']):
             row=c.execute('SELECT prompt FROM workflows WHERE id=?',[configure.ident('workflow:'+key)]).fetchone()
             if not row:raise ValueError('Missing installed route '+key)
             prompt=row['prompt'].split('\n<!-- sales-contract-v1 -->')[0]
@@ -40,7 +41,7 @@ def install():
         base=c.execute('SELECT project_id,model FROM workflows WHERE id=?',[configure.ident('workflow:lead-pipeline')]).fetchone()
         created=[]
         for key,name,domain,steps,interval,hour,day,project in configure.FLOWS:
-            if key not in NEW_ROUTES:continue
+            if key not in (night_sales.KEYS if night_only else NEW_ROUTES):continue
             prompt,root_agent=configure.route_prompt(key,domain,steps,project)
             minute=configure.MINUTES.get(key,0)
             row=dict(id=configure.ident('workflow:'+key),name=name,prompt=prompt,model=base['model'],project_id=base['project_id'],interval=interval,schedule_hour=hour,schedule_day=day,
@@ -65,9 +66,10 @@ def install():
             if flow and route['key'] in {'lead-pipeline','proposal'}:route['workers']=['ck-'+s for s in flow[3]]
         known={r['key'] for r in registry['routes']}
         for f in configure.FLOWS:
-            if f[0] in NEW_ROUTES and f[0] not in known:
+            if f[0] in (night_sales.KEYS if night_only else NEW_ROUTES) and f[0] not in known:
                 registry['routes'].append(dict(key=f[0],name=f[1],domain=f[2],workers=['ck-'+w for w in f[3]],interval=f[4],hour=f[5],minute=configure.MINUTES.get(f[0],0),weekday=f[6],project=f[7]))
-        registry['commercial']={'playbook':'sales-playbook.md','configuration':'sales-config.json','ledger':'sales.db','outbound_enabled':False}
+        registry.setdefault('commercial',{}).update({'playbook':'sales-playbook.md','configuration':'sales-config.json','ledger':'sales.db','outbound_enabled':False,
+          'night_validation':'night-sales-validation.md','night_routes':sorted(night_sales.KEYS)})
         temp=registry_path.with_suffix('.tmp');temp.write_text(json.dumps(registry,ensure_ascii=False,indent=2)+'\n');temp.replace(registry_path)
         c.commit()
     except BaseException:
@@ -77,5 +79,8 @@ def install():
             else:dest.write_bytes(old)
         raise
     finally:c.close()
-    return {'commercial_profiles':len(profiles),'all_agents':len(registry['agents']),'routes_updated':5,'routes_created':created,'backup':str(backup),'outbound_enabled':False}
-if __name__=='__main__':print(json.dumps(install(),ensure_ascii=False))
+    return {'commercial_profiles':len(profiles),'all_agents':len(registry['agents']),'routes_created':created,'backup':str(backup),'outbound_enabled':False,'night_only':night_only}
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--night-only',action='store_true');args=parser.parse_args()
+    print(json.dumps(install(night_only=args.night_only),ensure_ascii=False))

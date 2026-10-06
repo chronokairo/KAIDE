@@ -80,7 +80,7 @@ class SalesTests(unittest.TestCase):
         self.assertEqual(sales.records(),[])
     def test_generator_has_registered_models_and_complete_routes(self):
         profiles=configure.build('synthetic-provider');ids={p['id'] for p in profiles}
-        self.assertEqual(len(ids),38)
+        self.assertEqual(len(ids),39)
         for agent in ['ck-sdr','ck-pipeline-auditor','ck-demand-scout','ck-reply-triage','ck-referral']:self.assertIn(agent,ids)
         for flow in configure.FLOWS:self.assertTrue(all('ck-'+w in ids for w in flow[3]))
         for p in profiles:
