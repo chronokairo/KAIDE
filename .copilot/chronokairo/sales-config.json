@@ -108,5 +108,12 @@
     "hourly_usd": 60,
     "rationale": "Decisão inicial pelo mercado brasileiro: hora-base de R$150, na faixa intermediária de software houses pequenas e freelancers seniores; ofertas = horas estimadas x hora-base. USD a ~US$60/h para competir no exterior abaixo de agências dos EUA/Reino Unido. Revisar após 5 propostas ou 2 vendas.",
     "verified_market_source": null
+  },
+  "partner_program": {
+    "commission_percent_first_year": 15,
+    "paid_after": "recebimento do cliente",
+    "attribution": "primeiro parceiro a registrar o lead com evidência",
+    "term_months": 12,
+    "rationale": "Decisão inicial: 15% sobre o primeiro ano pago, faixa comum em programas de indicação de software/serviços B2B; revisar após os 3 primeiros parceiros"
   }
 }

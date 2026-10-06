@@ -11,7 +11,7 @@ import night_sales
 class NightSalesTests(unittest.TestCase):
     def test_bounded_routes_and_registered_workers(self):
         profiles=configure.build('provider');ids={p['id'] for p in profiles}
-        self.assertEqual(len(ids),39);self.assertIn('ck-morning-brief',ids)
+        self.assertEqual(len(ids),40);self.assertIn('ck-morning-brief',ids)
         self.assertEqual([(r[5],configure.MINUTES.get(r[0],0)) for r in night_sales.ROUTES],[(1,0),(2,0),(3,0),(5,30)])
         for flow in night_sales.ROUTES:
             self.assertTrue(all('ck-'+w in ids for w in flow[3]))

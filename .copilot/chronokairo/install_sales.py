@@ -11,7 +11,7 @@ import night_sales
 
 ROOT=Path(__file__).resolve().parent
 HOME=Path.home()/'.copilot'
-NEW_ROUTES={'demand-pipeline','replies','referrals'}|night_sales.KEYS
+NEW_ROUTES={'demand-pipeline','replies','referrals','partnerships'}|night_sales.KEYS
 def install(night_only=False):
     c=sqlite3.connect(HOME/'data.db',timeout=20);c.row_factory=sqlite3.Row
     c.execute('PRAGMA foreign_keys=ON')

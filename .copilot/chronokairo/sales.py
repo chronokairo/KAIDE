@@ -14,7 +14,7 @@ import company
 BASE=Path(__file__).resolve().parent
 DESKTOP=Path.home()/'Desktop/Chronokairo'
 NEXT={'draft_ready':'sent','sent':'replied','replied':'meeting','meeting':'won','won':'paid'}
-SOURCES={'referral','demand','outbound','inbound'}
+SOURCES={'referral','partner','demand','outbound','inbound'}
 FUNNEL=['qualified','sent','replied','meeting','won','paid']
 TYPES={'sent':'send_receipt','replied':'prospect_reply','meeting':'meeting_confirmation','won':'contract_acceptance','paid':'payment_receipt','rejected':'rejection','opt_out':'opt_out'}
 def website(value):
@@ -61,7 +61,7 @@ def ingest(records):
             if date>dt.datetime.now(ZoneInfo('America/Caracas')).date():raise ValueError('Future source date')
             if not source.get('fact'):raise ValueError('Source fact required')
         row.setdefault('source_type','outbound');row.setdefault('language','en')
-        if row['source_type'] not in SOURCES:raise ValueError('source_type must be referral, demand, outbound or inbound')
+        if row['source_type'] not in SOURCES:raise ValueError('source_type must be referral, partner, demand, outbound or inbound')
         if row['source_type']=='referral' and not str(row.get('referred_by','')).strip():raise ValueError('Referral needs referred_by')
         if not isinstance(row['language'],str) or not 2<=len(row['language'])<=5:raise ValueError('Invalid language code')
         score=row.get('fit_score',0)
