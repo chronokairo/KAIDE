@@ -1,5 +1,7 @@
 # Chronokairo Company Autopilot
 
+> Histórico da equipe completa. Desde 2026-10-07, a configuração ativa é a [equipe mínima de três agentes](../minimal-team/README.md), conforme [ADR 0001](../../docs/adr/0001-minimal-night-team.md). Não executar os instaladores globais deste diretório para a equipe mínima. Os 41 perfis originais foram preservados em `../agent-archive/full-team/`.
+
 33 agentes (1 principal, 6 orquestradores de domínio, 24 workers e 2 auditores), 17 automações, catálogo de projetos GitHub/GitLab, delegação ACP e documentos no Desktop.
 
 ## Operação autorizada

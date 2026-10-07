@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "timezone": "America/Manaus",
+  "team": [
+    {"id":"comercial","name":"Comercial — prospecção e CRM","model":"z-ai/glm-5.3","interval":"daily","hour":1,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/crm.git","profile":"comercial.agent.md"},
+    {"id":"security","name":"Security — auditoria semanal","model":"z-ai/glm-5.3","interval":"weekly","hour":0,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/company-autopilot.git","profile":"security.agent.md"},
+    {"id":"payment","name":"Payment — cripto em ambiente de teste","model":"moonshotai/kimi-k3","interval":"daily","hour":2,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/payments.git","profile":"payment.agent.md"}
+  ]
+}

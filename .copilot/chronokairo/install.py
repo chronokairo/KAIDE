@@ -12,6 +12,8 @@ ROOT=Path(__file__).resolve().parent
 RUNTIME=Path.home()/'.copilot/chronokairo'
 
 def install():
+    if (ROOT.parent / 'minimal-team' / 'team.json').exists():
+        raise RuntimeError('Equipe mínima ativa: use .copilot/minimal-team/install.py --apply (ADR 0001); não reinstale a equipe completa.')
     ROOT.mkdir(parents=True,exist_ok=True)
     if RUNTIME.is_symlink() and RUNTIME.resolve()==ROOT:pass
     elif RUNTIME.exists():
