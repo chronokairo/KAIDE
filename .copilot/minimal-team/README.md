@@ -21,3 +21,5 @@ Verificação: `python -m unittest discover -s .copilot/minimal-team -p test_ins
 Fontes: `team.json` e `agents/`. O marcador `__NVIDIA_PROVIDER__` é substituído na instalação. Não use templates diretamente como agentes sem renderizar. Não há execução automática no ato da instalação. Evidências ficam no Desktop/Chronokairo/minimal-team por papel.
 
 Vínculos no Copilot App ([ADR 0002](../../docs/adr/0002-sector-project-bindings.md)): comercial → GitHub `chronokairo/crm`; security → GitHub `chronokairo/ai`; payment → GitHub `chronokairo/payments`. São vínculos reais de `project_id` das automações, confirmados pelo app; os agentes continuam globais para poderem operar nos alvos autorizados. O company-autopilot guarda a configuração da equipe.
+
+Conhecimento importado do vault: [consulta e recuperação no Supabase](KNOWLEDGE.md), conforme ADR 0003. Conteúdo em `ops_documents`; originais no Storage privado. A importação não cria nova automação.
