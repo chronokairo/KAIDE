@@ -19,3 +19,5 @@ Todas as rotinas verificam a janela 00:00–05:59:59 antes de trabalhar. Se o ap
 Verificação: `python -m unittest discover -s .copilot/minimal-team -p test_install.py`, `python -m py_compile .copilot/minimal-team/install.py`, `git diff --check` e readback pela API do Copilot App. A suíte histórica `test_operations.py` requer `fcntl`/Linux e não roda no Windows; isso não foi alterado para instalar a equipe mínima.
 
 Fontes: `team.json` e `agents/`. O marcador `__NVIDIA_PROVIDER__` é substituído na instalação. Não use templates diretamente como agentes sem renderizar. Não há execução automática no ato da instalação. Evidências ficam no Desktop/Chronokairo/minimal-team por papel.
+
+Vínculos no Copilot App ([ADR 0002](../../docs/adr/0002-sector-project-bindings.md)): comercial → GitHub `chronokairo/crm`; security → GitHub `chronokairo/ai`; payment → GitHub `chronokairo/payments`. São vínculos reais de `project_id` das automações, confirmados pelo app; os agentes continuam globais para poderem operar nos alvos autorizados. O company-autopilot guarda a configuração da equipe.

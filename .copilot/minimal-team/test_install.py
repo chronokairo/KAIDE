@@ -45,7 +45,7 @@ class MinimumTeamTests(unittest.TestCase):
         INSERT INTO workflow_runs VALUES('active','old','running','active-session');
         """)
         c.executemany('INSERT INTO provider_models VALUES(?,?)', [('existing-provider','z-ai/glm-5.3'),('existing-provider','moonshotai/kimi-k3')])
-        for name in ('crm','company-autopilot','payments'):
+        for name in ('crm','ai','payments'):
             c.execute('INSERT INTO projects VALUES(?,?)', (name,str(home/'repos'/name)))
         c.commit();c.close()
 
@@ -63,6 +63,7 @@ class MinimumTeamTests(unittest.TestCase):
             self.assertEqual(c.execute('SELECT count(*) FROM workflows WHERE enabled=1').fetchone()[0],3)
             self.assertEqual(c.execute('SELECT enabled FROM workflows WHERE id=\'old\'').fetchone()[0],0)
             self.assertEqual(c.execute('SELECT count(*) FROM workflow_runs').fetchone()[0],2)
+            self.assertEqual(dict(c.execute('SELECT agent,project_id FROM workflows WHERE enabled=1')), {'comercial':'crm','security':'ai','payment':'payments'})
             self.assertEqual(result['runs_to_cancel'][0]['id'],'active')
             self.assertEqual({p.stem for p in agents.glob('*.agent.md')},{'comercial.agent','security.agent','payment.agent'})
             for p in agents.glob('*.agent.md'):
