@@ -17,8 +17,8 @@ src/app/layout.tsx (root)
         └── AiCommandPalette  (Ctrl+K)
 ```
 
-- `HarnessModeProvider` (`src/providers/HarnessModeProvider`) liga o "Dev Harness" (breadcrumb "Dev / Harness IA").
-- `TauriRuntimeProvider` (`src/modules/ai/components/TauriRuntimeProvider.tsx`) só ativa em harness mode ou `/dev*`.
+- `HarnessModeProvider` (`apps/web/src/providers/HarnessModeProvider`) liga o "Dev Harness" (breadcrumb "Dev / Harness IA").
+- `TauriRuntimeProvider` (`apps/web/src/modules/ai/components/TauriRuntimeProvider.tsx`) só ativa em harness mode ou `/dev*`.
 - `useLayoutPanels` mantém `activeNavTab` (sincronizado com `?tab=` via `window.history.replaceState` + CustomEvents `dev:tab-change`, `dev:project-change`, `dev:session-change`).
 
 ## 1. Navegação canônica — `NAV_GROUPS` (SideNavBar.tsx:16)
@@ -30,21 +30,21 @@ Engenharia:    patches | contexto | hooks | prompts | diagnostics | policy | fil
 Sistema:       configuracoes
 ```
 
-`src/app/page.tsx` `renderActiveView()` tem um `case` por id (aliases incl.: `github-notifications`, `pdf`, `tradutor-pdf`, `context`, `settings`, `providers`). **Uma tela nova = novo id em NAV_GROUPS + novo case em page.tsx.**
+`apps/web/src/app/page.tsx` `renderActiveView()` tem um `case` por id (aliases incl.: `github-notifications`, `pdf`, `tradutor-pdf`, `context`, `settings`, `providers`). **Uma tela nova = novo id em NAV_GROUPS + novo case em page.tsx.**
 
 ## 2. Runtime do agente no frontend
 
-### 2.1 Transporte — `src/modules/dev/harness/transport.ts`
+### 2.1 Transporte — `apps/web/src/modules/dev/harness/transport.ts`
 
 ```ts
 isTauriRuntime(): boolean              // window.__TAURI__ || __TAURI_INTERNALS__
 invokeHarness<T>(command, args): Promise<HarnessResult<T>>   // invoke() do @tauri-apps/api/core; catch → {available:false}
-invokeRuntime<T>(method, params): Promise<HarnessResult<T>>  // invokeHarness('runtime_request', {method, params, workspace}) — ponte p/ runtime_api do ckc
+invokeRuntime<T>(method, params): Promise<HarnessResult<T>>  // invokeHarness('runtime_request', {method, params, workspace}) — ponte p/ runtime_api do kaide
 ```
 
 `HarnessResult<T> = { data: T; available: boolean }` — **todo hook degrada graciosamente fora do Tauri** (`available:false`).
 
-### 2.2 `agentClient` — `src/modules/dev/harness/agent.ts`
+### 2.2 `agentClient` — `apps/web/src/modules/dev/harness/agent.ts`
 
 ```ts
 agentClient.acpProviders()                                   // 'get_acp_providers'
@@ -58,19 +58,19 @@ agentClient.interruptAgent(sessionId)                        // 'interrupt_agent
 agentClient.resolveApproval(sessionId, requestId, decision)  // 'resolve_approval' {sessionId, requestId:Number, decision}
 ```
 
-### 2.3 Hook de streaming — `useStreamAgentSession` (`src/modules/dev/hooks/useHarnessAgent.ts`)
+### 2.3 Hook de streaming — `useStreamAgentSession` (`apps/web/src/modules/dev/hooks/useHarnessAgent.ts`)
 
 Estado: `{ running, events: AgentEvent[], textDeltas: string, toolCallDeltas: ToolCallDeltaPayload[], approvalRequest, sessionId (uuid v4), lastError }`.
 Ações: `startStream(prompt, onEvent, opts)` (gera `sessionId` se não vier, acumula eventos/deltas/approval), `interrupt()`, `resolveApproval(decision)`.
 
-### 2.4 Barrel de hooks — `src/modules/dev/hooks/useHarness.ts` (34+ hooks)
+### 2.4 Barrel de hooks — `apps/web/src/modules/dev/hooks/useHarness.ts` (34+ hooks)
 
 `useIsTauri`, `useHarnessOverview`, `useHarnessSkills(+Frontmatter)`, `useHarnessMemorySessions/useHarnessSessionMessages/useMemoriesSearch`, `useHarnessGitScan/useCloneRepo/useHarnessGitRepoStatus`, `useHarnessNodeIdentity/useHarnessSyncStatus/useHarnessQuorum/useOfflineMutationQueue/useCachedErpEntities`, `useHarnessContextFiles/useContextFragments/useAssembledContext`, `useHarnessAutomations`, `useAcpProviders/useRunAcpAgent/useAskIntelligenceAgent/useCreateHarnessSession/useStreamAgentSession`, `useExecuteDevTool`, `useAddWorkspaceFolder`, `useFileWatchSnapshot/useApplyPatch/useHarnessFileEditor/useFileSearch`, `useGraphData/useVerificationReport/useExecuteInvestigation/useGenerateDossier/usePublicSources*/useCaptureWebSnapshot`, `useExecPolicy`, `useHardeningStatus/useApplyProcessHardening/useShellCommandSafety`, `useSecretsManager/useRedactSecretValue`, `useHooksSystem`, `useModelProviders/useModelProviderApiKey/useValidateModelProvider/useSetModelProviderApiKey/useSetModelProviderBase/useRemoveModelProvider/useProviderEnvStatus/useTestNvidiaNim`, `useResponseDebugContext/useDiagnostics/useLlmUsageStats/useResetLlmUsageStats`, `usePromptTemplates/usePromptTemplate/useReviewContext/useGoalBudgetPrompt`, `useHarnessGitInfo`, `useHarnessBrowser`.
 
-### 2.5 Tipos-chave — `src/modules/dev/harness/types.ts`
+### 2.5 Tipos-chave — `apps/web/src/modules/dev/harness/types.ts`
 
 ```ts
-export interface AgentEvent { type: string; payload: any }   // espelha EventMsg do ckc (Done/Failed/TextDelta/ToolCall/...)
+export interface AgentEvent { type: string; payload: any }   // espelha EventMsg do kaide (Done/Failed/TextDelta/ToolCall/...)
 export interface ToolCallDeltaPayload { index: number; name?: string; args_delta: string }
 export interface ApprovalRequest { id: string; tool: string; command?; description?; summary?; risk?; params?: Record<string, unknown> }
 export type ApprovalDecision = 'allow' | 'deny' | 'allow_always' | 'allow_session' | 'allow_once'
@@ -97,9 +97,9 @@ interface TauriRuntimeContextValue {
 export function useTauriRuntimeContext()
 ```
 
-Envolve `AssistantRuntimeProvider` (`@assistant-ui/react`, `useLocalRuntime(adapter)`). O adapter vem de `createTauriChatAdapter` (`src/modules/dev/harness/tauri-chat-adapter.ts`) — **que hoje é um STUB de compatibilidade de build** (`sendMessage → {content:''}`). O approval UI real do Thread usa `ctx.approvalRequest` + `ctx.approve()/ctx.deny()`.
+Envolve `AssistantRuntimeProvider` (`@assistant-ui/react`, `useLocalRuntime(adapter)`). O adapter vem de `createTauriChatAdapter` (`apps/web/src/modules/dev/harness/tauri-chat-adapter.ts`) — **que hoje é um STUB de compatibilidade de build** (`sendMessage → {content:''}`). O approval UI real do Thread usa `ctx.approvalRequest` + `ctx.approve()/ctx.deny()`.
 
-## 3. Componentes principais (`src/modules/ai/components/`)
+## 3. Componentes principais (`apps/web/src/modules/ai/components/`)
 
 | Componente | Arquivo | Papel |
 |---|---|---|
@@ -108,35 +108,35 @@ Envolve `AssistantRuntimeProvider` (`@assistant-ui/react`, `useLocalRuntime(adap
 | `DevLayout` | `DevLayout.tsx` | Variante de shell com DevBrowserPanel (drawer lateral, theater mode) |
 | `HarnessToolPanel` | `HarnessToolPanel.tsx` | Painel de tools executadas |
 | `PatchPreviewPanel` | `PatchPreviewPanel.tsx` | Preview dry-run/aplicação de patch (usa `useApplyPatch`/dry-run) |
-| `TerminalBottomPanel` | `src/shared/components/dashboard/TerminalBottomPanel.tsx` | Terminal inferior (toggle via `useLayoutPanels.toggleBottomTerminal`, Ctrl+`) |
+| `TerminalBottomPanel` | `apps/web/src/shared/components/dashboard/TerminalBottomPanel.tsx` | Terminal inferior (toggle via `useLayoutPanels.toggleBottomTerminal`, Ctrl+`) |
 | `DevBrowserPanel` | `DevBrowserPanel.tsx` | Browser agente (drawer, viewMode 'preview') |
 | Tabs Dev | `DevAgentesTab`, `DevAutomacoesTab`, `DevSkillsTab`, `DevMemoriaTab`, `DevSessoesTab`, `DevProjectsTab`, `DevToolboxTab`, `DevConfiguracoesTab` | Painéis por área (casos em page.tsx) |
 | Outros | `ApprovalDialog`/`ApprovalModal`/`CapabilityConfirmation`, `ContextFragmentsPanel`, `DiagnosticsPanel`, `ExecPolicyPanel`, `FileSearchPanel`, `GitAttributionPanel`, `AiCommandPalette`, `AiChatInterface`, `ChatPanel`, `DevProjectSessionsSidebar`, `AiBrowserView` | Suporte |
 
 ## 4. Casca Tauri — estado ATUAL (verificado 2026-09-26)
 
-- **`src-tauri/`** é o app Tauri v2 (tauri.conf.json, capabilities, icons, gen) com workspace Cargo `members = ["core", "shell", "intelligence"]`.
-- **`src-tauri/shell/src/lib.rs` (25 linhas)**: casca FINA. Registra **apenas** `#[tauri::command] fn ckc_version() -> String` via `invoke_handler(generate_handler![ckc_version])` + `tauri_plugin_shell`. O comentário no arquivo registra o débito: *"o wiring detalhado dos comandos Tauri para as funções do ckc ainda será conectado incrementalmente"* (ADR-0005).
-- **`chronokairo/cli`** é o crate `ckc` / binário `ck` (núcleo zero-lib — ver `docs/maps/ckc-agent-tools-api.md` e `docs/maps/ckc-llm-server-api.md`).
-- **`src-tauri/intelligence`** tem `commands.rs` (16 `#[tauri::command]`) para OSINT/graph/dossier.
+- **`apps/desktop/`** é o app Tauri v2 (tauri.conf.json, capabilities, icons, gen) com workspace Cargo `members = ["core", "shell", "intelligence"]`.
+- **`kaide-rs/shell/src/lib.rs` (25 linhas)**: casca FINA. Registra **apenas** `#[tauri::command] fn ckc_version() -> String` via `invoke_handler(generate_handler![ckc_version])` + `tauri_plugin_shell`. O comentário no arquivo registra o débito: *"o wiring detalhado dos comandos Tauri para as funções do kaide ainda será conectado incrementalmente"* (ADR-0005).
+- **`chronokairo/cli`** é o crate `kaide` / binário `ck` (núcleo zero-lib — ver `docs/maps/kaide-agent-tools-api.md` e `docs/maps/kaide-llm-server-api.md`).
+- **`kaide-rs/intelligence`** tem `commands.rs` (16 `#[tauri::command]`) para OSINT/graph/dossier.
 - **Consequência**: os comandos que o frontend espera (`stream_agent_session`, `interrupt_agent`, `resolve_approval`, `runtime_request` e os demais de `agentClient`/hooks) **ainda não estão registrados na casca** — em web retornam `available:false`; no desktop Tauri atual falham silenciosamente (catch → `available:false`). A casca antiga com 100+ comandos IPC está no histórico (branches `cli`/`desktop`), não neste checkout.
-- O contrato esperado pelo frontend para a task supervision já existe no ckc: `protocol::Session` (Op/EventMsg), `app_server::runtime_api::call` (33 métodos) e `AppServer` (JSON-RPC stdio). O wiring é o gap.
+- O contrato esperado pelo frontend para a task supervision já existe no kaide: `protocol::Session` (Op/EventMsg), `app_server::runtime_api::call` (33 métodos) e `AppServer` (JSON-RPC stdio). O wiring é o gap.
 
 ## 5. Design system
 
 - Tailwind (classes utilitárias; dark theme com `zinc-*`, `font-mono` para metadados).
-- Componentes ui compartilhados em `src/shared/components/ui/` (ex.: `button.tsx` — porta local).
-- `@chronokairo/platform/ui` adotado apenas em `src/modules/rag` (ThemeProvider/ThemeToggle/Button) — migração do shell/navegação é débito ADR-0005.
+- Componentes ui compartilhados em `apps/web/src/shared/components/ui/` (ex.: `button.tsx` — porta local).
+- `@chronokairo/platform/ui` adotado apenas em `apps/web/src/modules/rag` (ThemeProvider/ThemeToggle/Button) — migração do shell/navegação é débito ADR-0005.
 - Ícones: Material Symbols (`icon: 'psychology'` etc. em NAV_GROUPS).
 
 ## 6. Tela canônica de task supervision (D06/D07) — IMPLEMENTADA (2026-09-26)
 
-`src/modules/ai/components/TaskSupervisionScreen.tsx` + nav `tasks` (NAV_GROUPS, "Engenharia & Harness") + case em `src/app/page.tsx`:
+`apps/web/src/modules/ai/components/TaskSupervisionScreen.tsx` + nav `tasks` (NAV_GROUPS, "Engenharia & Harness") + case em `apps/web/src/app/page.tsx`:
 
 - Header: status derivado (`idle/running/attention/failed/complete`), session id, badge WEB/TAURI, worktree/checkpoint por task (via `agentClient` → `runtime_request`).
-- Corpo: timeline de eventos (`AgentEvent.type` = `EventMsg` do ckc), subagentes (fan-out `[task i/N]`), checks (`Verification`), arquivos alterados (`FileChanged`), tokens agregados.
+- Corpo: timeline de eventos (`AgentEvent.type` = `EventMsg` do kaide), subagentes (fan-out `[task i/N]`), checks (`Verification`), arquivos alterados (`FileChanged`), tokens agregados.
 - Approvals inline (allow_once/allow_session/deny via `useStreamAgentSession().resolveApproval`); interrupção via `interrupt()`.
-- Worktrees/checkpoints: `create_task_worktree`/`list_task_worktrees`/`remove_task_worktree`/`create_checkpoint`/`restore_checkpoint`/`list_checkpoints` no runtime_api do `ckc`.
+- Worktrees/checkpoints: `create_task_worktree`/`list_task_worktrees`/`remove_task_worktree`/`create_checkpoint`/`restore_checkpoint`/`list_checkpoints` no runtime_api do `kaide`.
 - Diff/patch: `PatchPreviewPanel` embutido.
 
-Receita original (para próximas telas): novo id em `NAV_GROUPS` + case em `src/app/page.tsx`; estado derivado de `useStreamAgentSession().events`; sessões duráveis via `create_harness_session`/`get_harness_memory_sessions`.
+Receita original (para próximas telas): novo id em `NAV_GROUPS` + case em `apps/web/src/app/page.tsx`; estado derivado de `useStreamAgentSession().events`; sessões duráveis via `create_harness_session`/`get_harness_memory_sessions`.

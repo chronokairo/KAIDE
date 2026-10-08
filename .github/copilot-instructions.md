@@ -1,13 +1,13 @@
-# ChronoKairo AI — Harness da empresa virtual de agentes
+# Kaide — Harness da empresa virtual de agentes
 
-Este repositório (`chronokairo/ai`) é o **harness**: o sistema operacional dos agentes da ChronoKairo. As regras completas estão em [`AGENTS.md`](../AGENTS.md) e nas [ADRs](../docs/adr/). Leia-os antes de alterar código.
+Este repositório (`chronokairo/kaide`) é o **harness**: o sistema operacional dos agentes da ChronoKairo. As regras completas estão em [`AGENTS.md`](../AGENTS.md) e nas [ADRs](../docs/adr/). Leia-os antes de alterar código.
 
 ## Infraestrutura & Organizações Oficiais
 
 | Recurso | Namespace / Identificador | CLI | Papel |
 | :--- | :--- | :---: | :--- |
 | **GitHub Org** | [`https://github.com/chronokairo`](https://github.com/chronokairo) | `gh` | Repositórios centrais, automações do Copilot App, issues e pull requests |
-| **GitLab Group** | [`https://gitlab.com/chronokairo`](https://gitlab.com/chronokairo) | `glab` | Espelhos de contingência, repositório `cli` (núcleo Rust `ckc`) e pipelines |
+| **GitLab Group** | [`https://gitlab.com/chronokairo`](https://gitlab.com/chronokairo) | `glab` | Espelhos de contingência, repositório `cli` (núcleo Rust `kaide`) e pipelines |
 | **Supabase (Dev)** | `your-dev-project-ref` (`chronokairo-dev`) | `supabase` | Banco PostgreSQL, pgvector e autenticação do ambiente de desenvolvimento |
 | **Supabase (Prod)**| `your-project-ref` (`chronokairo-prod`) | `supabase` | Banco PostgreSQL e armazenamento de produção (Human Gate obrigatório) |
 

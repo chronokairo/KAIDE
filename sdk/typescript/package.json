@@ -1,0 +1,22 @@
+{
+  "name": "@chronokairo/kaide-sdk",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Kaide SDK/CLI wrapper (TypeScript) — espelho do codex-cli do openai/codex: resolve e invoca o binário `kaide` do workspace kaide-rs/. Scaffold inicial, ver ADR-0042.",
+  "type": "module",
+  "bin": {
+    "kaide": "./bin/kaide.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "desktop:dev": "node bin/kaide-desktop.js dev",
+    "desktop:build": "node bin/kaide-desktop.js build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^6.0.2"
+  }
+}

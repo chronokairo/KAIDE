@@ -1,4 +1,4 @@
-# ChronoKairo AI — regras do produto
+# Kaide — regras do produto (Kairos Code + AI + IDE; ex-Kaide)
 
 ## Responsabilidade
 
@@ -34,18 +34,18 @@ Adapters Secundários (HTTP fetch, Tauri IPC, Supabase, LLMs, Storage)
 ```
 
 - **Camadas estritas**:
-  - `src/domain/` — entidades, regras e tipos puros (sem React, Next, Express, Supabase ou SDKs).
-  - `src/application/ports/` — contratos de entrada e saída.
-  - `src/application/use-cases/` — orquestração de casos de uso dependendo apenas de portas.
-  - `src/infrastructure/` — adapters concretos fora do hexágono:
-    - `src/infrastructure/ui/` — **Adapter Primário de Apresentação**: cena **Three.js** de acompanhamento dos agentes (somente leitura, com gate de aprovação humana), orquestrada pelo `AppShell`.
-    - `src/infrastructure/http/` — adapters de rede web e rotas Next.js.
-    - `src/infrastructure/tauri/` — adapters nativos de desktop para IPC com o núcleo Rust `ckc`.
-    - `src/infrastructure/llm/`, `identity/`, `credentials/`, `secrets/`, `audit/`.
+  - `apps/web/src/domain/` — entidades, regras e tipos puros (sem React, Next, Express, Supabase ou SDKs).
+  - `apps/web/src/application/ports/` — contratos de entrada e saída.
+  - `apps/web/src/application/use-cases/` — orquestração de casos de uso dependendo apenas de portas.
+  - `apps/web/src/infrastructure/` — adapters concretos fora do hexágono:
+    - `apps/web/src/infrastructure/ui/` — **Adapter Primário de Apresentação**: cena **Three.js** de acompanhamento dos agentes (somente leitura, com gate de aprovação humana), orquestrada pelo `AppShell`.
+    - `apps/web/src/infrastructure/http/` — adapters de rede web e rotas Next.js.
+    - `apps/web/src/infrastructure/tauri/` — adapters nativos de desktop para IPC com o núcleo Rust `kaide`.
+    - `apps/web/src/infrastructure/llm/`, `identity/`, `credentials/`, `secrets/`, `audit/`.
 
 ### Política de Migração de Legados
-- **Migração progressiva / sob demanda**: Arquivos legados existentes (`src/modules/*`, `src/server/rag/*`) serão migrados para a estrutura hexagonal pura conforme for necessário mexer neles. Não fazer reescritas cegas sem necessidade.
-- **Roteiro de execução**: Primeiro migrar e consolidar no Next.js (Web); em seguida, conectar o desktop Tauri ao núcleo `ckc`.
+- **Migração progressiva / sob demanda**: Arquivos legados existentes (`apps/web/src/modules/*`, `apps/web/src/server/rag/*`) serão migrados para a estrutura hexagonal pura conforme for necessário mexer neles. Não fazer reescritas cegas sem necessidade.
+- **Roteiro de execução**: Primeiro migrar e consolidar no Next.js (Web); em seguida, conectar o desktop Tauri ao núcleo `kaide`.
 - Consultas e comandos usam contratos versionados. Não acessar diretamente o banco de outro produto.
 - Toda ferramenta de escrita exige autenticação, `organizationId` validado no servidor, permissão específica, validação de entrada, idempotência e auditoria.
 - Ações destrutivas, financeiras, administrativas ou irreversíveis exigem confirmação explícita antes da execução.
@@ -54,31 +54,35 @@ Adapters Secundários (HTTP fetch, Tauri IPC, Supabase, LLMs, Storage)
 
 ## UI e experiência (Three.js de acompanhamento)
 
-A interface é um adapter primário (`src/infrastructure/ui/`) **somente de acompanhamento**: uma cena **Three.js** que mostra a empresa virtual de agentes em operação (agentes, jobs em andamento, handoffs entre papéis, status, custo, evidências e pedidos de aprovação). Ela observa e apresenta; a execução acontece no Control Plane e nos agentes, nunca na cena.
+A interface é um adapter primário (`apps/web/src/infrastructure/ui/`) **somente de acompanhamento**: uma cena **Three.js** que mostra a empresa virtual de agentes em operação (agentes, jobs em andamento, handoffs entre papéis, status, custo, evidências e pedidos de aprovação). Ela observa e apresenta; a execução acontece no Control Plane e nos agentes, nunca na cena.
 
 - A cena consome o event log e os casos de uso do Control Plane por hooks/portas. Ela é leitura por padrão; a única ação permitida é aprovar ou rejeitar (gate humano) pelos casos de uso de aprovação.
-- O adapter Three.js fica em `src/infrastructure/ui/` e não importa domínio impuro nem faz `fetch()`/`invoke()` direto.
+- O adapter Three.js fica em `apps/web/src/infrastructure/ui/` e não importa domínio impuro nem faz `fetch()`/`invoke()` direto.
 - Substitui as 4 partes canônicas (`AppBar`, `LeftSidebar`, `Body`, `RightSidebar`). Os componentes legados continuam em uso até a migração (política de migração progressiva abaixo).
 
 - Zero `fetch()` ou `invoke()` acoplados dentro de componentes JSX da UI: a UI consome casos de uso ou portas via hooks.
 - Remover branding e padrões visuais legados de Athena/TOTVS.
 - Não duplicar componentes compartilhados localmente. Quando `@chronokairo/platform/ui` ainda não oferecer um componente, criar uma porta visual local e planejar sua promoção ao pacote compartilhado.
 
-## Organização do monorepo
+## Organização do monorepo (Kaide, espelho de `openai/codex` — ver ADR-0042)
 
-Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento do `thinkcoffee`:
+Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri) ·
+`kaide-rs/{core,shell,intelligence}` (workspace Rust) · `sdk/typescript`
+(wrapper do binário `kaide`) · `tools/`, `mcp/` na raiz.
 
-- **`src-tauri/shell`** — casca Tauri fina. Consome o crate `ckc` (binário `ck`) por git dependency do repo **`chronokairo/cli`** (tag `v0.1.0`) e o harness de OSINT local (`src-tauri/intelligence`).
-- **`src-tauri/intelligence`** — crate `chronokairo-intelligence` (OSINT & Due Diligence Harness).
-- **`src/`** — frontend Next.js (React 19), subsistema RAG (UI em `src/modules/rag`; backend em Next API routes `src/app/api/*` sobre o núcleo `src/server/rag`) e suíte de controle de inteligência herdada do `thinkcoffee` (`src/modules/ai/components/`: Agentes, Skills, Memória, Sessões, Prompts, Hooks, Patches).
-- **Núcleo Rust zero-lib**: **não** está neste repositório. Vive em [`chronokairo/cli`](https://gitlab.com/chronokairo/cli) (`ckc::agent`, `ckc::llm`, `ckc::mcp`, `ckc::tools`, `ckc::repo`, ...) — ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence ao repo `cli`, não a este.
-- Histórico dos repos originais preservado nas branches `cli` e `desktop`.
+- **`kaide-rs/core`** — crate zero-lib `kaide` (binário `kaide`), fonte de verdade do Rust, vendirado de `chronokairo/cli` (reversão da ADR-0027). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence a este diretório.
+- **`kaide-rs/shell`** — casca Tauri fina. Consome o `kaide` por path (`../core`), não por git-tag.
+- **`kaide-rs/intelligence`** — crate `kaide-intelligence` (OSINT & Due Diligence Harness).
+- **`apps/web`** — frontend Next.js (React 19), subsistema RAG e suíte de controle de inteligência herdada do `thinkcoffee`.
+- **`sdk/typescript`** (`@chronokairo/kaide-sdk`) — resolve e invoca o binário `kaide`; atalhos `desktop:dev`/`desktop:build`.
+- Comandos raiz via **npm** (`dev`, `build`, `typecheck`, `test` delegam para `apps/web`; `rust:check`, `rust:test` para o workspace Cargo).
+- Histórico dos repos originais preservado nas branches `cli` e `desktop`; histórico do `cli` também no repo `chronokairo/cli`.
 
 ## Source Control & Forge Integration Rules (ADR-0038)
 
 - **Histórico de Dual-Forge Mirroring (substituído pela ADR-0041)**: Todos os repositórios corporativos operam vinculados à organização GitHub e ao grupo GitLab oficial `chronokairo` (via `gh` e `glab` CLI secondary adapters sobre `CliRunnerPort` seguro contra shell injection).
 - **Rastreabilidade Fina (Traceability)**: Commits, branches e PRs/MRs devem referenciar tarefas de backlog (`SECP-*`, `AUDIO-ASO-*`, `TSK-*`, etc.) seguindo o padrão *Conventional Commits* (`feat(scope): ...`, `fix(scope): ...`).
-- **Língua Pura nos Domínios e Portas**: Entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`src/domain/`, `src/application/ports/`).
+- **Língua Pura nos Domínios e Portas**: Entidades, portas e casos de uso de Enterprise (Engineering, Source Control, Finance, Legal, Support) são declarados estritamente em **Inglês puro** (`apps/web/src/domain/`, `apps/web/src/application/ports/`).
 - **Human Gate em Escopo (`scope_baseline`)**: O job `coder.sync_sprint` submete reconciliações de status de sprint como propostas com evidência fotográfica/textual. Nenhuma alteração em `project_tasks.column_status` ocorre sem aprovação humana explícita no Control Plane.
 - **Human Gate em Comunicações Externas (`outbound_contact`)**: Jobs de prospecção e relacionamento (`commercial.daily`, `commercial.followup`) elaboram rascunhos consultivos retidos em gate; nenhum email é disparado sem autorização do Diretor Técnico. Ao autorizar, o envio real é processado via SDK oficial `resend` com registro de `JobEventType` (`email.sent`, `email.synced`, `email.bounced`) e janela de sync de 24h.
 - **Operações Reais de Suporte**: O módulo de atendimento e suporte (`support.triage_history`) consulta tabelas reais de produção `support_tickets` e `support_incidents` no Supabase prod em conjunto com o histórico de conversas.
@@ -95,7 +99,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 ## Débitos técnicos abertos (ver docs/adr/0005)
 
 - Concluir a migração da UI para `@chronokairo/platform/ui` (shell/navegação ainda locais; `/rag` já migrado com `ThemeProvider`/`ThemeToggle`/`Button` e tokens themáveis dark/light).
-- Conectar os comandos Tauri ao núcleo `ckc` (wiring incremental).
+- Conectar os comandos Tauri ao núcleo `kaide` (wiring incremental).
 
 ## Índice de documentação
 
@@ -122,7 +126,7 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0017](docs/adr/0017-absorcao-anamnesic-context-memory-mcp.md) | Absorção do Anamnesic Context (memória de agentes e MCP server) |
 | [0018](docs/adr/0018-absorcao-agent-dashboard-governance.md) | Absorção do Agent Control Center/Dashboard (governança & runtime) |
 | [0019](docs/adr/0019-absorcao-cki-lite-terminal-agent-e-winforms.md) | Absorção do CKI-Lite (terminal agent NVIDIA NIM + client WinForms) |
-| [0020](docs/adr/0020-remocao-por-traineddata-vestigial.md) | Remoção do `por.traineddata` vestigial em `src/modules/ocr` |
+| [0020](docs/adr/0020-remocao-por-traineddata-vestigial.md) | Remoção do `por.traineddata` vestigial em `apps/web/src/modules/ocr` |
 | [0021](docs/adr/0021-absorcao-ia-projetos-crm-e-satelites.md) | Absorção das capacidades de IA satélites (projects, crm, bi, marketing, legal, ...) |
 | [0022](docs/adr/0022-migracao-hexagonal-sem-delecao.md) | Migração para arquitetura hexagonal sem deleção de código |
 | [0023](docs/adr/0023-tui-edit-ux-gpu-detection-e-workspace-context.md) | Paridade de UX/UI com microsoft/edit, GPU via SMI e contexto de workspace no agente |
@@ -143,19 +147,21 @@ Este repositório consolida `desktop`, `ai` e as ferramentas de desenvolvimento 
 | [0038](docs/adr/0038-source-control-forge-linkage-and-english-domain.md) | Source Control domain, dual-forge linkage (GitHub & GitLab), and pure-English domain transition |
 | [0039](docs/adr/0039-control-plane-hexagonal-supabase-resend.md) | Rework hexagonal do Control Plane com Supabase prod, Resend e suíte de testes (idempotência real, fixes de double-encoding e cursor) |
 | [0040](docs/adr/0040-enterprise-shell-control-plane-nvidia-nim.md) | Shell Enterprise do Control Plane, sessões por agente, terminal inferior e chat NVIDIA NIM dinâmico |
+| [0041](docs/adr/0041-consolidacao-ai-github-gitlab.md) | Consolidação do AI no GitHub (GitHub canônico, GitLab histórico auditável) |
+| [0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) | Reunificação do monorepo Kaide no layout de `openai/codex` (reversão da ADR-0027) + rebrand `ck` → `kaide` |
 
 ### Mapas de código — `docs/maps/`
 
 | Mapa | Conteúdo |
 | --- | --- |
-| [ckc-agent-tools-api.md](docs/maps/ckc-agent-tools-api.md) | APIs públicas do núcleo `ckc`: agente (loop, hooks, subagentes, estado, registry), tools (fs, shell, patch, git, sandbox, exec_policy, background, picker) e repo (contexto, AGENTS.md, scanner) |
-| [ckc-llm-server-api.md](docs/maps/ckc-llm-server-api.md) | APIs do núcleo `ckc`: LLM (client/streaming, router, provider_chain, prompts), providers (catálogo, store), MCP, memória, skills, compressor, protocolo (Op/EventMsg/event log) e app-server headless |
+| [kaide-agent-tools-api.md](docs/maps/kaide-agent-tools-api.md) | APIs públicas do núcleo `kaide`: agente (loop, hooks, subagentes, estado, registry), tools (fs, shell, patch, git, sandbox, exec_policy, background, picker) e repo (contexto, AGENTS.md, scanner) |
+| [kaide-llm-server-api.md](docs/maps/kaide-llm-server-api.md) | APIs do núcleo `kaide`: LLM (client/streaming, router, provider_chain, prompts), providers (catálogo, store), MCP, memória, skills, compressor, protocolo (Op/EventMsg/event log) e app-server headless |
 | [frontend-dev-harness-ui.md](docs/maps/frontend-dev-harness-ui.md) | UI do dev harness: navegação (NAV_GROUPS), runtime do agente no frontend (transport, agentClient, hooks, tipos), componentes, casca Tauri atual e receita para a task supervision |
 
 ### TODOs
 
 - [`TODO.md`](TODO.md) — débitos técnicos e melhorias do backend RAG (segurança, performance, arquitetura, testes, DevOps).
-- [`chronokairo/cli` → `TODO.md`](https://gitlab.com/chronokairo/cli/-/blob/main/TODO.md) — pendências do núcleo Rust `ckc` / binário `ck` (repo próprio, ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md)).
+- [`kaide-rs/core/TODO.md`](kaide-rs/core/TODO.md) — pendências do núcleo Rust `kaide` / binário `kaide` (vendirado de `chronokairo/cli`, ver [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md)).
 - [`docs/market/TODO.md`](docs/market/TODO.md) — paridade com coding agents de mercado (CLI e desktop), derivada dos changelogs em `docs/market/changelogs/`.
 - [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).
 
@@ -169,4 +175,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-Migração autorizada (2026-10-06): AI é produto interno e o repositório canônico passa a ser GitHub chronokairo/ai; GitLab mantém histórico auditável. Não reintroduzir credenciais administrativas em módulos importados por browser nem permitir autenticação implícita por presença de chave do provedor. Consolidação permanece em branch até revisão.
+Migração autorizada (2026-10-06): Kaide é produto interno e o repositório canônico passa a ser GitHub chronokairo/kaide; GitLab mantém histórico auditável. Não reintroduzir credenciais administrativas em módulos importados por browser nem permitir autenticação implícita por presença de chave do provedor. Consolidação permanece em branch até revisão.

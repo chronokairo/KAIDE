@@ -1,4 +1,4 @@
-# TODO.md — ChronoKairo AI
+# TODO.md — Kaide
 
 ## 🏢 Empresa Virtual de Agentes — Próximos Jobs com Dados Reais do Supabase (ADR-0036)
 
@@ -44,8 +44,8 @@
 
 ### Registro de Mudanças (Changelog ADR-0038) — 2026-10-03
 - **Domínio & Porta de Controle de Versão (Source Control)**:
-  - Criação de `src/domain/source-control.ts` e `src/application/ports/source-control-port.ts` em inglês puro.
-  - Implementação de `src/infrastructure/git/gh-glab-source-control.ts` conectando os CLIs autenticados `gh` (GitHub) e `glab` (GitLab) limitados à organização e grupo `chronokairo`.
+  - Criação de `apps/web/src/domain/source-control.ts` e `apps/web/src/application/ports/source-control-port.ts` em inglês puro.
+  - Implementação de `apps/web/src/infrastructure/git/gh-glab-source-control.ts` conectando os CLIs autenticados `gh` (GitHub) e `glab` (GitLab) limitados à organização e grupo `chronokairo`.
 - **Sincronização Real de Sprint com Evidência de Git**:
   - `coder.sync_sprint` vinculado a branches, commits convencionais e pull/merge requests reais.
   - Gravação atômica em `project_tasks.column_status` no Supabase prod ativada sob o gate humano `scope_baseline`.
@@ -57,18 +57,18 @@
 
 ### Registro de Mudanças (Changelog ADR-0038 Refactor, Dual-Forge & Resend) — 2026-10-03
 - **Eliminação Total de Adapters Mock / In-Memory**:
-  - Remoção definitiva de `src/infrastructure/qa/in-memory-pr-repository.ts` e do adapter monolítico `src/infrastructure/git/gh-glab-source-control.ts`.
-  - Implementação de `ForgePullRequestRepository` (`src/infrastructure/qa/forge-pull-request-repository.ts`) conectado diretamente ao forge GitHub via `GitHubPort`.
+  - Remoção definitiva de `apps/web/src/infrastructure/qa/in-memory-pr-repository.ts` e do adapter monolítico `apps/web/src/infrastructure/git/gh-glab-source-control.ts`.
+  - Implementação de `ForgePullRequestRepository` (`apps/web/src/infrastructure/qa/forge-pull-request-repository.ts`) conectado diretamente ao forge GitHub via `GitHubPort`.
 - **Desacoplamento e Domínio Puro Multi-Forge**:
-  - `src/domain/forge.ts`: Extração do domínio compartilhado para task codes (`extractTaskCodes`) e commits convencionais (`parseConventionalCommit`, `ConventionalCommit`).
-  - `src/domain/github.ts` e `src/application/ports/github-port.ts`: Domínio e porta nativa do GitHub.
-  - `src/domain/gitlab.ts` e `src/application/ports/gitlab-port.ts`: Domínio e porta nativa do GitLab.
-  - `src/application/ports/cli-runner-port.ts` e `src/infrastructure/cli/node-cli-runner.ts`: Porta e runner de execução de processos com proteção contra command injection.
-  - `src/infrastructure/git/gh-cli-github-adapter.ts`: Adapter para o CLI autenticado `gh` (leitura de PR/branches/commits/files/checks e submissão de reviews).
-  - `src/infrastructure/git/glab-cli-gitlab-adapter.ts`: Adapter para o CLI autenticado `glab` (leitura de MR/branches/commits/changes/pipeline e criação de notas).
-  - `src/infrastructure/git/forge-source-control-adapter.ts`: Unificação dos forges com coletor de warnings resiliente (`safeFetch`).
+  - `apps/web/src/domain/forge.ts`: Extração do domínio compartilhado para task codes (`extractTaskCodes`) e commits convencionais (`parseConventionalCommit`, `ConventionalCommit`).
+  - `apps/web/src/domain/github.ts` e `apps/web/src/application/ports/github-port.ts`: Domínio e porta nativa do GitHub.
+  - `apps/web/src/domain/gitlab.ts` e `apps/web/src/application/ports/gitlab-port.ts`: Domínio e porta nativa do GitLab.
+  - `apps/web/src/application/ports/cli-runner-port.ts` e `apps/web/src/infrastructure/cli/node-cli-runner.ts`: Porta e runner de execução de processos com proteção contra command injection.
+  - `apps/web/src/infrastructure/git/gh-cli-github-adapter.ts`: Adapter para o CLI autenticado `gh` (leitura de PR/branches/commits/files/checks e submissão de reviews).
+  - `apps/web/src/infrastructure/git/glab-cli-gitlab-adapter.ts`: Adapter para o CLI autenticado `glab` (leitura de MR/branches/commits/changes/pipeline e criação de notas).
+  - `apps/web/src/infrastructure/git/forge-source-control-adapter.ts`: Unificação dos forges com coletor de warnings resiliente (`safeFetch`).
 - **Suporte Real Conectado a `support_tickets` e `support_incidents`**:
-  - `src/domain/support.ts`, `src/application/ports/support-repository-port.ts` e `SupabaseSupportRepository` atualizados para consumir as tabelas de produção `support_tickets` e `support_incidents`.
+  - `apps/web/src/domain/support.ts`, `apps/web/src/application/ports/support-repository-port.ts` e `SupabaseSupportRepository` atualizados para consumir as tabelas de produção `support_tickets` e `support_incidents`.
   - `ExecuteSupportTriageUseCase` reescrito em inglês puro, sem conteúdo fabricado nem union types bilíngues.
 - **Integração Oficial com Resend SDK & Eventos de Job**:
   - Adição do SDK oficial `resend` (`npm i resend`).
@@ -76,7 +76,7 @@
   - Adição dos tipos `JobEventType` (`'email.sent'`, `'email.synced'`, `'email.bounced'`) e persistência de eventos no Supabase.
   - Disparo real de emails via Resend ativado no Control Plane ao aprovar o gate humano `outbound_contact`.
 - **Implementação do Job `commercial.daily` (AI Comercial / SDR)**:
-  - Criação do caso de uso `ExecuteCommercialDailyUseCase` (`src/application/use-cases/execute-commercial-daily.ts`) e script `scripts/execute-commercial-daily.ts` (`npm run job:commercial:daily`).
+  - Criação do caso de uso `ExecuteCommercialDailyUseCase` (`apps/web/src/application/use-cases/execute-commercial-daily.ts`) e script `scripts/execute-commercial-daily.ts` (`npm run job:commercial:daily`).
   - Auditoria e due diligence corporativa dos 13 leads qualificados reais do Supabase produção (`leads`), enriquecimento de notas de CRM e elaboração de rascunhos consultivos mantidos sob Human Approval Gate.
 - **Revisão e Limpeza em Inglês Puro**:
   - Módulos Legal, Support e Engineering sem tipos em português ou validações artificiais.
@@ -95,7 +95,7 @@ Entregas no [CHANGELOG](CHANGELOG.md) (2026-09-26).
 
 ## P1 — Coding agent de mercado (detalhe e fontes em `docs/market/TODO.md`; implementação como débito em [ADR-0026](docs/adr/0026-debito-implementacao-p1s-mercado.md))
 
-Núcleo `ckc`:
+Núcleo `kaide`:
 
 - [ ] **A1** Classificador de risco no approval gate — risco da tool call avaliado por LLM (1 token), evidência persistente que sobreviva a compaction, aprovação invalidada ao ampliar permissões [Codex Guardian V2; Claude Code auto mode] — base: `AgentHooks.require_approval`, `tools/exec_policy.rs`
 - [ ] **A2** Governança de subagentes — sem aninhamento por padrão, permissões próprias, allowlist de tools por subagente, caps de concorrência/spawns/WebSearch por sessão [OpenCode v1.18; Qwen 0.23.4; Claude Code 2.1.232] — base: `agent/subagent.rs`
@@ -105,7 +105,7 @@ Núcleo `ckc`:
 
 Protocolo e multi-superfície:
 
-- [ ] **B1** ACP como porta universal — expor o `ckc` como ACP server e consumir harnesses externos (Claude Code/Codex/goose) como backends orquestráveis; elicitação/question via ACP [Zed v1.12/v1.17; Goose ACP; Kiro Crew 0.7.0] — base: `mcp/server.rs`, `protocol/`
+- [ ] **B1** ACP como porta universal — expor o `kaide` como ACP server e consumir harnesses externos (Claude Code/Codex/goose) como backends orquestráveis; elicitação/question via ACP [Zed v1.12/v1.17; Goose ACP; Kiro Crew 0.7.0] — base: `mcp/server.rs`, `protocol/`
 - [ ] **B2** Daemon app-server compartilhado — lifecycle de daemon (auto-start, updates geridos), sessões compartilhadas entre TUI/IDE/desktop [Codex 0.154–0.157] — base: `app_server/`
 
 Shell desktop (Tauri):
@@ -124,10 +124,10 @@ Plataforma, segurança e governança:
 - [ ] **E2** Managed settings fail-closed — políticas geridas só apertam (nunca afrouxam), `availableModelsMatch: "exact"` + `deniedModels`, sandbox floor corporativo [Claude Code 2.1.283/2.1.280; Copilot CLI 1.0.76/1.0.87] — base: `config/settings.rs`
 - [ ] **E3** Segredos e arquivos sensíveis — aprovação explícita para ler `.env`/chaves/certificados, não carregar `.env` automaticamente, redaction em telemetria [Augment 2026-09-14; Kiro CLI 2.24; Goose 1.49] — base: `tools/sandbox.rs` (`denied_patterns`)
 
-## P0 — Refatoração ChronoKairo AI
+## P0 — Refatoração Kaide
 
-- [ ] Substituir o branding Athena pela identidade ChronoKairo AI.
-- [ ] Decompor `src/App.tsx` em shell, chat, histórico, fontes, confirmações e resultados de ferramentas.
+- [ ] Substituir o branding Athena pela identidade Kaide.
+- [ ] Decompor `apps/web/src/App.tsx` em shell, chat, histórico, fontes, confirmações e resultados de ferramentas.
 - [ ] Adotar componentes e tokens do `@chronokairo/ui` em toda a interface.
 - [ ] Integrar Auth/SSO, organização e RBAC reais da Platform.
 - [ ] Separar consulta e manipulação em casos de uso e contratos versionados.
