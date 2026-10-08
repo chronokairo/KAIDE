@@ -70,13 +70,13 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 `kaide-rs/{core,shell,intelligence}` (workspace Rust) · `sdk/typescript`
 (wrapper do binário `kaide`) · `tools/`, `mcp/` na raiz.
 
-- **`kaide-rs/core`** — crate zero-lib `kaide` (binário `kaide`), fonte de verdade do Rust, vendirado de `chronokairo/cli` (reversão da ADR-0027). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence a este diretório.
+- **`kaide-rs/core`** — crate zero-lib `kaide` (binário `kaide`), fonte de verdade do Rust (ex-repo `chronokairo/cli`, deletado após absorção — reversão da ADR-0027). Mudança no agente, nas tools, no runtime de LLM ou nos testes `p0_*` pertence a este diretório.
 - **`kaide-rs/shell`** — casca Tauri fina. Consome o `kaide` por path (`../core`), não por git-tag.
 - **`kaide-rs/intelligence`** — crate `kaide-intelligence` (OSINT & Due Diligence Harness).
 - **`apps/web`** — frontend Next.js (React 19), subsistema RAG e suíte de controle de inteligência herdada do `thinkcoffee`.
 - **`sdk/typescript`** (`@chronokairo/kaide-sdk`) — resolve e invoca o binário `kaide`; atalhos `desktop:dev`/`desktop:build`.
 - Comandos raiz via **npm** (`dev`, `build`, `typecheck`, `test` delegam para `apps/web`; `rust:check`, `rust:test` para o workspace Cargo).
-- Histórico dos repos originais preservado nas branches `cli` e `desktop`; histórico do `cli` também no repo `chronokairo/cli`.
+- Histórico: `company-autopilot` absorvido com histórico integral via subtree em `tools/`; `cli` vive no código em `kaide-rs/core` (cópia — histórico git do repo deletado não foi importado).
 
 ## Source Control & Forge Integration Rules (ADR-0038)
 
@@ -163,7 +163,7 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 ### TODOs
 
 - [`TODO.md`](TODO.md) — débitos técnicos e melhorias do backend RAG (segurança, performance, arquitetura, testes, DevOps).
-- [`kaide-rs/core/TODO.md`](kaide-rs/core/TODO.md) — pendências do núcleo Rust `kaide` / binário `kaide` (vendirado de `chronokairo/cli`, ver [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md)).
+- [`kaide-rs/core/TODO.md`](kaide-rs/core/TODO.md) — pendências do núcleo Rust `kaide` / binário `kaide` (ex-repo `chronokairo/cli`, deletado — ver [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md)).
 - [`docs/market/TODO.md`](docs/market/TODO.md) — paridade com coding agents de mercado (CLI e desktop), derivada dos changelogs em `docs/market/changelogs/`.
 - [`tools/`](tools/) — TODOs locais das ferramentas absorvidas (cki-lite, browser-mcp-lite, research-rag, sandbox).
 

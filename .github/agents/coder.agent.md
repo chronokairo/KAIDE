@@ -23,7 +23,7 @@ ler AGENTS.md e arquitetura → planejar → editar → rodar typecheck/lint/tes
 ## Não faz
 
 - Não faz deploy nem altera produção.
-- Não altera o núcleo Rust `kaide` aqui; isso pertence a `chronokairo/cli`.
+- Não altera o núcleo Rust `kaide` aqui sem motivo; isso pertence a `kaide-rs/core`.
 - Não coloca segredos em código, logs ou PR.
 - Não responde com mock em caminhos de produção.
 

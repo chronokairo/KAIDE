@@ -1,7 +1,7 @@
 # Mapa de APIs do núcleo `kaide` — LLM, Providers, MCP, Memória, Skills, Compressor, Protocolo e App-Server
 
 > Gerado em 2026-09-26 como subsídio para os testes de integração dos P0s de mercado (`TODO.md` — "P0 — Coding agent de mercado").
-> Crate: `chronokairo/cli` → `kaide` (zero-lib), binário `ck`. Todos os módulos são `pub mod` via `lib.rs` (`kaide::llm::...`, `kaide::mcp::...`, etc.).
+> Crate `kaide` (zero-lib, `kaide-rs/core`), binário `kaide`. Todos os módulos são `pub mod` via `lib.rs` (`kaide::llm::...`, `kaide::mcp::...`, etc.).
 
 **Infra compartilhada** (`apps/web/src/error.rs`, `apps/web/src/http/`, `apps/web/src/async_rt/`):
 

@@ -17,7 +17,7 @@ e `react/compiler-runtime`):
 
 - Portar o design de interação (chat, transcript, keybindings, busca) para a UI
   Next de chat do ai (`apps/web/src/modules/ai`), completando a reimplementação que já
-  tem núcleo Rust (crate `kaide`/binário `ck` do repo `chronokairo/cli`).
+  tem núcleo Rust (crate `kaide`/binário `kaide` em `kaide-rs/core`).
 - Não reintroduzir código derivado de Anthropic/Claude Code: reescrever do zero
   (regra AGENTS #8).
 - O fork original permanece no histórico do crm (`legacy/merged/sales/laciels`).
