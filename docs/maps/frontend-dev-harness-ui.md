@@ -116,8 +116,8 @@ Envolve `AssistantRuntimeProvider` (`@assistant-ui/react`, `useLocalRuntime(adap
 ## 4. Casca Tauri — estado ATUAL (verificado 2026-09-26)
 
 - **`apps/desktop/`** é o app Tauri v2 (tauri.conf.json, capabilities, icons, gen) com workspace Cargo `members = ["core", "shell", "intelligence"]`.
-- **`kaide-rs/shell/src/lib.rs` (25 linhas)**: casca FINA. Registra **apenas** `#[tauri::command] fn ckc_version() -> String` via `invoke_handler(generate_handler![ckc_version])` + `tauri_plugin_shell`. O comentário no arquivo registra o débito: *"o wiring detalhado dos comandos Tauri para as funções do kaide ainda será conectado incrementalmente"* (ADR-0005).
-- **`chronokairo/cli`** é o crate `kaide` / binário `ck` (núcleo zero-lib — ver `docs/maps/kaide-agent-tools-api.md` e `docs/maps/kaide-llm-server-api.md`).
+- **`kaide-rs/shell/src/lib.rs`**: casca FINA. Registra `#[tauri::command] fn kaide_version() -> String` via `invoke_handler(generate_handler![kaide_version])` + `tauri_plugin_shell`. O comentário no arquivo registra o débito: *"o wiring detalhado dos comandos Tauri para as funções do kaide ainda será conectado incrementalmente"* (ADR-0005).
+- **`kaide-rs/core`** é o crate `kaide` / binário `kaide` (núcleo zero-lib — ver `docs/maps/kaide-agent-tools-api.md` e `docs/maps/kaide-llm-server-api.md`).
 - **`kaide-rs/intelligence`** tem `commands.rs` (16 `#[tauri::command]`) para OSINT/graph/dossier.
 - **Consequência**: os comandos que o frontend espera (`stream_agent_session`, `interrupt_agent`, `resolve_approval`, `runtime_request` e os demais de `agentClient`/hooks) **ainda não estão registrados na casca** — em web retornam `available:false`; no desktop Tauri atual falham silenciosamente (catch → `available:false`). A casca antiga com 100+ comandos IPC está no histórico (branches `cli`/`desktop`), não neste checkout.
 - O contrato esperado pelo frontend para a task supervision já existe no kaide: `protocol::Session` (Op/EventMsg), `app_server::runtime_api::call` (33 métodos) e `AppServer` (JSON-RPC stdio). O wiring é o gap.

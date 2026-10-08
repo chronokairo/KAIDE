@@ -84,13 +84,13 @@ src/
 
 ```bash
 # Clone repository
-git clone https://github.com/chronokairo/cli.git
-cd cli
+git clone https://github.com/chronokairo/kaide.git
+cd kaide
 
 # Build release binary (kaide)
-cargo build --release
+cargo build --manifest-path kaide-rs/Cargo.toml --release -p kaide --bin kaide
 
-# The compiled binary will be located at target/release/kaide (or kaide.exe on Windows)
+# The compiled binary will be located at kaide-rs/target/release/kaide (or kaide.exe on Windows)
 ```
 
 To enable GPU acceleration for local GGUF inference:

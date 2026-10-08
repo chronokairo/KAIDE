@@ -37,7 +37,7 @@ Build the Rust core and run it through the SDK wrapper (resolves `KAIDE_BIN` →
 
 ```shell
 # Build the core binary
-cargo build --manifest-path kaide-rs/Cargo.toml -p ckc --bin kaide
+cargo build --manifest-path kaide-rs/Cargo.toml -p kaide --bin kaide
 
 # Then simply run kaide to get started
 npx kaide --help
@@ -111,7 +111,7 @@ Compile o núcleo Rust e execute pelo wrapper do SDK (resolve `KAIDE_BIN` → `k
 
 ```shell
 # Compila o binário do núcleo
-cargo build --manifest-path kaide-rs/Cargo.toml -p ckc --bin kaide
+cargo build --manifest-path kaide-rs/Cargo.toml -p kaide --bin kaide
 
 # E execute o kaide para começar
 npx kaide --help

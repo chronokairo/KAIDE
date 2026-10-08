@@ -27,11 +27,18 @@ O `company-autopilot` concentrava os agentes de operação da empresa virtual
    de detecção em `migrate_audiomed.py`/`sync_knowledge.py`, nenhum valor).
 3. **Bloco de diretriz UI-hexagonal** (diferença não commitada do repo-fonte)
    aplicado à cópia absorvida, igual às demais `AGENTS.md`.
-4. **Repo-fonte preservado** (`chronokairo/company-autopilot` continua existindo;
-   evoluções futuras entram via `git subtree pull`). Python validado com
+4. **Repo-fonte absorvido e deletado** (ver Adendo): Python validado com
    `py_compile`; sem acoplamento com o web (tools standalone, como as demais).
 
-## Consequências / débitos
+## Consequências / débitos (originais, mantidos)
+
+## Adendo (2026-10-08)
+
+Os repos-fonte `chronokairo/cli` e `chronokairo/company-autopilot` foram
+**deletados no GitHub** após as absorções (código em `kaide-rs/core` e
+`tools/company-autopilot/`, respectivamente). Não há mais `subtree pull`
+possível — o Kaide é a única fonte. Histórico do `cli` não foi importado
+(cópia, não subtree); do `company-autopilot`, integral via subtree.
 
 - `tools/company-autopilot` lê/escreve Supabase prod e GitHub/GitLab com
   credenciais da máquina — nunca commitar `.env`/tokens (já fora do Git).
