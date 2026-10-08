@@ -25,3 +25,31 @@ Preferência do dono (2026-10-06): coordenadores encaminham tarefas mecânicas d
 Sistemas proprietários: a Chronokairo opera com seus próprios produtos (mapa em `.copilot/chronokairo/company-context.json` → `systems`). Não introduzir nem registrar como em uso SaaS de terceiros para funções da empresa (HubSpot, Notion, Zendesk, Slack, Calendly etc.); lacunas viram feature no produto próprio ou em `@chronokairo/platform`. Terceiros apenas como infraestrutura (GitHub/GitLab, Cloudflare, Supabase, Resend no Mail, modelos, gateways via payments) ou obrigação externa (fiscal, banco, contador), com aprovação do dono.
 
 Código compartilhado: produtos internos usam `@chronokairo/platform` (lacunas são implementadas na platform, nunca duplicadas no produto); SaaS (Workmed, Agroflow) e projetos de clientes (Audiomed) são independentes, com código próprio.
+
+
+<!-- BEGIN:chronokairo-ui-hexagonal-migration -->
+## Diretriz de migração de UI e arquitetura — 2026-10-07
+
+Decisão do proprietário: migrar os projetos para UI em Atomic Design e arquitetura hexagonal organizada por feature. O Marketing é o primeiro projeto da migração. Este registro é uma obrigação de migração, não uma declaração de que o código atual já está conforme. Esta seção prevalece sobre recomendações anteriores de Tailwind/PostCSS e de duplicação de UI.
+
+### UI e Platform
+- Produtos internos Chronokairo devem consumir o design system canônico de `@chronokairo/platform/ui` e seus tokens/estilos publicados. Atomic Design aplica-se à UI: átomos, moléculas, organismos e templates; telas compõem esses elementos sem conter regras de negócio.
+- Componentes visuais genéricos ausentes devem ser implementados no Platform e consumidos pelos produtos. Não criar cópias locais divergentes de Button, Input, Card, Modal, Avatar ou outros componentes universais. Componentes específicos da feature ficam na própria feature.
+- O próprio Platform deve fornecer os componentes Atomic Design com CSS nativo/CSS Modules e sem exigir Tailwind ou plugin PostCSS no consumidor. Não mascarar uma dependência movendo-a para o Platform.
+- Remover completamente o uso direto de Tailwind e PostCSS: dependências próprias, plugins, configurações, diretivas CSS, utilitários como tailwind-merge e classes que dependam de geração Tailwind. Substituir os estilos antes de remover ferramentas, preservando responsividade, acessibilidade, temas e estados da UI.
+- SaaS independentes, projetos de clientes e open source preservam sua autonomia e restrições de licenciamento/zero-lib: aplicar Atomic Design com CSS nativo; não introduzir dependência no pacote interno Platform onde o contrato do projeto exige código próprio. Projetos sem UI não devem adicionar frameworks ou bibliotecas visuais apenas para satisfazer esta regra.
+
+### Hexagonal por feature
+- Organizar cada feature/bounded context em domínio puro, aplicação/casos de uso, portas, adaptadores de infraestrutura e UI. Reutilizar a nomenclatura equivalente existente quando os limites forem claros; não criar camadas vazias.
+- Domínio e aplicação não importam React/Next.js, Supabase/Firebase, SDKs de provedores, banco, HTTP ou storage concretos. Dependências externas são acessadas por portas e injetadas no ponto de composição.
+- UI, hooks, controllers e handlers chamam casos de uso/portas de entrada; não acessam repositórios Supabase, SDKs ou tabelas diretamente. Adaptadores implementam portas de saída; tipos de domínio não dependem de tipos gerados do banco.
+- Ao migrar uma feature, preservar contratos, isolamento de organização/tenant, autorização, consentimento, auditoria e comportamento existente. Não duplicar entidades nem alterar a propriedade dos domínios entre produtos.
+
+### Execução e critérios de conclusão
+- Começar pelo Marketing; migrar as demais aplicações por feature em mudanças revisáveis. Inventariar dependências, estilos, componentes duplicados e violações de direção de dependência antes de modificar a implementação.
+- Não apagar alterações simultâneas nem realizar refatoração funcional de outros projetos somente por este registro. Atualizar ADR/log e backlog com escopo, pendências e evidências a cada etapa de implementação.
+- Uma feature só está migrada quando usa a UI canônica aplicável, não depende de Tailwind/PostCSS próprio, respeita portas/casos de uso e passa nos testes relevantes, typecheck, build e verificação visual dos fluxos afetados. Não desabilitar verificações para declarar sucesso.
+- A remoção completa deve ser comprovada em código ativo, manifests, configurações e lockfiles. Inventariar também módulos legados; arquivá-los ou migrá-los explicitamente, sem esconder ocorrências para obter uma busca vazia.
+- Se o framework ainda trouxer PostCSS transitivamente ou internamente, registrar a origem e a limitação: remoção das dependências/configurações próprias não significa ausência total da ferramenta. Não adulterar internals do framework ou lockfiles para alegar 100%.
+- Este AGENTS.md orienta a migração futura; não autoriza por si só deploy, envio externo ou mudanças destrutivas.
+<!-- END:chronokairo-ui-hexagonal-migration -->
