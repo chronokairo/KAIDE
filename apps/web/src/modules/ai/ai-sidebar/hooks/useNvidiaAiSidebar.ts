@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useSession } from '@chronokairo/platform/auth';
+import { useSession } from '@/shared/auth/session';
 
 export interface AiSidebarMessage { role: 'user' | 'assistant'; content: string }
 

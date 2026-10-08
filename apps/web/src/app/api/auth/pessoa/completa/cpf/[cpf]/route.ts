@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCPF } from '@/server/rag/shared/lib/validation';
-import { totvsRestRequest } from '@/server/rag/features/totvs/api/rest-client';
+import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { authenticate, auditLog, authRequiredResponse } from '../../../../../_lib/auth';
 import { getClientIp, handleRouteError } from '../../../../../_lib/http';
 import { generalLimit, personDataLimit, strictLimit } from '../../../../../_lib/rate-limit';
@@ -10,7 +10,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/auth/pessoa/completa/cpf/:cpf - Consulta completa de pessoa por CPF (protegida).
+ * GET /api/auth/pessoa/completa/cpf/:cpf - Ficha completa (customers + contacts
+ * + tickets recentes) no Supabase prod. Protegida, isolada por organização.
  */
 export async function GET(
     request: NextRequest,
@@ -24,7 +25,6 @@ export async function GET(
     auditLog(request);
 
     const { cpf } = await params;
-    const codPessoa = request.nextUrl.searchParams.get('codPessoa') ?? '';
 
     const cpfValidation = validateCPF(cpf);
     if (!cpfValidation.valid) {
@@ -36,12 +36,57 @@ export async function GET(
     }
 
     try {
-        const params2: Record<string, string> = { CPF: cpfValidation.cleaned };
-        if (codPessoa) params2.CODPESSOA = codPessoa;
+        const supabase = getSupabaseAdmin();
+        const { data: memberships } = await supabase
+            .from('organization_members')
+            .select('organization_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1);
+        if (!memberships?.length) {
+            return NextResponse.json(
+                { success: false, error: 'Usuário sem organização ativa', code: 'NO_ACTIVE_ORG' },
+                { status: 403 }
+            );
+        }
+        const organizationId = (memberships[0] as { organization_id: string }).organization_id;
 
-        const data = await totvsRestRequest('E.PESSOACOMP', params2);
-        return NextResponse.json(data);
+        const { data: customer, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .eq('documento', cpfValidation.cleaned)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!customer) {
+            return NextResponse.json(
+                { success: false, error: 'Pessoa não encontrada', code: 'NOT_FOUND' },
+                { status: 404 }
+            );
+        }
+
+        const customerId = (customer as { id: string }).id;
+        const [{ data: contacts }, { data: tickets }] = await Promise.all([
+            supabase
+                .from('contacts')
+                .select('id, first_name, last_name, email, phone, job_title, is_primary')
+                .eq('organization_id', organizationId)
+                .eq('customer_id', customerId),
+            supabase
+                .from('support_tickets')
+                .select('id, code, subject, status, priority, channel, created_at, resolved_at')
+                .eq('organization_id', organizationId)
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false })
+                .limit(20),
+        ]);
+
+        return NextResponse.json({
+            success: true,
+            data: { ...customer, contacts: contacts || [], tickets: tickets || [] },
+        });
     } catch (error) {
-        return handleRouteError(error, `totvs/pessoa/completa/cpf/${cpfValidation.cleaned}`);
+        return handleRouteError(error, `pessoa/completa/cpf/${cpfValidation.cleaned}`);
     }
 }

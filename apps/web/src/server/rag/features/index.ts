@@ -3,7 +3,6 @@
  * @description Barrel export para features layer
  */
 
-export * from './totvs/index.js';
 export * from './auth/index.js';
 export * from './admin/index.js';
 export * from './health/index.js';

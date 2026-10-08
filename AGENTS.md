@@ -149,6 +149,7 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 | [0040](docs/adr/0040-enterprise-shell-control-plane-nvidia-nim.md) | Shell Enterprise do Control Plane, sessões por agente, terminal inferior e chat NVIDIA NIM dinâmico |
 | [0041](docs/adr/0041-consolidacao-ai-github-gitlab.md) | Consolidação do AI no GitHub (GitHub canônico, GitLab histórico auditável) |
 | [0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) | Reunificação do monorepo Kaide no layout de `openai/codex` (reversão da ADR-0027) + rebrand `ck` → `kaide` |
+| [0043](docs/adr/0043-remocao-totvs-supabase-sem-platform.md) | Remoção da integração TOTVS, religação ao Supabase prod e saída do `@chronokairo/platform` |
 
 ### Mapas de código — `docs/maps/`
 

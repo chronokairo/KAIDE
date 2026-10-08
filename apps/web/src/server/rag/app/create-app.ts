@@ -12,7 +12,7 @@ import helmet from 'helmet';
 
 import { corsConfig, allowedOrigins } from '../shared/config/cors.js';
 import { helmetConfig, permissionsPolicy } from '../shared/config/security.js';
-import { generalLimiter, strictLimiter, personDataLimiter } from '../shared/config/rate-limit.js';
+import { generalLimiter, strictLimiter } from '../shared/config/rate-limit.js';
 import { generateCspNonce } from '../shared/lib/crypto.js';
 import { logger } from '../shared/lib/logger.js';
 import { isProduction } from '../shared/config/environment.js';
@@ -78,7 +78,6 @@ export function createApp(): { app: Application; server: Server } {
     // Apply rate limiting
     app.use('/api', generalLimiter);
     app.use('/api/auth', strictLimiter);
-    app.use('/api/totvs/pessoa', personDataLimiter);
 
     // Parse JSON bodies
     app.use(express.json());

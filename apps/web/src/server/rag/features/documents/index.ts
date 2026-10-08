@@ -5,5 +5,6 @@
 
 export * from './types.js';
 export * from './loader.js';
+export * from './supabase-loader.js';
 export * from './vector-store.js';
 export * from './persistence.js';

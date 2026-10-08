@@ -150,8 +150,8 @@ This document outlines identified issues, technical debt, and potential improvem
 ### Error Handling & Reliability
 - [ ] **Error Propagation**: Many async operations lack proper error boundaries. Implement centralized error handling middleware.
 - [ ] **Graceful Shutdown**: Add signal handlers for SIGTERM/SIGINT to close connections cleanly.
-- [ ] **Health Checks**: Current health endpoint is basic. Add dependency checks (Ollama, TOTVS APIs, vector store).
-- [ ] **Circuit Breaker**: Implement circuit breaker pattern for TOTVS API calls to prevent cascading failures.
+- [ ] **Health Checks**: Current health endpoint is basic. Add dependency checks (Ollama, Supabase, vector store).
+- [ ] **Circuit Breaker**: Implement circuit breaker pattern for Supabase/LLM calls to prevent cascading failures.
 - [ ] **Retry Logic**: Add exponential backoff for failed API calls and LLM requests.
 
 ## ⚡ Performance Issues
@@ -164,7 +164,7 @@ This document outlines identified issues, technical debt, and potential improvem
 - [ ] **Response Compression**: Already enabled but could be optimized for different content types.
 
 ### API Efficiency
-- [ ] **N+1 Query Problem**: TOTVS client makes multiple sequential API calls. Implement parallel requests where possible.
+- [ ] **N+1 Query Problem**: Supabase queries should batch/parallelize where possible (see pessoa completa: customers + contacts + tickets).
 - [ ] **Response Size**: Some API responses may be large. Add pagination and selective field retrieval.
 - [ ] **Streaming Optimization**: Chat streaming works but could benefit from better backpressure handling.
 
@@ -173,7 +173,7 @@ This document outlines identified issues, technical debt, and potential improvem
 ### Code Structure
 - [ ] **Layer Violations**: Some features import from other features directly, violating Feature-Sliced Design principles.
 - [ ] **Circular Dependencies**: Check for circular imports between features (e.g., rag ↔ chat ↔ api-client).
-- [ ] **Singleton Pattern Abuse**: TOTVSClient and other services use singletons, making testing difficult.
+- [ ] **Singleton Pattern Abuse**: Services use singletons, making testing difficult.
 - [ ] **Type Safety**: Some `any` types remain. Add proper TypeScript interfaces throughout.
 - [ ] **Code Duplication**: Similar API client patterns repeated. Extract common HTTP client utilities.
 
@@ -203,7 +203,7 @@ This document outlines identified issues, technical debt, and potential improvem
 - [ ] **Multi-Modal Support**: Currently text-only. Consider image/document processing.
 - [ ] **Context Window Management**: LLM context limits not handled. Implement context truncation/summarization.
 - [ ] **Model Selection**: Hard-coded to gemma3:1b. Allow dynamic model selection.
-- [ ] **Fine-Tuning**: No mechanism for model fine-tuning on TOTVS domain data.
+- [ ] **Fine-Tuning**: No mechanism for model fine-tuning on support/ops domain data.
 
 ### MCP Integration
 - [ ] **Tool Discovery**: MCP tools are static. Implement dynamic tool registration.
@@ -213,7 +213,7 @@ This document outlines identified issues, technical debt, and potential improvem
 ### API Client
 - [ ] **Request Deduplication**: Prevent duplicate API calls for same request.
 - [ ] **Response Caching**: Beyond basic TTL, implement smart cache invalidation.
-- [ ] **API Versioning**: No versioning strategy for TOTVS API changes.
+- [ ] **API Versioning**: No versioning strategy for Supabase-backed endpoint changes.
 
 ## 🐳 DevOps & Deployment
 

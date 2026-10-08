@@ -3,29 +3,6 @@ export type { SectorToolDefinition, SectorToolSet, SectorRouteResult } from './h
 
 export { normalize, matchesAny, parseAccept, fileMatchesAccept, getToolsWithAnnaUpload } from './shared';
 
-export {
-  MATRICULA_TOOL_DEFS,
-  MATRICULA_TOOL_NAMES,
-  executeMatriculaTool,
-  totvsRestRequest,
-  buscarOfertas,
-  makeSoapRequest,
-  parseSoapResponse,
-  consultarPessoaPorCPF,
-  cadastrarPessoa,
-  realizarInscricao,
-  TOTVS_BASE_URL,
-  TOTVS_AUTH,
-  TOTVS_TIMEOUT,
-  SOAP_CONFIG,
-  SOAP_ENDPOINT,
-  buildTotvsRestUrl,
-  getTotvsAuthHeaders,
-  getContexto,
-  fetchWithTimeout,
-} from './ciesa/totvs';
-export type { OfertaTotvs, PessoaTotvs, DadosPessoa, DadosInscricao } from './ciesa/totvs';
-
 export { requestChat } from './chat-client';
 export type { ChatQueueProgress, ChatRequestResult } from './chat-client';
 
