@@ -1,10 +1,10 @@
-# RAG System Architecture - Athena (TOTVS APIs)
+# RAG System Architecture - Supabase (ops_documents)
 
 Este documento descreve a arquitetura completa do sistema RAG (Retrieval Augmented Generation) implementado no projeto.
 
 ## Visão Geral
 
-O sistema combina **busca semântica vetorial** com **consultas em tempo real às APIs TOTVS**, usando **Ollama** como LLM local para geração de respostas contextualizadas.
+O sistema combina **busca semântica vetorial** com **consultas à base Supabase (ops_documents)**, usando **Ollama** como LLM local para geração de respostas contextualizadas.
 
 ---
 
@@ -21,7 +21,7 @@ flowchart TD
     subgraph "Express Server"
         B[Express App]
         B1[/api/chat - Chat Routes/]
-        B2[/api/totvs - TOTVS Proxy/]
+        B2[/api (Next routes)/]
         B3[/api/admin - Admin Routes/]
     end
 
@@ -41,9 +41,9 @@ flowchart TD
     end
 
     subgraph "Retrieval Layer"
-        E[TOTVSDocumentLoader]
+        E[SupabaseDocumentLoader]
         F[VectorStore]
-        G[TOTVSClient API]
+        G[Supabase (ops_documents)]
     end
 
     subgraph "Embedding & Storage"
@@ -146,21 +146,9 @@ flowchart TD
     end
 
     subgraph "Indexation Process"
-        INDEX_START[Index Documents] --> LOAD_APIS[Load from TOTVS APIs]
+        INDEX_START[Index Documents] --> LOAD_DB[Load from ops_documents]
         
-        LOAD_APIS --> LOAD_AREAS[Load Areas]
-        LOAD_APIS --> LOAD_OFERTAS[Load Ofertas]
-        LOAD_APIS --> LOAD_NIVEIS[Load Níveis]
-        LOAD_APIS --> LOAD_RANKING[Load Ranking]
-        LOAD_APIS --> LOAD_ATENDENTES[Load Atendentes]
-        LOAD_APIS --> LOAD_HISTORICO[Load Histórico]
-        
-        LOAD_AREAS --> TRANSFORM[Transform to Documents]
-        LOAD_OFERTAS --> TRANSFORM
-        LOAD_NIVEIS --> TRANSFORM
-        LOAD_RANKING --> TRANSFORM
-        LOAD_ATENDENTES --> TRANSFORM
-        LOAD_HISTORICO --> TRANSFORM
+        LOAD_DB --> TRANSFORM[Transform to Documents]
         
         TRANSFORM --> GEN_EMBED[Generate Embeddings]
         GEN_EMBED --> BATCH[Process in Batches of 10]
@@ -227,11 +215,11 @@ flowchart TD
 
 ## Componentes Detalhados
 
-### 1. Document Loader (TOTVSDocumentLoader)
+### 1. Document Loader (SupabaseDocumentLoader)
 
 ```mermaid
 flowchart LR
-    subgraph "TOTVS APIs"
+    subgraph "Supabase prod"
         API1[E.AREAS]
         API2[E.OFERTAS]
         API3[E.NIVEIS]
@@ -390,7 +378,7 @@ sequenceDiagram
     participant ChatService
     participant RAGEngine
     participant VectorStore
-    participant TOTVSAPIs
+    participant Supabase
     participant Ollama
 
     User->>Client: Envia pergunta
@@ -400,8 +388,8 @@ sequenceDiagram
     ChatService->>ChatService: Detecta tipo de query
     
     alt Query de Dashboard
-        ChatService->>TOTVSAPIs: getAtendentes()
-        ChatService->>TOTVSAPIs: getHistorico()
+        ChatService->>Supabase: support_tickets/employees
+        ChatService->>Supabase: ops_documents
         ChatService->>ChatService: generateDashboard()
         ChatService->>ChatService: extractKPIs()
         ChatService->>ChatService: generateCharts()
@@ -454,7 +442,7 @@ server/features/
 │   └── types.ts            # Tipos TypeScript
 ├── documents/
 │   ├── vector-store.ts     # VectorStore com embeddings
-│   ├── totvs-loader.ts     # Loader de documentos TOTVS
+│   ├── supabase-loader.ts  # Loader de documentos Supabase (ops_documents)
 │   ├── persistence.ts      # Persistência em disco
 │   └── types.ts            # Tipos de documentos
 ├── chat/
@@ -462,7 +450,7 @@ server/features/
 │   ├── routes.ts           # Rotas HTTP
 │   └── types.ts            # Tipos de chat
 ├── api-client/
-│   ├── client.ts           # TOTVSClient com cache
+│   ├── client.ts           # APIClient genérico + Supabase
 │   └── types.ts            # Tipos de API
 └── mcp/
     ├── server.ts           # Servidor MCP

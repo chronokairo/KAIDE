@@ -95,7 +95,7 @@ export function Body({
                 value={input}
                 onChange={(e) => onInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Faça uma pergunta sobre código, contratos, TOTVS ou dados..."
+                placeholder="Faça uma pergunta sobre código, contratos, suporte ou dados..."
                 rows={1}
                 className="flex-1 bg-transparent border-0 resize-none text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-hidden py-1.5 px-2 max-h-32 min-h-[38px]"
               />

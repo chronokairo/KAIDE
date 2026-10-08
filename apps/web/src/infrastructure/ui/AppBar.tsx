@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ThemeToggle, Button } from '@chronokairo/platform/ui';
+import { ThemeToggle } from '@/shared/components/ui/theme';
+import { Button } from '@/shared/components/ui/button';
 import { 
   Sparkles, 
   PanelLeft, 

@@ -7,7 +7,6 @@ import { Application, Request, Response } from 'express';
 import { logger } from '../shared/lib/logger.js';
 
 // Features
-import { totvsRouter, setupTotvsProxies } from '../features/totvs/index.js';
 import { healthRouter } from '../features/health/routes.js';
 import { authRouter } from '../features/auth/routes.js';
 import { adminRouter } from '../features/admin/routes.js';
@@ -34,7 +33,6 @@ export function setupRoutes(app: Application): void {
     });
 
     // API Routes
-    app.use('/api/totvs', totvsRouter);
     app.use('/api/auth', authRouter);
     app.use('/api/admin', adminRouter);
     app.use('/api/health', healthRouter);
@@ -58,9 +56,6 @@ export function setupRoutes(app: Application): void {
             res.status(500).json({ error: String(error) });
         }
     });
-
-    // Setup TOTVS proxies (ordem importa - depois das rotas especificas)
-    setupTotvsProxies(app);
 
     logger.info('SERVER', 'API routes configuradas');
 

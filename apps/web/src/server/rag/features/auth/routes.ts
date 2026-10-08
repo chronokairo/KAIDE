@@ -8,14 +8,12 @@ import crypto from 'crypto';
 import { logger } from '../../shared/lib/logger.js';
 import { timingSafeCompare } from '../../shared/lib/crypto.js';
 import { validateCPF } from '../../shared/lib/validation.js';
-import { handleError, fetchWithTimeout, JSON_HEADERS } from '../../shared/lib/http.js';
+import { getSupabase, resolveUserOrganizationId } from '../../shared/lib/supabase.js';
 import {
     isProduction,
     ADMIN_USERNAME,
     ADMIN_PASSWORD,
-    ATTENDANT_INITIAL_PASSWORD,
-    TOTVS_BASE_URL,
-    TOTVS_AUTH
+    ATTENDANT_INITIAL_PASSWORD
 } from '../../shared/config/environment.js';
 import {
     generateSecureToken,
@@ -29,7 +27,6 @@ import {
 } from './session.js';
 import { generateCsrfToken, validateCsrfToken } from './csrf.js';
 import { requireAuth, auditLog } from './middleware.js';
-import { totvsRestRequest } from '../totvs/api/rest-client.js';
 import { AtendenteRepository } from '../../entities/atendente/repository.js';
 
 export const authRouter: Router = Router();
@@ -307,104 +304,24 @@ authRouter.get('/attendant/check/:code', (req: Request, res: Response) => {
 });
 
 /**
- * POST /attendant/login - TOTVS attendant authentication
+ * Resolve a organização ativa do chamador (via token de sessão).
+ * 403 quando não há membership ativa — dados de pessoa exigem organização.
  */
-authRouter.post('/attendant/login', async (req: Request, res: Response) => {
-    const { code, password, csrfToken } = req.body;
-    const sessionId = req.cookies?.[SESSION_COOKIE_NAME];
-
-    if (csrfToken && sessionId) {
-        if (!validateCsrfToken(csrfToken, sessionId)) {
-            logger.warn('CSRF', 'Invalid CSRF token on attendant login', { ip: req.ip });
-            return res.status(403).json({
-                success: false,
-                error: 'Sessão expirada. Recarregue a página.',
-                code: 'CSRF_INVALID'
-            });
-        }
-    } else if (isProduction) {
-        logger.warn('CSRF', 'Missing CSRF token on attendant login', { ip: req.ip });
-    }
-
-    if (!code || typeof code !== 'string') {
-        return res.status(400).json({
+async function resolveCallerOrganization(req: Request, res: Response): Promise<string | null> {
+    const userId = (req as any).userId as string | undefined;
+    const organizationId = await resolveUserOrganizationId(userId);
+    if (!organizationId) {
+        res.status(403).json({
             success: false,
-            error: 'Código do atendente é obrigatório'
+            error: 'Usuário sem organização ativa',
+            code: 'NO_ACTIVE_ORG'
         });
+        return null;
     }
+    return organizationId;
+}
 
-    const sanitizedCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
-    if (!sanitizedCode) {
-        return res.status(400).json({
-            success: false,
-            error: 'Código do atendente inválido'
-        });
-    }
-
-    try {
-        const params: Record<string, string> = {
-            SPSATEND: sanitizedCode,
-            SENHA: password || ''
-        };
-
-        const paramString = Object.entries({ CODCOLIGADA: '4', ...params })
-            .map(([k, v]) => `${k}=${v || ''}`)
-            .join(';') + ';';
-
-        const url = `${TOTVS_BASE_URL}/api/framework/v1/consultaSQLServer/RealizaConsulta/E.AUTHATENDENTE/0/S/?parameters=${encodeURIComponent(paramString)}`;
-
-        const response = await fetchWithTimeout(url, {
-            method: 'GET',
-            headers: {
-                ...JSON_HEADERS,
-                'Authorization': `Basic ${TOTVS_AUTH}`,
-                'login': '1'
-            }
-        }, 800);
-
-        if (!response.ok) {
-            throw new Error(`TOTVS responded with ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data && Array.isArray(data) && data.length > 0) {
-            const attendantData = data[0];
-
-            if (attendantData.CODIGO && attendantData.NOME) {
-                const token = generateSecureToken();
-                registerToken(token, `attendant:${sanitizedCode}`);
-                setAuthCookie(res, token);
-
-                logger.info('AUTH', 'Attendant login successful', { code: sanitizedCode });
-
-                return res.json({
-                    success: true,
-                    data: [{
-                        CODIGO: attendantData.CODIGO,
-                        NOME: attendantData.NOME
-                    }],
-                    message: 'Login realizado com sucesso'
-                });
-            }
-        }
-
-        logger.warn('AUTH', 'Attendant login failed - invalid credentials', { code: sanitizedCode, ip: req.ip });
-        return res.status(401).json({
-            success: false,
-            error: 'Credenciais inválidas'
-        });
-
-    } catch (error: any) {
-        logger.error('AUTH', `Attendant login error: ${error.message}`, { code: sanitizedCode });
-        return res.status(500).json({
-            success: false,
-            error: 'Erro ao autenticar. Tente novamente.'
-        });
-    }
-});
-
-// Protected person data routes
+// Protected person data routes (Supabase prod: customers + contacts)
 authRouter.get('/pessoa/cpf/:cpf', requireAuth, auditLog, async (req: Request, res: Response) => {
     const { cpf } = req.params;
 
@@ -418,17 +335,38 @@ authRouter.get('/pessoa/cpf/:cpf', requireAuth, auditLog, async (req: Request, r
         });
     }
 
+    const organizationId = await resolveCallerOrganization(req, res);
+    if (!organizationId) return;
+
     try {
-        const data = await totvsRestRequest('E.PESSOA', { CPF: cpfValidation.cleaned });
-        res.json(data);
+        const supabase = getSupabase();
+        const { data: customer, error } = await supabase
+            .from('customers')
+            .select('id, name, nome_fantasia, documento, email, phone, tipo, status, segmento, cidade, created_at')
+            .eq('organization_id', organizationId)
+            .eq('documento', cpfValidation.cleaned)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'Pessoa não encontrada', code: 'NOT_FOUND' });
+        }
+
+        const { data: contacts } = await supabase
+            .from('contacts')
+            .select('id, first_name, last_name, email, phone, job_title, is_primary')
+            .eq('organization_id', organizationId)
+            .eq('customer_id', (customer as { id: string }).id);
+
+        res.json({ success: true, data: { ...customer, contacts: contacts || [] } });
     } catch (error: any) {
-        handleError(res, error, `totvs/pessoa/cpf/${cpfValidation.cleaned}`);
+        logger.error('API', `Erro ao buscar pessoa por CPF: ${error.message}`);
+        res.status(500).json({ success: false, error: 'Erro ao buscar pessoa', code: 'LOOKUP_FAILED' });
     }
 });
 
 authRouter.get('/pessoa/completa/cpf/:cpf', requireAuth, auditLog, async (req: Request, res: Response) => {
     const { cpf } = req.params;
-    const codPessoa = req.query.codPessoa as string || '';
 
     const cpfValidation = validateCPF(cpf);
     if (!cpfValidation.valid) {
@@ -440,21 +378,50 @@ authRouter.get('/pessoa/completa/cpf/:cpf', requireAuth, auditLog, async (req: R
         });
     }
 
-    try {
-        const params: Record<string, string> = { CPF: cpfValidation.cleaned };
-        if (codPessoa) params.CODPESSOA = codPessoa;
+    const organizationId = await resolveCallerOrganization(req, res);
+    if (!organizationId) return;
 
-        const data = await totvsRestRequest('E.PESSOACOMP', params);
-        res.json(data);
+    try {
+        const supabase = getSupabase();
+        const { data: customer, error } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .eq('documento', cpfValidation.cleaned)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'Pessoa não encontrada', code: 'NOT_FOUND' });
+        }
+
+        const customerId = (customer as { id: string }).id;
+        const [{ data: contacts }, { data: tickets }] = await Promise.all([
+            supabase
+                .from('contacts')
+                .select('id, first_name, last_name, email, phone, job_title, is_primary')
+                .eq('organization_id', organizationId)
+                .eq('customer_id', customerId),
+            supabase
+                .from('support_tickets')
+                .select('id, code, subject, status, priority, channel, created_at, resolved_at')
+                .eq('organization_id', organizationId)
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false })
+                .limit(20),
+        ]);
+
+        res.json({ success: true, data: { ...customer, contacts: contacts || [], tickets: tickets || [] } });
     } catch (error: any) {
-        handleError(res, error, `totvs/pessoa/completa/cpf/${cpfValidation.cleaned}`);
+        logger.error('API', `Erro ao buscar pessoa completa por CPF: ${error.message}`);
+        res.status(500).json({ success: false, error: 'Erro ao buscar pessoa', code: 'LOOKUP_FAILED' });
     }
 });
 
 authRouter.get('/pessoa/:codigo', requireAuth, auditLog, async (req: Request, res: Response) => {
     const { codigo } = req.params;
 
-    if (!/^\d+$/.test(codigo)) {
+    if (!codigo || typeof codigo !== 'string' || codigo.length > 64) {
         logger.warn('API', `Código de pessoa inválido: ${codigo}`, { ip: req.ip });
         return res.status(400).json({
             success: false,
@@ -463,10 +430,26 @@ authRouter.get('/pessoa/:codigo', requireAuth, auditLog, async (req: Request, re
         });
     }
 
+    const organizationId = await resolveCallerOrganization(req, res);
+    if (!organizationId) return;
+
     try {
-        const data = await totvsRestRequest('E.PESSOA', { CODPESSOA: codigo });
-        res.json(data);
+        const supabase = getSupabase();
+        const { data: customer, error } = await supabase
+            .from('customers')
+            .select('id, name, nome_fantasia, documento, email, phone, tipo, status, segmento, cidade, created_at')
+            .eq('organization_id', organizationId)
+            .eq('id', codigo)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!customer) {
+            return res.status(404).json({ success: false, error: 'Pessoa não encontrada', code: 'NOT_FOUND' });
+        }
+
+        res.json({ success: true, data: customer });
     } catch (error: any) {
-        handleError(res, error, `totvs/pessoa/${codigo}`);
+        logger.error('API', `Erro ao buscar pessoa por código: ${error.message}`);
+        res.status(500).json({ success: false, error: 'Erro ao buscar pessoa', code: 'LOOKUP_FAILED' });
     }
 });

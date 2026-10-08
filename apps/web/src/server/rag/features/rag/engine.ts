@@ -1,7 +1,7 @@
 /**
  * @layer features/rag
  * @description Motor de RAG (Retrieval Augmented Generation)
- * Combina consulta às APIs do servidor com geração via Ollama
+ * Combina consulta à base Supabase (ops_documents) com geração via Ollama
  */
 
 import { Ollama } from 'ollama';
@@ -9,7 +9,7 @@ import type { RAGResponse, RAGSource, LLMOptions } from './types.js';
 import { DEFAULT_LLM_OPTIONS } from './types.js';
 import { formatPrompt, detectQueryType } from './prompt.js';
 import { formatApiData } from './prompt.js';
-import { getTOTVSClient } from '../api-client/client.js';
+import { getSupabase, PROD_ORGANIZATION_ID } from '../../shared/lib/supabase.js';
 
 // Configurações
 const LLM_MODEL = process.env.LLM_MODEL || 'gemma3:1b';
@@ -79,9 +79,44 @@ export class RAGEngine {
   /**
    * Consulta as APIs relevantes para a query
    */
+  /**
+   * Consulta a base de conhecimento Supabase (ops_documents, isolada por organização)
+   */
   async retrieve(query: string): Promise<any[]> {
-    const client = getTOTVSClient();
-    return client.searchAll(query);
+    const supabase = getSupabase();
+    const organizationId = process.env.CONTROL_PLANE_ORGANIZATION_ID || PROD_ORGANIZATION_ID;
+    const terms = query
+      .split(/\s+/)
+      .map((t) => t.replace(/[%_,]/g, '').trim())
+      .filter((t) => t.length > 2)
+      .slice(0, 4);
+    if (!terms.length) return [];
+
+    const orFilter = terms
+      .map((t) => `title.ilike.%${t}%,content.ilike.%${t}%`)
+      .join(',');
+
+    const { data, error } = await supabase
+      .from('ops_documents')
+      .select('id, title, content, category')
+      .eq('organization_id', organizationId)
+      .or(orFilter)
+      .limit(10);
+
+    if (error || !data?.length) return [];
+
+    return (data as Array<{ id: string; title: string | null; content: string | null; category: string | null }>).map(
+      (row) => ({
+        source: 'supabase:ops_documents',
+        endpoint: `ops_documents/${row.id}`,
+        data: {
+          title: row.title,
+          category: row.category,
+          excerpt: (row.content || '').slice(0, 2000),
+        },
+        success: true,
+      })
+    );
   }
 
   /**
@@ -147,12 +182,12 @@ export class RAGEngine {
    * Pipeline completo de RAG: retrieve + generate
    */
   async query(question: string): Promise<RAGResponse> {
-    // 1. Consultar APIs relevantes
+    // 1. Consultar a base de conhecimento
     const apiResults = await this.retrieve(question);
 
     if (!apiResults.length) {
       return {
-        answer: 'Não foi possível obter dados das APIs. Verifique se o servidor está online.',
+        answer: 'Não foi possível obter dados na base de conhecimento. Verifique se o Supabase está acessível.',
         sources: [],
         query: question,
       };
@@ -163,7 +198,7 @@ export class RAGEngine {
 
     if (!context) {
       return {
-        answer: 'Não encontrei informações relevantes para sua pergunta nas APIs disponíveis.',
+        answer: 'Não encontrei informações relevantes para sua pergunta na base de conhecimento.',
         sources: [],
         query: question,
       };
@@ -190,11 +225,11 @@ export class RAGEngine {
    * Pipeline RAG com streaming da resposta
    */
   async *queryStream(question: string): AsyncGenerator<string> {
-    // 1. Consultar APIs relevantes
+    // 1. Consultar a base de conhecimento
     const apiResults = await this.retrieve(question);
 
     if (!apiResults.length) {
-      yield 'Não foi possível obter dados das APIs. Verifique se o servidor está online.';
+      yield 'Não foi possível obter dados na base de conhecimento. Verifique se o Supabase está acessível.';
       return;
     }
 
@@ -202,7 +237,7 @@ export class RAGEngine {
     const context = this.formatContext(apiResults);
 
     if (!context) {
-      yield 'Não encontrei informações relevantes para sua pergunta nas APIs disponíveis.';
+      yield 'Não encontrei informações relevantes para sua pergunta na base de conhecimento.';
       return;
     }
 
@@ -227,23 +262,23 @@ export class RAGEngine {
   }
 
   /**
-   * Verifica o status de conexão com as APIs e LLM
+   * Verifica o status de conexão com a base Supabase e o LLM
    */
   async getApiStatus(): Promise<Record<string, boolean>> {
-    const client = getTOTVSClient();
+    const supabase = getSupabase();
 
     try {
-      const result = await client.getAreas();
+      const { error } = await supabase.from('ops_documents').select('id').limit(1);
       const llmAvailable = await this.checkLLMModel();
 
       return {
-        totvs: result.success,
-        fromCache: result.success ? (result.fromCache ?? false) : false,
+        supabase: !error,
+        fromCache: false,
         ollama: llmAvailable,
       };
     } catch (error) {
       return {
-        totvs: false,
+        supabase: false,
         fromCache: false,
         ollama: false
       };

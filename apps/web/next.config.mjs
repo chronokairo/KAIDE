@@ -9,7 +9,6 @@ const nextConfig = {
   outputFileTracingRoot: projectDirectory,
   images: { unoptimized: true },
   reactStrictMode: true,
-  transpilePackages: ['@chronokairo/platform'],
   webpack(config, { isServer }) {
     config.resolve.alias = {
       ...config.resolve.alias,

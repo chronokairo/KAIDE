@@ -72,7 +72,7 @@ chatRouter.post('/index/rebuild', async (req: Request, res: Response) => {
     await service.initialize();
     sendEvent('progress', '✓ Sistema inicializado', 30);
 
-    sendEvent('log', '📚 Carregando dados das APIs TOTVS...');
+    sendEvent('log', '📚 Carregando dados da base de conhecimento...');
     sendEvent('log', '  - Buscando áreas de conhecimento...');
     sendEvent('log', '  - Buscando ofertas de cursos...');
     sendEvent('log', '  - Buscando ranking de cursos...');
@@ -173,37 +173,6 @@ chatRouter.post('/stream', async (req: Request, res: Response) => {
     const service = getChatService();
 
     for await (const chunk of service.processMessageStream(body.message)) {
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-    }
-
-    res.end();
-  } catch (error) {
-    res.write(`data: ${JSON.stringify({ type: 'error', data: String(error) })}\n\n`);
-    res.end();
-  }
-});
-
-/**
- * POST /chat/turmas - Consulta específica sobre turmas e matrículas
- * Busca dados em tempo real das APIs e usa NLP para responder
- */
-chatRouter.post('/turmas', async (req: Request, res: Response) => {
-  const body = req.body as ChatRequest;
-
-  if (!body.message?.trim()) {
-    return res.status(400).json({ error: 'Message is required' });
-  }
-
-  // Configurar headers para SSE
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  try {
-    const service = getChatService();
-
-    for await (const chunk of service.processMessageTurmas(body.message)) {
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
 

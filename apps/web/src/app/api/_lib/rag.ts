@@ -51,12 +51,8 @@ export async function* rebuildEvents(): AsyncGenerator<{
     await service.initialize();
     yield { type: 'progress', message: '✓ Sistema inicializado', value: 30 };
 
-    yield { type: 'log', message: '📚 Carregando dados das APIs TOTVS...' };
-    yield { type: 'log', message: '  - Buscando áreas de conhecimento...' };
-    yield { type: 'log', message: '  - Buscando ofertas de cursos...' };
-    yield { type: 'log', message: '  - Buscando ranking de cursos...' };
-    yield { type: 'log', message: '  - Buscando histórico de matrículas...' };
-    yield { type: 'progress', message: '🔍 Coletando dados...', value: 50 };
+    yield { type: 'log', message: '📚 Carregando documentos da base Supabase (ops_documents)...' };
+    yield { type: 'progress', message: '🔍 Coletando documentos...', value: 50 };
 
     yield { type: 'log', message: '🧠 Gerando embeddings e indexando documentos...' };
     const result = await service.indexDocuments();

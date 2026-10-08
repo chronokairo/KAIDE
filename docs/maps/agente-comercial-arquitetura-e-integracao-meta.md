@@ -395,7 +395,7 @@ export function createChatComposition(): ChatComposition {
 ### 5.3 Camada HTTP (adapters primários)
 
 - `apps/web/src/app/api/control-plane/jobs/execute/route.ts:1-94` — `POST` e `GET` com `jobName` no body/query; instancia use cases na mão (`:16`, `:32`, `:65`); default `'qa.review_pr'` (`:13`, `:61`).
-- `apps/web/src/app/api/_lib/` — `auth.ts`, `http.ts`, `rag.ts`, `rate-limit.ts`, `sse.ts`, `totvs-proxy.ts`.
+- `apps/web/src/app/api/_lib/` — `auth.ts`, `http.ts`, `rag.ts`, `rate-limit.ts`, `sse.ts`.
 - **Não existe route de aprovação/rejeição**. A UI consome `approveJob`/`rejectJob` direto do adapter in-memory via hook (`use-company-monitor.ts`), sem passar por HTTP. Isso significa que **aprovação humana não é auditada no servidor** — gap relevante de governança.
 
 ---

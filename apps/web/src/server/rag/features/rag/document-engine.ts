@@ -4,7 +4,7 @@
  */
 
 import { Ollama } from 'ollama';
-import { TOTVSDocumentLoader } from '../documents/totvs-loader.js';
+import { SupabaseDocumentLoader } from '../documents/supabase-loader.js';
 import { VectorStore, type EmbeddingFunction } from '../documents/vector-store.js';
 import type { Document } from '../documents/types.js';
 import type { RAGResponse, RAGSource, LLMOptions } from './types.js';
@@ -91,7 +91,7 @@ export class DocumentRAGEngine {
     private llmModel: string;
     private embeddingModel: string;
     private options: LLMOptions;
-    private loader: TOTVSDocumentLoader;
+    private loader: SupabaseDocumentLoader;
     private vectorStore: VectorStore;
     private isInitialized: boolean = false;
 
@@ -100,7 +100,7 @@ export class DocumentRAGEngine {
         this.llmModel = LLM_MODEL;
         this.embeddingModel = EMBEDDING_MODEL;
         this.options = options;
-        this.loader = new TOTVSDocumentLoader();
+        this.loader = new SupabaseDocumentLoader();
         this.vectorStore = new VectorStore(CHROMA_PERSIST_DIR);
     }
 

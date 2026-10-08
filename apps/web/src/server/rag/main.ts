@@ -3,7 +3,7 @@
  * 
  * Estrutura:
  * - app/       - Bootstrap e configuração do servidor Express
- * - features/  - Funcionalidades de negócio (cms, totvs, auth, admin, health)
+ * - features/  - Funcionalidades de negócio (cms, auth, admin, health)
  * - entities/  - Modelos de domínio (atendente)
  * - shared/    - Código compartilhado (config, lib, types)
  */
@@ -13,9 +13,7 @@ import './env.js';
 
 import { createApp, setupRoutes, setupStaticFiles } from './app/index.js';
 import { logger } from './shared/lib/logger.js';
-import { PORT, TOTVS_AUTH } from './shared/config/environment.js';
-
-console.log('🔑 TOTVS_AUTH após imports:', TOTVS_AUTH ? TOTVS_AUTH.substring(0, 15) + '...' : 'VAZIO');
+import { PORT } from './shared/config/environment.js';
 
 async function startServer() {
     const { app, server } = createApp();

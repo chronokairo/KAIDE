@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ThemeProvider } from '@chronokairo/platform/ui';
+import { ThemeProvider } from '@/shared/components/ui/theme';
 import { useChat } from '@/application/use-cases/use-chat';
 import { AppBar } from './AppBar';
 import { LeftSidebar } from './LeftSidebar';

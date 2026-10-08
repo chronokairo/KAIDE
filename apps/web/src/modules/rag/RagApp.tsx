@@ -51,7 +51,8 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { ThemeProvider, ThemeToggle, Button } from '@chronokairo/platform/ui';
+import { ThemeProvider, ThemeToggle } from '@/shared/components/ui/theme';
+import { Button } from '@/shared/components/ui/button';
 
 // Register Chart.js components
 ChartJS.register(
