@@ -1,131 +1,165 @@
-# Kaide (ex-Kaide)
+<p align="center"><strong>Kaide</strong> is a coding agent from ChronoKairo (Kairos Code + AI + IDE) that runs locally on your computer.</p>
 
-![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-![Tauri](https://img.shields.io/badge/Tauri-24C8DB?style=flat&logo=tauri&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+<p align="center">
+  <a href="#english">English</a> · <a href="#português">Português</a>
+</p>
 
-Kaide = Kairos Code + AI + IDE. Monorepo no layout de `openai/codex` (ver ADR-0042): `apps/web` (Next.js 16 / React 19 + RAG + Control Plane), `apps/desktop` (Tauri 2), `kaide-rs/` (workspace Rust: `core` zero-lib `kaide` / binário `kaide`, `shell`, `intelligence`), `sdk/typescript` (wrapper do binário) e as ferramentas de IA absorvidas do ecossistema.
+<p align="center">
+  <img src="https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white" alt="Rust" />
+  <img src="https://img.shields.io/badge/Tauri-24C8DB?style=flat&logo=tauri&logoColor=white" alt="Tauri" />
+  <img src="https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
+</p>
 
-Consolidação dos antigos `cli`, `desktop` e `ai` — histórico preservado nas branches `cli` e `desktop`.
+<p align="center">
+If you want Kaide in your terminal, build the core and run <code>npx kaide</code>.
+</br>If you want the desktop app experience, run <code>npm run desktop:dev</code> (Tauri 2).
+</br>If you want the web experience, run <code>npm run dev</code> (Next.js at <code>http://localhost:3010</code>).</p>
 
-## ✨ Funcionalidades
+---
 
-### Chat & Agentes de IA (experiência principal)
-- Chat com **streaming SSE** (`/api/ai/chat`) sobre arquitetura hexagonal (`apps/web/src/domain` → `apps/web/src/application` → `apps/web/src/infrastructure`).
-- Chats especializados **Froia** e **Rapunzel** (criação de conteúdo) via ChatPanel compartilhado.
-- Catálogo de **modelos LLM** (`/api/ai/models`), credenciais **NVIDIA NIM**, probe local (Ollama) e proxy LLM.
-- Suíte de controle de inteligência (thinkcoffee): **Agentes, Skills, Memória, Sessões, Prompts, Hooks e Patches** (`apps/web/src/modules/ai`).
+## English
 
-### Governança & Runtime de Agentes
-- Dashboard de governança com 17 visões: Runtime (Plan-Act-Verify), Gateway/Sessões, Models, Tools (matriz de risco L0–L4), Policy, Approvals, SpecLock, Transactions, Verification, Audit, Config, Agents, Channels, Chat, Cron, Logs e Memory (`apps/web/src/modules/governance/dashboard`).
-- SafetyNet: `validateCommand`, guardrails, dry-run, snapshots e roteamento de custos.
+**Kaide** (Kairos Code + AI + IDE) is ChronoKairo's coding agent: a zero-lib Rust core (`kaide`), a Tauri 2 desktop app, a Next.js web app with RAG (Ollama + TOTVS) and a virtual-agents Control Plane — all in one monorepo, mirroring the layout of [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
 
-### RAG (Retrieval Augmented Generation)
-- UI em `/rag` + backend em Next API routes (`apps/web/src/app/api/*`) sobre o núcleo `apps/web/src/server/rag`: engine RAG, vector store persistente, chat com fontes, conversas, documentos, auth, admin, health e MCP server.
-- Integração **TOTVS** (proxy SOAP/REST com cache) e geração local via **Ollama**.
+### Installing and running Kaide
 
-### Orquestração & Tool Calling
-- Multiagente, function-calling, orquestrador de ferramentas, memória persistente, workflow determinístico, atendimento ao cliente, MCP e RAG (`apps/web/src/modules/orchestration`).
-- Harness de tool calling (Kairos) com integração TOTVS/CIESA (`apps/web/src/modules/harness`).
-- Catálogo MCP e planejador de agentes (`apps/web/src/modules/mcp-catalog`, `apps/web/src/modules/agent-planner`).
+Prerequisites: **Node.js 20+**, **npm**, and (for the desktop app) **Rust/Cargo** + the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
 
-### Outros módulos
-- **OSINT**: harness de investigação, due diligence e web search (`apps/web/src/modules/osint`).
-- **GitHub Notifications**: módulo hexagonal completo (`apps/web/src/modules/github-notifications`).
-- **OCR** (`apps/web/src/modules/ocr`), **coding agent Kairos-Dev** (`apps/web/src/modules/dev`) e repositórios de IA satélite (`bi`, `crm`, `financeiro`, `projetos`).
-
-### Núcleo Rust zero-lib (Kaide)
-- Crate `kaide` / binário `kaide` (`kaide-rs/core`, vendirado de `chronokairo/cli` — ver ADR-0042): agent, LLM, MCP, memory, skills, terminal, editor, tools, protocol, http, compressor, providers, app_server, async_rt, hw_recommend, image_gen — sem dependências externas.
-- Casca Tauri fina (`kaide-rs/shell`) para execução desktop nativa, consumindo o `kaide` por path dependency.
-
-### Telas de IA (data-screens)
-- `/ia` e subpáginas: agentes autônomos, automação inteligente, LLMs, modelos de IA, NLP e visão computacional.
-
-### Ferramentas absorvidas (`tools/`)
-21 ferramentas: ai-sales, anamnesic-sdk, bi-rag, browser-mcp-lite, cki-lite, clamp, cloud-ai, context, ecommerce-mcp, ecommerce-nlp, educacional-ai, legal-ocr, llm-server, marketing-ai, mastery-inference, nvidia-llm-ranking, projects-ai, research-rag, rg, sandbox e security-ai.
-
-## 🏗️ Arquitetura
-
-```
-kaide/
-├── apps/web/                   # Frontend Next.js (React 19) + scripts
-│   ├── src/
-│   │   ├── app/                # App Router — /, /rag, /ia/* e API routes (/api/ai/*, /api/chat/*, /api/totvs/*, /api/auth/*, /api/froia, /api/rapunzel)
-│   │   ├── domain/             # Entidades e regras de domínio (hexagonal)
-│   │   ├── application/        # Casos de uso e portas (hexagonal)
-│   │   ├── infrastructure/     # Adapters de infraestrutura (LLM, credenciais, Tauri, Supabase)
-│   │   ├── features/           # Composição de features (ai-chat, ai-credentials)
-│   │   ├── modules/            # Módulos de negócio (ai, rag, governance, harness, orchestration, osint, github-notifications, dev, ocr, mcp-catalog, agent-planner, bi, crm, financeiro, projetos)
-│   │   │   └── rag/            # UI do subsistema RAG (RagApp) — rota /rag
-│   │   ├── server/             # Núcleo do RAG (features, entities, shared) — consumido pelas API routes
-│   │   ├── providers/          # Providers React (layout, harness, tauri runtime)
-│   │   └── shared/             # Componentes/config compartilhados
-│   └── scripts/                # Jobs do Control Plane + build Tauri
-├── apps/desktop/               # App desktop (tauri.conf.json, icons, capabilities)
-├── kaide-rs/                   # Workspace Rust (espelho do codex-rs/)
-│   ├── core/                   # Crate zero-lib `kaide` (vendirado de chronokairo/cli)
-│   ├── shell/                  # Casca Tauri fina (consome o core por path)
-│   └── intelligence/           # Harness de OSINT e Due Diligence
-├── sdk/typescript/             # @chronokairo/kaide-sdk — wrapper do binário kaide
-├── tools/                      # 21 ferramentas de IA absorvidas (research, anamnesic, sandbox, ...)
-├── mcp/                        # Servidores MCP
-├── supabase/                   # Migrações e config Supabase
-├── docs/                       # Documentação — ADRs (docs/adr) e mapas (docs/maps)
-├── AGENTS.md                   # Regras do produto + índice de ADRs
-└── package.json                # Workspaces npm (apps/web, sdk/typescript)
-```
-
-Princípios:
-- **Núcleo Rust zero-lib** (`kaide-rs/core`, crate `kaide` / binário `kaide`): a lógica do agente/CLI é a fonte de verdade; o Tauri é apenas uma casca fina que a consome.
-- **Frontend Next** consome a **UI compartilhada** do platform (`@chronokairo/platform/ui`).
-- **Hexagonal**: domínio/casos de uso desacoplados de infraestrutura (ver `AGENTS.md`).
-
-## 🌿 Branches
-
-O histórico dos repositórios originais foi preservado como branches:
-- `main` — monorepo unificado (este layout).
-- `cli` — histórico do antigo `chronokairo/cli` (crate Rust zero-lib). Esse
-  código virou o repo próprio [`chronokairo/cli`](https://gitlab.com/chronokairo/cli)
-  (ver [ADR-0027](docs/adr/0027-extracao-core-ckc-para-repo-cli.md)); a branch
-  fica aqui só como arquivo histórico.
-- `desktop` — histórico do antigo `chronokairo/desktop` (Next + Tauri).
-
-## 🚀 Desenvolvimento
-
-Pré-requisitos: **Node.js 20+**, **npm**, e (para o desktop) **Rust/Cargo** + toolchain do Tauri.
-
-```bash
+```shell
+# Clone (private repo — requires access) and install
 git clone https://github.com/chronokairo/kaide.git
 cd kaide
 npm install
 ```
 
+Build the Rust core and run it through the SDK wrapper (resolves `KAIDE_BIN` → `kaide-rs/target/debug|release/kaide` → `kaide` on PATH):
+
+```shell
+# Build the core binary
+cargo build --manifest-path kaide-rs/Cargo.toml -p ckc --bin kaide
+
+# Then simply run kaide to get started
+npx kaide --help
+```
+
+Desktop and web run from the same checkout:
+
+```shell
+# Desktop app (Tauri 2)
+npm run desktop:dev
+
+# Web app (Next.js at http://localhost:3010)
+npm run dev
+```
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Next.js frontend at `http://localhost:3010` |
+| `npm run build` | Production frontend build (static export for Tauri) |
+| `npm start` | Serve the production build |
+| `npm run desktop:dev` / `npm run desktop:build` | Tauri desktop app (requires Rust/Cargo) |
+| `npm run rust:check` / `npm run rust:test` | Check / test the `kaide-rs/` workspace |
+| `npm test` | Web tests (Vitest) |
+| `npm run typecheck` | Type checking (`tsc --noEmit`) |
+
+### Using Kaide with your providers
+
+Kaide works with local models via **Ollama** and cloud models via configured providers (including NVIDIA NIM credentials and an LLM proxy). Provider secrets stay server-side only — they are never bundled into the browser or desktop frontend. See [`AGENTS.md`](AGENTS.md) for the authorization and human-approval rules (AI → AI → AI → HUMAN, never AI → production).
+
+### Docs
+
+- [**Product rules & architecture**](AGENTS.md) (hexagonal, Control Plane, ADR index)
+- [**ADRs**](docs/adr/) (see [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) for the monorepo reunification)
+- [**Contributing**](CONTRIBUTING.md)
+- [**Changelog**](CHANGELOG.md) · [**Tech debt**](TODO.md) · [**RAG**](docs/rag/)
+
+### Repository layout
+
+```text
+kaide/
+├── apps/web/         # Next.js frontend + Control Plane jobs + RAG (apps/web/src/…)
+├── apps/desktop/     # Tauri app (tauri.conf.json, icons, capabilities)
+├── kaide-rs/         # Cargo workspace: core/ (zero-lib `kaide`), shell/, intelligence/
+├── sdk/typescript/   # @chronokairo/kaide-sdk — resolves and runs the `kaide` binary
+├── tools/            # Absorbed AI tools · mcp/ · supabase/ · docs/
+└── package.json      # npm workspaces (apps/web, sdk/typescript)
+```
+
+### License
+
+**Proprietary — internal ChronoKairo use.** All rights reserved.
+
+---
+
+## Português
+
+**Kaide** (Kairos Code + AI + IDE) é o coding agent da ChronoKairo: um núcleo Rust zero-lib (`kaide`), um app desktop Tauri 2, um app web Next.js com RAG (Ollama + TOTVS) e um Control Plane de agentes virtuais — tudo num monorepo só, espelhando o layout do [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
+
+### Instalando e executando o Kaide
+
+Pré-requisitos: **Node.js 20+**, **npm** e (para o app desktop) **Rust/Cargo** + os [pré-requisitos do Tauri](https://tauri.app/start/prerequisites/) do seu SO.
+
+```shell
+# Clone (repo privado — requer acesso) e instale
+git clone https://github.com/chronokairo/kaide.git
+cd kaide
+npm install
+```
+
+Compile o núcleo Rust e execute pelo wrapper do SDK (resolve `KAIDE_BIN` → `kaide-rs/target/debug|release/kaide` → `kaide` no PATH):
+
+```shell
+# Compila o binário do núcleo
+cargo build --manifest-path kaide-rs/Cargo.toml -p ckc --bin kaide
+
+# E execute o kaide para começar
+npx kaide --help
+```
+
+Desktop e web rodam do mesmo checkout:
+
+```shell
+# App desktop (Tauri 2)
+npm run desktop:dev
+
+# App web (Next.js em http://localhost:3010)
+npm run dev
+```
+
 | Comando | Descrição |
 | --- | --- |
-| `npm run dev` | Frontend Next em `http://localhost:3010` |
-| `npm run build` | Build de produção do frontend |
+| `npm run dev` | Frontend Next.js em `http://localhost:3010` |
+| `npm run build` | Build de produção do frontend (export estático para o Tauri) |
 | `npm start` | Serve o build de produção |
-| `npm run tauri:dev` | App desktop Tauri (requer Rust/Cargo) |
-| `npm test` | Testes (Vitest) |
+| `npm run desktop:dev` / `npm run desktop:build` | App desktop Tauri (requer Rust/Cargo) |
+| `npm run rust:check` / `npm run rust:test` | Check / testes do workspace `kaide-rs/` |
+| `npm test` | Testes do web (Vitest) |
 | `npm run typecheck` | Verificação de tipos (`tsc --noEmit`) |
 
-O subsistema **RAG** (Ollama/TOTVS) roda como Next API routes (`apps/web/src/app/api/chat|search|conversations|totvs|auth|admin|health`) sobre o núcleo `apps/web/src/server/rag` — migração concluída (ADR-0005, débito #2).
+### Usando o Kaide com seus provedores
 
-## 📦 Stack
+O Kaide funciona com modelos locais via **Ollama** e modelos de nuvem via provedores configurados (incluindo credenciais NVIDIA NIM e proxy LLM). Segredos de provedores ficam somente no backend — nunca no frontend web ou desktop. Veja o [`AGENTS.md`](AGENTS.md) para as regras de autorização e aprovação humana (AI → AI → AI → HUMAN, nunca AI → produção).
 
-- **Núcleo:** Rust (zero-lib, crate `kaide`) + **Tauri 2** (desktop).
-- **Frontend:** Next.js 16 (React 19) + Tailwind + `@chronokairo/platform/ui`.
-- **RAG:** React + `react-markdown`/`chart.js`, Next API routes + Ollama + integração TOTVS.
-- **Gerenciador de pacotes:** **npm**.
+### Documentação
 
-## 📚 Documentação
+- [**Regras do produto e arquitetura**](AGENTS.md) (hexagonal, Control Plane, índice de ADRs)
+- [**ADRs**](docs/adr/) (ver [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) sobre a reunificação do monorepo)
+- [**Contribuição**](CONTRIBUTING.md)
+- [**Changelog**](CHANGELOG.md) · [**Débitos técnicos**](TODO.md) · [**RAG**](docs/rag/)
 
-- ADRs: [`docs/adr/`](docs/adr/) — 22 decisões arquiteturais; índice completo em [`AGENTS.md`](AGENTS.md).
-- Changelog: [`CHANGELOG.md`](CHANGELOG.md).
-- Débitos técnicos e melhorias: [`TODO.md`](TODO.md).
-- RAG: [`docs/rag/`](docs/rag/).
+### Estrutura do repositório
 
-## 📄 Licença
+```text
+kaide/
+├── apps/web/         # Frontend Next.js + jobs do Control Plane + RAG (apps/web/src/…)
+├── apps/desktop/     # App Tauri (tauri.conf.json, icons, capabilities)
+├── kaide-rs/         # Workspace Cargo: core/ (zero-lib `kaide`), shell/, intelligence/
+├── sdk/typescript/   # @chronokairo/kaide-sdk — resolve e executa o binário `kaide`
+├── tools/            # Ferramentas de IA absorvidas · mcp/ · supabase/ · docs/
+└── package.json      # Workspaces npm (apps/web, sdk/typescript)
+```
 
-**Proprietário — uso interno da ChronoKairo.** Todos os direitos reservados.
+### Licença
+
+**Proprietária — uso interno da ChronoKairo.** Todos os direitos reservados.
