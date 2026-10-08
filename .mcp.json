@@ -1,7 +1,7 @@
 {
   "name": "chronokairo-ai",
   "version": "1.0.0",
-  "description": "MCP server for ChronoKairo AI - exposes jobs, approval gates, email outreach, and other agent capabilities",
+  "description": "MCP server for Kaide - exposes jobs, approval gates, email outreach, and other agent capabilities",
   "tools": [
     {
       "name": "runCommercialDaily",

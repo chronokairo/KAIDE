@@ -1,6 +1,6 @@
 # Automações do Copilot App
 
-As automações são criadas **no GitHub Copilot App** (não ficam versionadas aqui) e associadas ao repositório `chronokairo/ai`. Este documento é o catálogo: o que criar e com qual prompt. Referência: [Using automations in the GitHub Copilot app](https://docs.github.com/en/copilot/how-tos/github-copilot-app/using-automations).
+As automações são criadas **no GitHub Copilot App** (não ficam versionadas aqui) e associadas ao repositório `chronokairo/kaide`. Este documento é o catálogo: o que criar e com qual prompt. Referência: [Using automations in the GitHub Copilot app](https://docs.github.com/en/copilot/how-tos/github-copilot-app/using-automations).
 
 ## Princípio
 
@@ -15,7 +15,7 @@ A automação **não** carrega lógica. Mudar horário ou modelo não exige alte
 ## Prompt padrão de uma automação
 
 ```text
-Execute o job "<tipo>" no harness chronokairo/ai.
+Execute o job "<tipo>" no harness chronokairo/kaide.
 Siga .github/copilot-instructions.md e o agente <agente>.
 Crie o Job, registre eventos e evidências, e peça aprovação humana
 para qualquer ação externa, financeira ou de produção.
@@ -40,7 +40,7 @@ Horários em `America/New_York` ou o fuso que você escolher no app. Ajuste no a
 
 ## Passos para configurar
 
-1. Abra o Copilot App e selecione o repositório `chronokairo/ai`.
+1. Abra o Copilot App e selecione o repositório `chronokairo/kaide`.
 2. Crie uma automação por linha do catálogo, com o gatilho indicado e o prompt padrão (trocando `<tipo>` e `<agente>`).
 3. Garanta que as labels (`discover`, `implement`, `deploy`, `support`) existem no repositório.
 4. Comece com uma só (sugestão: **QA on PR**) e valide antes de habilitar as demais.

@@ -1,6 +1,6 @@
 # Mapa de Código — Agente Comercial, Control Plane e Integração Meta Business SDK
 
-> Documento gerado por exploração do repositório. Caminhos e números de linha refletem o estado em `5e55d03` (+ alterações de trabalho em `src/domain/commercial.ts`, `src/application/ports/lead-repository-port.ts`, `src/application/use-cases/execute-commercial-followup.ts`, `src/infrastructure/crm/`).
+> Documento gerado por exploração do repositório. Caminhos e números de linha refletem o estado em `5e55d03` (+ alterações de trabalho em `apps/web/src/domain/commercial.ts`, `apps/web/src/application/ports/lead-repository-port.ts`, `apps/web/src/application/use-cases/execute-commercial-followup.ts`, `apps/web/src/infrastructure/crm/`).
 >
 > Objetivo do documento: responder às 10 perguntas da exploratory task e entregar o plano de encaixe do SDK `facebook-nodejs-business-sdk` no agente **Comercial** respeitando a arquitetura hexagonal e o Human Gate (`AI → AI → AI → HUMAN`).
 
@@ -31,7 +31,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| `name` | `@chronokairo/ai` |
+| `name` | `@chronokairo/kaide` |
 | `private` | `true` |
 | `version` | `1.0.0` |
 | `exports` | `./froia`, `./rapunzel`, `./data-screens`, `./governance`, `./osint` |
@@ -64,9 +64,9 @@
 - Dev: `vitest ^5.0.2`, `typescript ^6.0.2`, `tsx ^4.23.15`, `@tailwindcss/postcss`.
 
 > **Dédito crítico**: **`zod` não está declarado** em `dependencies` nem `devDependencies` (`npm ls zod --depth=0` → `(empty)`), mas é importado em pelo menos 3 arquivos:
-> - `src/app/api/ai/chat/route.ts:2`
-> - `src/app/api/ai/credentials/nvidia/route.ts:2`
-> - `src/modules/mcp-catalog/catalog.ts:1-2`
+> - `apps/web/src/app/api/ai/chat/route.ts:2`
+> - `apps/web/src/app/api/ai/credentials/nvidia/route.ts:2`
+> - `apps/web/src/modules/mcp-catalog/catalog.ts:1-2`
 >
 > Hoje resolve por *hoist* transitivo via `@chronokairo/platform`. Um novo adapter que dependa de `zod` para validar entrada criaria fragilidade de build.
 
@@ -74,9 +74,9 @@
 
 - `strict: true`, `noEmit: true`, `module: esnext`, `moduleResolution: bundler`, `target: ES2022`.
 - Alias: `@/* → ./src/*` (`tsconfig.json:23-25`).
-- `include`: `next-env.d.ts`, `src/**/*.ts(x)`, `.next/types`, `.next/dev/types`.
-- `exclude` (`tsconfig.json:38-43`): `node_modules`, **`src/server`**, `src/modules/ai/legacy-kairos-screens`, **`src/**/__tests__/*`**.
-  - `src/server` (Express legado do RAG, ver [ADR-0001](../adr/0001-unificacao-monorepo-ai.md:35)) está **fora do typecheck**.
+- `include`: `next-env.d.ts`, `apps/web/src/**/*.ts(x)`, `.next/types`, `.next/dev/types`.
+- `exclude` (`tsconfig.json:38-43`): `node_modules`, **`apps/web/src/server`**, `apps/web/src/modules/ai/legacy-kairos-screens`, **`apps/web/src/**/__tests__/*`**.
+  - `apps/web/src/server` (Express legado do RAG, ver [ADR-0001](../adr/0001-unificacao-monorepo-ai.md:35)) está **fora do typecheck**.
   - Testes também estão **fora do typecheck**.
 
 ### 1.3 `vitest.config.ts` (`vitest.config.ts:1-13`)
@@ -86,7 +86,7 @@ resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
 test: { include: ['src/**/__tests__/**/*.test.{ts,tsx}'] }
 ```
 
-Padrão de teste: `src/**/__tests__/**/*.test.ts` — apenas Unitários de use case/adapters de infra in-memory.
+Padrão de teste: `apps/web/src/**/__tests__/**/*.test.ts` — apenas Unitários de use case/adapters de infra in-memory.
 
 ### 1.4 Arquivos de topo
 
@@ -94,23 +94,23 @@ Padrão de teste: `src/**/__tests__/**/*.test.ts` — apenas Unitários de use c
 
 Scripts em `scripts/`: `build-tauri.mjs`, `execute-commercial-followup.ts`, `execute-qa-pr-review.ts`.
 
-### 1.5 Inventário de `src/` (arquivos `.ts`/`.tsx`)
+### 1.5 Inventário de `apps/web/src/` (arquivos `.ts`/`.tsx`)
 
-- `src/domain/` — 6 arquivos: `auth.ts`, `chat.ts`, `commercial.ts`, `company.ts`, `errors.ts`, `qa.ts`.
-- `src/application/ports/` — 9 arquivos + barrel `index.ts`.
-- `src/application/use-cases/` — 5 use cases/hooks + 3 testes.
-- `src/features/` — 2 composition roots (`ai-chat`, `ai-credentials`).
-- `src/infrastructure/` — subpastas `control-plane/`, `credentials/`, `crm/`, `http/`, `identity/`, `llm/`, `qa/`, `tauri/`, `ui/`, `composition/`.
-- `src/modules/` — legado absorvido: `ai/` (tools de domínio, governance), `crm/`, `bi/`, `financeiro/`, `projetos/`, `github-notifications/`, `governance/`, `harness/`, `mcp-catalog/`, `ocr/`, `orchestration/`, `osint/`, `agent-planner/`, `dev/`.
-- `src/server/rag/` — Express legado, fora do typecheck.
-- `src/shared/` — `components/ui/{button,card,input}.tsx`, `config/erp-modules.ts`, `crypto-vault.ts`, `supabase.ts`.
-- `src/app/` — App Router; `(ia)/ia/*`, `rag/`, `api/**` (~60 routes).
+- `apps/web/src/domain/` — 6 arquivos: `auth.ts`, `chat.ts`, `commercial.ts`, `company.ts`, `errors.ts`, `qa.ts`.
+- `apps/web/src/application/ports/` — 9 arquivos + barrel `index.ts`.
+- `apps/web/src/application/use-cases/` — 5 use cases/hooks + 3 testes.
+- `apps/web/src/features/` — 2 composition roots (`ai-chat`, `ai-credentials`).
+- `apps/web/src/infrastructure/` — subpastas `control-plane/`, `credentials/`, `crm/`, `http/`, `identity/`, `llm/`, `qa/`, `tauri/`, `ui/`, `composition/`.
+- `apps/web/src/modules/` — legado absorvido: `ai/` (tools de domínio, governance), `crm/`, `bi/`, `financeiro/`, `projetos/`, `github-notifications/`, `governance/`, `harness/`, `mcp-catalog/`, `ocr/`, `orchestration/`, `osint/`, `agent-planner/`, `dev/`.
+- `apps/web/src/server/rag/` — Express legado, fora do typecheck.
+- `apps/web/src/shared/` — `components/ui/{button,card,input}.tsx`, `config/erp-modules.ts`, `crypto-vault.ts`, `supabase.ts`.
+- `apps/web/src/app/` — App Router; `(ia)/ia/*`, `rag/`, `api/**` (~60 routes).
 
 ---
 
 ## 2. Camadas do domínio
 
-### 2.1 `src/domain/company.ts` (`src/domain/company.ts:1-79`) — núcleo da Empresa Virtual
+### 2.1 `apps/web/src/domain/company.ts` (`apps/web/src/domain/company.ts:1-79`) — núcleo da Empresa Virtual
 
 ```ts
 export type AgentRole =
@@ -158,7 +158,7 @@ export interface CompanyTelemetry {
 
 > **Ponto de atenção para a integração Meta**: o gate `outbound_contact` (`:42`) existe exatamente para comunicações externas — é o gancho para gating de anúncios/lead ads/Messenger.
 
-### 2.2 `src/domain/commercial.ts` (`src/domain/commercial.ts:1-65`)
+### 2.2 `apps/web/src/domain/commercial.ts` (`apps/web/src/domain/commercial.ts:1-65`)
 
 ```ts
 export type LeadStage =
@@ -196,17 +196,17 @@ export interface CommercialFollowupJobResult {
 
 > **Lacunas para Meta**: `channel` não contempla `messenger`/`instagram`; `Lead` não tem `metaLeadId`, `adAccountId`, `pageId`, `igAccountId`, `fbclid`/`fbc`/`fbp`, nem `source: 'meta_ads' | ...`.
 
-### 2.3 `src/domain/qa.ts` (`src/domain/qa.ts:1-59`)
+### 2.3 `apps/web/src/domain/qa.ts` (`apps/web/src/domain/qa.ts:1-59`)
 
 `PRStatus`, `PullRequest`, `ReviewVerdict = 'PASS' | 'FAIL' | 'WARNING'`, `AdversarialCheckItem`, `AdversarialDimensionReview` (`unit_tests | integration_tests | security | tenant_rbac`), `PullRequestReviewReport`, `QaReviewJobResult`. Serve de **template estrutural** para qualquer novo domínio (mesma anatomia: entidade → relatório → resultado de job).
 
 ### 2.4 Outros
 
-- `src/domain/chat.ts` — `ChatCompletionRequest`, `ChatCompletionResult`.
-- `src/domain/auth.ts` — `AuthContext` (`userId`, …).
-- `src/domain/errors.ts` — `UnauthorizedError` e demais erros de domínio.
+- `apps/web/src/domain/chat.ts` — `ChatCompletionRequest`, `ChatCompletionResult`.
+- `apps/web/src/domain/auth.ts` — `AuthContext` (`userId`, …).
+- `apps/web/src/domain/errors.ts` — `UnauthorizedError` e demais erros de domínio.
 
-**Confirmação de pureza**: nenhum dos arquivos em `src/domain/` importa React, Next, Supabase ou SDKs. ✅
+**Confirmação de pureza**: nenhum dos arquivos em `apps/web/src/domain/` importa React, Next, Supabase ou SDKs. ✅
 
 ---
 
@@ -227,7 +227,7 @@ export interface CommercialFollowupJobResult {
 | `LeadRepositoryPort` | `lead-repository-port.ts:3-10` | ver abaixo |
 | `PullRequestRepositoryPort` | `pr-repository-port.ts:3` | criado em `b92bc77` |
 
-**`LeadRepositoryPort`** (`src/application/ports/lead-repository-port.ts:3-10`)
+**`LeadRepositoryPort`** (`apps/web/src/application/ports/lead-repository-port.ts:3-10`)
 
 ```ts
 export interface LeadRepositoryPort {
@@ -242,7 +242,7 @@ export interface LeadRepositoryPort {
 
 > Note o **método opcional** `getDraftsByJobId?` — o Control Plane sempre chama com `?.()` e `|| []` (`in-memory-control-plane.ts:309`, `:361`). É o padrão para operações cujo adapter pode não suportar a extensão.
 
-### 3.2 `src/application/ports/index.ts` (`index.ts:1-7`) — **incompleto**
+### 3.2 `apps/web/src/application/ports/index.ts` (`index.ts:1-7`) — **incompleto**
 
 ```ts
 export type { IdentityPort } from './identity-port';
@@ -269,7 +269,7 @@ export type { AuditPort, AuditEvent } from './audit-port';
 
 Classes `XxxUseCase` com **injeção por construtor** de ports, um método público `execute(): Promise<Resultado>`, e helpers privados. Sem decorators, sem container DI.
 
-**Exemplo canônico — `ExecuteCommercialFollowupUseCase`** (`src/application/use-cases/execute-commercial-followup.ts:6-134`)
+**Exemplo canônico — `ExecuteCommercialFollowupUseCase`** (`apps/web/src/application/use-cases/execute-commercial-followup.ts:6-134`)
 
 ```ts
 export class ExecuteCommercialFollowupUseCase {
@@ -321,7 +321,7 @@ export class ExecuteCommercialFollowupUseCase {
 
 ### 4.3 Composition roots (padrão de DI do projeto)
 
-`src/features/ai-chat/composition/server.ts:15-23`
+`apps/web/src/features/ai-chat/composition/server.ts:15-23`
 
 ```ts
 export function createChatComposition(): ChatComposition {
@@ -335,7 +335,7 @@ export function createChatComposition(): ChatComposition {
 }
 ```
 
-`src/features/ai-credentials/composition/server.ts` — idem para credenciais.
+`apps/web/src/features/ai-credentials/composition/server.ts` — idem para credenciais.
 
 > Hoje **não existe** composition root para o Control Plane. O wiring de `commercial.followup` é feito de forma **ad-hoc** em 3 lugares (route HTTP, `executeJob` do adapter in-memory, script CLI), cada um instanciando os use cases na mão.
 
@@ -360,7 +360,7 @@ export function createChatComposition(): ChatComposition {
 
 ### 5.2 Exemplos completos de adapter
 
-**`InMemoryLeadRepository`** (`src/infrastructure/crm/in-memory-lead-repository.ts:1-101`)
+**`InMemoryLeadRepository`** (`apps/web/src/infrastructure/crm/in-memory-lead-repository.ts:1-101`)
 
 - 3 leads seed em memória (`lead-001` InovaHealth, `lead-002` Alpha Finanças, `lead-003` LogTech) com `needsSummary`, `score`, `priority`.
 - `drafts: Map<string, FollowupDraft>` (`:59`).
@@ -369,11 +369,11 @@ export function createChatComposition(): ChatComposition {
 - Exporta singleton `defaultLeadRepository` (`:101`).
 - Expõe `getAllDrafts()` "helper for tests/reset" (`:95-98`).
 
-**`SupabaseIdentityAdapter`** (`src/infrastructure/identity/supabase-identity-adapter.ts:8-18`) — delega para `authenticateRequest` da feature e traduz erro em `UnauthorizedError`.
+**`SupabaseIdentityAdapter`** (`apps/web/src/infrastructure/identity/supabase-identity-adapter.ts:8-18`) — delega para `authenticateRequest` da feature e traduz erro em `UnauthorizedError`.
 
-**`NvidiaCredentialAdapter`** (`src/infrastructure/credentials/nvidia-credential-adapter.ts:7-12`) — delega para `createNvidiaCredentialService()`.
+**`NvidiaCredentialAdapter`** (`apps/web/src/infrastructure/credentials/nvidia-credential-adapter.ts:7-12`) — delega para `createNvidiaCredentialService()`.
 
-**`InMemoryCompanyControlPlaneAdapter`** (`src/infrastructure/control-plane/in-memory-control-plane.ts:10-395`)
+**`InMemoryCompanyControlPlaneAdapter`** (`apps/web/src/infrastructure/control-plane/in-memory-control-plane.ts:10-395`)
 
 - Construtor recebe repositórios com default (`:14-17`).
 - Seed de **9 `AgentEntity`** (`:18-167`), um por papel, com coordenadas 3D para a cena Three.js. O Comercial (`:35-50`): `id: 'agent-commercial'`, `title: 'SDR & Qualificação de Leads'`, `activeTools: ['crm_search', 'company_due_diligence', 'meeting_notes_extractor', 'followup_composer']`.
@@ -394,8 +394,8 @@ export function createChatComposition(): ChatComposition {
 
 ### 5.3 Camada HTTP (adapters primários)
 
-- `src/app/api/control-plane/jobs/execute/route.ts:1-94` — `POST` e `GET` com `jobName` no body/query; instancia use cases na mão (`:16`, `:32`, `:65`); default `'qa.review_pr'` (`:13`, `:61`).
-- `src/app/api/_lib/` — `auth.ts`, `http.ts`, `rag.ts`, `rate-limit.ts`, `sse.ts`, `totvs-proxy.ts`.
+- `apps/web/src/app/api/control-plane/jobs/execute/route.ts:1-94` — `POST` e `GET` com `jobName` no body/query; instancia use cases na mão (`:16`, `:32`, `:65`); default `'qa.review_pr'` (`:13`, `:61`).
+- `apps/web/src/app/api/_lib/` — `auth.ts`, `http.ts`, `rag.ts`, `rate-limit.ts`, `sse.ts`, `totvs-proxy.ts`.
 - **Não existe route de aprovação/rejeição**. A UI consome `approveJob`/`rejectJob` direto do adapter in-memory via hook (`use-company-monitor.ts`), sem passar por HTTP. Isso significa que **aprovação humana não é auditada no servidor** — gap relevante de governança.
 
 ---
@@ -406,9 +406,9 @@ export function createChatComposition(): ChatComposition {
 
 **(a) Novo/hexagonal** — `JobEntity.toolsUsed: string[]` apenas descritivo. Não é executável.
 
-**(b) Legado `src/modules/ai/core/tools/`** — registry real e executável.
+**(b) Legado `apps/web/src/modules/ai/core/tools/`** — registry real e executável.
 
-### 6.2 `src/modules/ai/core/tools/types.ts` e `domain/types.ts`
+### 6.2 `apps/web/src/modules/ai/core/tools/types.ts` e `domain/types.ts`
 
 ```ts
 export type AiUserRole = 'owner' | 'admin' | 'operator' | 'viewer' | 'billing';  // domain/types.ts:1
@@ -450,7 +450,7 @@ export interface AiToolResult<TData> { toolName, definitionVersion, organization
 
 > **Ressalva**: `DomainToolMetadata.domain` é uma **union fechada sem `'ads'`/`'marketing'`**. Para tools Meta seria preciso ampliar (ou usar `'core'`).
 
-### 6.3 `registry.ts` (`src/modules/ai/core/tools/registry.ts:22-127`)
+### 6.3 `registry.ts` (`apps/web/src/modules/ai/core/tools/registry.ts:22-127`)
 
 Fluxo de `execute(name, input, ctx, requestApproval?)` (`:54-94`):
 
@@ -464,7 +464,7 @@ Fluxo de `execute(name, input, ctx, requestApproval?)` (`:54-94`):
 
 `HumanApprovalHandler = (tool, input) => Promise<boolean>` (`:20`).
 
-### 6.4 `permissions.ts` (`src/modules/ai/core/tools/permissions.ts:3-6`)
+### 6.4 `permissions.ts` (`apps/web/src/modules/ai/core/tools/permissions.ts:3-6`)
 
 ```ts
 export function authorizeToolExecution(requiredRoles, ctx): boolean {
@@ -481,7 +481,7 @@ Arquivos: `finance-tools.ts`, `crm-tools.ts`, `crm-write-tools.ts`, `sales-tools
 
 ### 6.6 Exemplos concretos
 
-**Leitura + escrita autorizada** (`src/modules/ai/core/tools/domain/sales-tools.ts:8-95`)
+**Leitura + escrita autorizada** (`apps/web/src/modules/ai/core/tools/domain/sales-tools.ts:8-95`)
 
 ```ts
 const metadata = (namespace: string): DomainToolMetadata =>
@@ -510,7 +510,7 @@ const writeRoles = ['owner','admin','operator'] as const;                       
 }
 ```
 
-**Tool de rede externa** (`src/modules/ai/core/tools/domain/web-tools.ts:1-130`)
+**Tool de rede externa** (`apps/web/src/modules/ai/core/tools/domain/web-tools.ts:1-130`)
 
 - `web.search` (`:8-27`) — **placeholder que retorna vazio** e pede `NEXT_PUBLIC_WEB_SEARCH_API_KEY`. Exemplo de dívida: tool registrada mas não implementada.
 - `web.fetch` (`:29-67`) — `fetch` real com `User-Agent`, `AbortSignal.timeout(10000)`, extração texto por regex, `slice(0, 5000)`.
@@ -530,10 +530,10 @@ Framework: **vitest** (`npx vitest run`). Apenas 4 arquivos de teste existem:
 
 | Arquivo | Alvo |
 | --- | --- |
-| `src/application/use-cases/__tests__/execute-commercial-followup.test.ts` | 4 testes do job Comercial (98 linhas) |
-| `src/application/use-cases/__tests__/execute-qa-pr-review.test.ts` | job QA |
-| `src/application/use-cases/__tests__/send-message.test.ts` | use case de chat |
-| `src/modules/governance/__tests__/governance.test.ts` | governança |
+| `apps/web/src/application/use-cases/__tests__/execute-commercial-followup.test.ts` | 4 testes do job Comercial (98 linhas) |
+| `apps/web/src/application/use-cases/__tests__/execute-qa-pr-review.test.ts` | job QA |
+| `apps/web/src/application/use-cases/__tests__/send-message.test.ts` | use case de chat |
+| `apps/web/src/modules/governance/__tests__/governance.test.ts` | governança |
 
 **Estrutura do teste do Comercial** (`execute-commercial-followup.test.ts:6-98`)
 
@@ -558,7 +558,7 @@ Os 4 cenários (`:17`, `:40`, `:65`, `:83`):
 
 **Cobertura do fluxo de aprovação = manual/in-memory.** Não há teste de tenant/RBAC, idempotência ou route HTTP — apesar do `AGENTS.md` exigir "testes de integração para consulta, escrita autorizada, negação por tenant/RBAC e idempotência".
 
-**Débitos**: `tsconfig.json:42` exclui `src/**/__tests__/*` ⇒ **testes não são typecheckados**.
+**Débitos**: `tsconfig.json:42` exclui `apps/web/src/**/__tests__/*` ⇒ **testes não são typecheckados**.
 
 ---
 
@@ -603,7 +603,7 @@ Existe `.env.local` (não versionado). Não há `zod` para validação de env.
 
 ### 9.2 Validação de env
 
-**Inexistente.** `src/server/rag/env.ts` e `src/server/rag/shared/config/environment.ts` usam defaults inline e estão **fora do typecheck** (`tsconfig.json:40`). `src/shared/supabase.ts` e `src/shared/crypto-vault.ts` são os pontos de acesso a chaves.
+**Inexistente.** `apps/web/src/server/rag/env.ts` e `apps/web/src/server/rag/shared/config/environment.ts` usam defaults inline e estão **fora do typecheck** (`tsconfig.json:40`). `apps/web/src/shared/supabase.ts` e `apps/web/src/shared/crypto-vault.ts` são os pontos de acesso a chaves.
 
 ---
 
@@ -695,11 +695,11 @@ src/app/api/control-plane/jobs/execute/route.ts      ← novo jobName
 docs/adr/0036-*.md                                   ← ADR
 ```
 
-**Regra de ouro**: `src/domain/meta-ads.ts` **não importa** `facebook-nodejs-business-sdk`. O SDK só aparece em `src/infrastructure/`. Isso é exigível pelo `AGENTS.md` ("Camadas estritas").
+**Regra de ouro**: `apps/web/src/domain/meta-ads.ts` **não importa** `facebook-nodejs-business-sdk`. O SDK só aparece em `apps/web/src/infrastructure/`. Isso é exigível pelo `AGENTS.md` ("Camadas estritas").
 
 ### 11.3 Passos de implementação propostos
 
-**Passo 1 — `src/domain/meta-ads.ts`** (domínio puro)
+**Passo 1 — `apps/web/src/domain/meta-ads.ts`** (domínio puro)
 
 - `MetaAdAccount { id: string; businessId: string; currency: string; timezone: string; spendCapUsd?: number }`
 - `MetaCampaign { id; adAccountId; name; objective: MetaObjective; status: 'ACTIVE'|'PAUSED'|'ARCHIVED'; dailyBudgetCents; createdTime; updatedTime }`
@@ -708,7 +708,7 @@ docs/adr/0036-*.md                                   ← ADR
 - Estender `LeadStage` de `commercial.ts` para aceitar `meta_lead` ou adicionar `source: 'meta_ads' | ...` + `metaLeadId?` em `Lead`.
 - Ampliar `FollowupDraft.channel` para `'email' | 'whatsapp' | 'messenger' | 'instagram'`.
 
-**Passo 2 — `src/application/ports/meta-ads-port.ts`**
+**Passo 2 — `apps/web/src/application/ports/meta-ads-port.ts`**
 
 ```ts
 export interface MetaAdsCredential {
@@ -724,13 +724,13 @@ export interface MetaAdsPort {
 }
 ```
 
-**Passo 3 — `src/infrastructure/meta/facebook-business-sdk-adapter.ts`**
+**Passo 3 — `apps/web/src/infrastructure/meta/facebook-business-sdk-adapter.ts`**
 
 - `import * as adsSdk from 'facebook-nodejs-business-sdk'` — import **estático e server-only** (`import 'server-only'` se disponível).
 - Cliente por tenant, memoizado por `organizationId` (o SDK é stateful por token).
 - `getApi(accessToken, appSecret)` — `FacebookAdsApi.init(token)`; implementar `appsecret_proof` (hash HMAC-SHA256 de `appsecret|token`).
 - **Paginação**: iterar `Cursor` até `hasNext() === false`.
-- **Erros**: normalizar para `src/domain/errors.ts`; nunca vazar token em logs/mensagens.
+- **Erros**: normalizar para `apps/web/src/domain/errors.ts`; nunca vazar token em logs/mensagens.
 - **Idempotência**: chave determinística por operação; mapear retry de rede.
 
 **Passo 4 — Tools tipadas** (`meta-ads-tools.ts`), no padrão de `sales-tools.ts` + `web-tools.ts`:
@@ -747,7 +747,7 @@ Ampliar `DomainToolMetadata['domain']` (`domain/types.ts:13`) com `'ads' | 'mark
 
 **Passo 5 — Novo job `commercial.meta_leads`**
 
-`src/application/use-cases/execute-commercial-meta-leads.ts`:
+`apps/web/src/application/use-cases/execute-commercial-meta-leads.ts`:
 1. `meta.lead_ads.sync` → importa Lead Ads como `Lead` (`source: 'meta_ads'`, `stage: 'inbound'`).
 2. Qualifica via `LlmPort` (aqui sim usar LLM, em vez do `generateDraft` hardcoded atual).
 3. Rascunhos com `channel: 'messenger'`.
@@ -795,12 +795,12 @@ META_CAPI_ACCESS_TOKEN=
 
 | # | Débito | Evidência | Impacto |
 | --- | --- | --- | --- |
-| 1 | **Barrel de ports incompleto** — 9 ports, 5 exportadas | `src/application/ports/index.ts:1-7` | Imports inconsistentes; adapters importam o path direto |
+| 1 | **Barrel de ports incompleto** — 9 ports, 5 exportadas | `apps/web/src/application/ports/index.ts:1-7` | Imports inconsistentes; adapters importam o path direto |
 | 2 | **`zod` é dependência fantasma** | não em `package.json`; usado em `api/ai/chat/route.ts:2`, `api/ai/credentials/nvidia/route.ts:2`, `mcp-catalog/catalog.ts:1-2` | Build pode quebrar |
 | 3 | **Testes fora do typecheck** | `tsconfig.json:42` | Erros de tipo em testes passam despercebidos |
 | 4 | **Sem script `lint`** | `package.json:12-23` vs. `AGENTS.md` | Critério mínimo não cumprível |
-| 5 | **`src/server/rag` fora do typecheck** | `tsconfig.json:40` + `docs/adr/0001:35` | Defaults de env não validados (débito já registrado) |
-| 6 | **Aprovação humana não passa por HTTP** | não há route de approve/reject em `src/app/api/**`; UI chama o singleton | Gate humano não é auditado no servidor |
+| 5 | **`apps/web/src/server/rag` fora do typecheck** | `tsconfig.json:40` + `docs/adr/0001:35` | Defaults de env não validados (débito já registrado) |
+| 6 | **Aprovação humana não passa por HTTP** | não há route de approve/reject em `apps/web/src/app/api/**`; UI chama o singleton | Gate humano não é auditado no servidor |
 | 7 | **Estado global mutável em singleton** | `defaultCompanyControlPlane` (`in-memory-control-plane.ts:395`), `defaultLeadRepository` (`in-memory-lead-repository.ts:101`) | Estado compartilhado entre requisições; sem persistência |
 | 8 | **`getDraftsByJobId` ignora `jobId`** | `in-memory-lead-repository.ts:75-77` | Aprovar um job despacha drafts de jobs anteriores |
 | 9 | **`web.search` é placeholder que retorna vazio** | `web-tools.ts:8-27` | Tool registrada e não funcional |

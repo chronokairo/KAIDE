@@ -100,7 +100,7 @@ next-env.d.ts
 
 # Rust target
 target/
-src-tauri/target/
+kaide-rs/target/
 
 # Supabase CLI temp files
 supabase/.temp/

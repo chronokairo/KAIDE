@@ -1,0 +1,32 @@
+[package]
+name = "kaide"
+version = "0.1.0"
+edition = "2021"
+description = "Kaide (Kairos Code + AI + IDE) — Zero-Lib coding agent & context harness"
+
+[lib]
+name = "kaide"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kaide"
+path = "src/main.rs"
+
+[features]
+default = ["gpu"]
+gpu = ["dep:ocl"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ocl = { version = "0.19", optional = true }
+
+# Build-time i18n filtering (edit: EDIT_CFG_LANGUAGES)
+[package.metadata.edit]
+languages = "en,pt-BR,es,fr,de,ja,zh"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# Perfis de build no workspace raiz (kaide-rs/Cargo.toml).
+

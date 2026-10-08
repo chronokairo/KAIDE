@@ -1,0 +1,30 @@
+[package]
+name = "kaide-desktop"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Casca Tauri fina do ChronoKairo Desktop — consome o núcleo zero-lib kaide."
+
+[lib]
+name = "kaide_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+# Auto-update do desktop (P0 distribuição): o par updater/process permite
+# checar/atualizar e reiniciar a aplicação após instalar.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+# Núcleo zero-lib (fonte de verdade do código Rust): membro `core` deste
+# workspace (`kaide-rs/core`, vendirado de `chronokairo/cli` — ver ADR-0042,
+# que reverte a ADR-0027). Dependência por path: releases andam com o monorepo.
+kaide = { path = "../core" }
+# Harness de OSINT e Due Diligence
+kaide-intelligence = { path = "../intelligence" }
+
+[features]
+default = []

@@ -14,11 +14,11 @@ Os agentes têm acesso e devem operar sobre os repositórios da organização/gr
 | **GitLab** | [`https://gitlab.com/chronokairo`](https://gitlab.com/chronokairo) | `glab` | Repositórios legados, espelhos/backup, CI/CD e core Rust (`cli`) |
 
 ### Repositórios Ativos
-- **Harness & AI (`chronokairo/ai`):**
-  - GitHub: `https://github.com/chronokairo/ai.git` (remote `origin`)
-  - GitLab: `https://gitlab.com/chronokairo/ai.git` (remote `gitlab`)
+- **Harness & AI (`chronokairo/kaide`):**
+  - GitHub: `https://github.com/chronokairo/kaide.git` (remote `origin`)
+  - GitLab: `https://gitlab.com/chronokairo/kaide.git` (remote `gitlab`)
 - **Core Rust Zero-Lib (`chronokairo/cli`):**
-  - GitLab: `https://gitlab.com/chronokairo/cli.git` (binário `ck`, crate `ckc`)
+  - GitLab: `https://gitlab.com/chronokairo/cli.git` (binário `ck`, crate `kaide`)
 - **Projetos de Clientes & Satélites:**
   - `chronokairo/audiomed`: `https://gitlab.com/chronokairo/audiomed.git`
   - `chronokairo/chronokairo.github.io`: `https://github.com/chronokairo/chronokairo.github.io.git`
@@ -32,4 +32,4 @@ Os agentes têm acesso e devem operar sobre os repositórios da organização/gr
   - QA revisa com abordagem adversarial antes de qualquer aprovação.
 - Merge exige validação de QA (`PASS`) e aprovação humana explícita.
 - Não usar `push --force` em branches públicas nem apagar branches remotas sem autorização.
-- Alterações no núcleo Rust do agente (`ckc`) pertencem exclusivamente ao repositório `chronokairo/cli`.
+- Alterações no núcleo Rust do agente (`kaide`) pertencem exclusivamente ao repositório `chronokairo/cli`.

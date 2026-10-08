@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["core", "shell", "intelligence"]
+
+# Kaide (Kairos Code + AI + IDE) — workspace Rust, espelho do `codex-rs` do openai/codex.
+# - `core`: crate zero-lib `kaide` (binário `kaide`), fonte de verdade do código Rust.
+#   Vendirado do repo `chronokairo/cli`; esta unificação reverte a ADR-0027 (ver ADR-0042).
+# - `shell`: casca Tauri fina (`kaide_desktop_lib`), consome `core` por path.
+# - `intelligence`: crate `kaide-intelligence` (OSINT & Due Diligence Harness).
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
