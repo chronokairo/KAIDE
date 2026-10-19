@@ -66,6 +66,8 @@ public enum LocalShell {
                 }
             }
         }
+    }
+
     public static func runSync(_ command: String) -> String {
         do {
             let res = try runBlocking(command: command, timeoutSeconds: 30, currentDirectory: nil)

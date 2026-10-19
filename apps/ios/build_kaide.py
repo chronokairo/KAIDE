@@ -65,8 +65,10 @@ def build_cli(output_dir=None, install=False):
         sys.exit(proc.returncode)
 
     print(f"[+] Binário gerado: {binary_out}", flush=True)
-    print(f"[*] Assinando binário com ldid -S...", flush=True)
-    sign_proc = subprocess.run([ldid, "-S", str(binary_out)], capture_output=True, text=True)
+    ent_cli = KAIDE_DIR / "entitlements_cli.plist"
+    sign_arg = f"-S{ent_cli}" if ent_cli.is_file() else "-S"
+    print(f"[*] Assinando binário com ldid {sign_arg}...", flush=True)
+    sign_proc = subprocess.run([ldid, sign_arg, str(binary_out)], capture_output=True, text=True)
     if sign_proc.returncode == 0:
         print("[+] Assinatura concluída.", flush=True)
 
