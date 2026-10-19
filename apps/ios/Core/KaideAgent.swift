@@ -142,13 +142,45 @@ public final class KaideAgent: ObservableObject {
     }
 
     @MainActor
+    public func compactHistory() async {
+        guard !isRunning else { return }
+        guard history.count > 3 else { return }
+        isRunning = true
+        status = .thinking
+        do {
+            let compacted = try await ContextCompactor.compact(turns: history, client: client, model: selectedModel)
+            history = compacted
+            status = .completed
+            if let sid = currentSessionId {
+                for t in compacted {
+                    SessionPersistence.shared.appendTurn(sessionId: sid, turn: t)
+                }
+            }
+        } catch {
+            status = .error("Falha ao compactar: \(error.localizedDescription)")
+        }
+        isRunning = false
+    }
+
+    @MainActor
     private func runAgentLoop(sessionId: String) async throws {
-        let tools = KaideTools.definitions()
+        let activePersona = CustomAgentManager.shared.activeAgent
+        var tools = KaideTools.definitions()
+        if let allowed = activePersona.tools, !allowed.isEmpty {
+            tools = tools.filter { allowed.contains($0.name) }
+        }
         let tracker = TurnDiffTracker()
 
         var basePrompt = KaideAgent.systemPrompt
+        if activePersona.name != "general" {
+            basePrompt += "\n\n### Subagente Ativo (\(activePersona.name.uppercased())):\n\(activePersona.systemInstructions)"
+        }
         if let agentsDoc = AgentsMdManager().loadInstructions() {
             basePrompt += "\n\n" + agentsDoc
+        }
+        let skillsSummary = SkillManager.shared.promptCatalogSummary()
+        if !skillsSummary.isEmpty {
+            basePrompt += "\n" + skillsSummary
         }
 
         while isRunning {

@@ -151,6 +151,68 @@ public enum KaideTools {
                     ]),
                     "required": .array([.string("error_log")])
                 ]
+            ),
+            NIMTool(
+                name: "code_search",
+                description: "Busca arquivos por nome ou ocorrências de texto/regex dentro do código no repositório com números de linha.",
+                parameters: [
+                    "type": .string("object"),
+                    "properties": .object([
+                        "query": .object([
+                            "type": .string("string"),
+                            "description": .string("Termo de busca, nome de arquivo ou expressão regular.")
+                        ]),
+                        "path": .object([
+                            "type": .string("string"),
+                            "description": .string("Diretório raiz de busca (padrão '.').")
+                        ]),
+                        "is_regex": .object([
+                            "type": .string("string"),
+                            "description": .string("Se 'true', trata query como expressão regular NSRegularExpression.")
+                        ]),
+                        "find_files_only": .object([
+                            "type": .string("string"),
+                            "description": .string("Se 'true', busca apenas nomes de arquivos e pastas.")
+                        ])
+                    ]),
+                    "required": .array([.string("query")])
+                ]
+            ),
+            NIMTool(
+                name: "git_worktree",
+                description: "Gerencia worktrees do Git para trabalhar em branches isoladas sem sujar a árvore de trabalho principal.",
+                parameters: [
+                    "type": .string("object"),
+                    "properties": .object([
+                        "action": .object([
+                            "type": .string("string"),
+                            "description": .string("Ação a executar: 'list', 'create' ou 'remove'.")
+                        ]),
+                        "task_name": .object([
+                            "type": .string("string"),
+                            "description": .string("Nome curto da tarefa/branch para criação de worktree (obrigatório se action='create').")
+                        ]),
+                        "worktree_path": .object([
+                            "type": .string("string"),
+                            "description": .string("Caminho da worktree a ser removida (obrigatório se action='remove').")
+                        ])
+                    ]),
+                    "required": .array([.string("action")])
+                ]
+            ),
+            NIMTool(
+                name: "skill_info",
+                description: "Consulta e lê as instruções completas de uma habilidade especializada (Skill) disponível no ambiente.",
+                parameters: [
+                    "type": .string("object"),
+                    "properties": .object([
+                        "name": .object([
+                            "type": .string("string"),
+                            "description": .string("Nome da skill a ser consultada.")
+                        ])
+                    ]),
+                    "required": .array([.string("name")])
+                ]
             )
         ]
     }
@@ -260,6 +322,81 @@ public enum KaideTools {
             let lang = argsDict["language"] ?? "Swift"
             let result = CodeDebugger.debugCode(code: code, errorLog: errorLog, language: lang)
             return ToolExecutionResult(text: result)
+
+        case "code_search":
+            let query = argsDict["query"] ?? ""
+            let path = argsDict["path"] ?? "."
+            let isRegex = (argsDict["is_regex"] ?? "").lowercased() == "true"
+            let filesOnly = (argsDict["find_files_only"] ?? "").lowercased() == "true"
+
+            if filesOnly {
+                let files = CodeSearchTool.findFiles(rootPath: path, pattern: query)
+                if files.isEmpty {
+                    return ToolExecutionResult(text: "Nenhum arquivo encontrado com o padrão: '\(query)'")
+                }
+                let out = "Arquivos encontrados (\(files.count)):\n" + files.map { "  - \($0)" }.joined(separator: "\n")
+                return ToolExecutionResult(text: out)
+            } else {
+                let res = CodeSearchTool.searchContent(rootPath: path, query: query, isRegex: isRegex)
+                if let err = res.error {
+                    return ToolExecutionResult(text: "Erro na busca: \(err)", isError: true)
+                }
+                if res.matches.isEmpty {
+                    return ToolExecutionResult(text: "Nenhuma ocorrência encontrada para: '\(query)'")
+                }
+                var out = "Resultados da busca por '\(query)' (\(res.totalMatches) ocorrências):\n"
+                for m in res.matches {
+                    out += "[\(m.file):\(m.line)] \(m.snippet)\n"
+                }
+                return ToolExecutionResult(text: out.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+
+        case "git_worktree":
+            let action = (argsDict["action"] ?? "list").lowercased()
+            switch action {
+            case "list":
+                let wts = WorktreeManager.listWorktrees()
+                if wts.isEmpty {
+                    return ToolExecutionResult(text: "Nenhuma worktree adicional configurada.")
+                }
+                var out = "Worktrees ativas (\(wts.count)):\n"
+                for w in wts {
+                    out += " - [\(w.branch)] \(w.path) (commit: \(w.commit)\(w.isLocked ? ", locked" : ""))\n"
+                }
+                return ToolExecutionResult(text: out.trimmingCharacters(in: .whitespacesAndNewlines))
+            case "create":
+                let task = argsDict["task_name"] ?? "task"
+                let res = WorktreeManager.createWorktree(taskName: task)
+                if res.success {
+                    return ToolExecutionResult(text: "Worktree isolada criada com sucesso!\nCaminho: \(res.worktreePath)\nBranch: \(res.branch)")
+                } else {
+                    return ToolExecutionResult(text: res.error ?? "Falha ao criar worktree", isError: true)
+                }
+            case "remove":
+                let p = argsDict["worktree_path"] ?? ""
+                guard !p.isEmpty else {
+                    return ToolExecutionResult(text: "Erro: worktree_path é obrigatório para remoção.", isError: true)
+                }
+                let res = WorktreeManager.removeWorktree(worktreePath: p)
+                return ToolExecutionResult(text: res.message, isError: !res.success)
+            default:
+                return ToolExecutionResult(text: "Ação de worktree inválida: \(action). Use 'list', 'create' ou 'remove'.", isError: true)
+            }
+
+        case "skill_info":
+            let name = argsDict["name"] ?? ""
+            if let skill = SkillManager.shared.getSkill(named: name) {
+                let out = """
+                ### Skill: \(skill.name)
+                **Descrição:** \(skill.description)
+                **Origem:** \(skill.sourcePath)
+
+                \(skill.instructions)
+                """
+                return ToolExecutionResult(text: out)
+            } else {
+                return ToolExecutionResult(text: "Skill '\(name)' não encontrada.", isError: true)
+            }
 
         default:
             return ToolExecutionResult(text: "Ferramenta desconhecida: \(name)", isError: true)

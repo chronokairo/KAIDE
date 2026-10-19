@@ -13,16 +13,18 @@ Suíte de Agent Coding autônomo nativo em **Swift 5 / SwiftUI** para iPhone (iO
    - Resiliência com backoff progressivo incremental (`+1s` a cada HTTP 429).
    - Extração de raciocínio profundo (`<think>`, `reasoning_content`) e tokens de raciocínio.
 
-2. **Estética Claude Code Desktop / CLI:**
+2. **Estética Claude Code Desktop / CLI & Paridade GitHub Copilot:**
    - Prompt do usuário no formato terminal `❯ comando`.
    - Cards de execução de ferramentas em árvore (`┌─ │ └─`) com visualização de argumentos e status de conclusão.
    - Renderização rica de Markdown: tabelas com scroll horizontal e zebra striping, GitHub callouts (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`), checklists (`- [ ]`, `- [x]`), blocos matemáticos (`$$ ... $$`) e realce de sintaxe diff.
    - Rodapé com métricas de inferência minimalistas (`modelo · latência · tokens · custo`).
+   - Suporte completo a **Subagentes Customizados** (`.copilot/agents` / `.agent.md`) e **Skills Especializadas** (`.copilot/skills` / `SKILL.md`).
+   - Compactação e sintetização de histórico (`/compact`), busca de símbolos (`/search` / `code_search`) e branches isoladas (`/worktrees`).
    - Esconder teclado interativo ao tocar ou arrastar a lista de mensagens.
 
 3. **Execução Dual:**
-   - **App SwiftUI (`Kaide.app`):** Interface IDE móvel completa com chat inteligente, terminal Darwin integrado, visualização de raciocínio e histórico de sessões persistidas.
-   - **CLI Darwin (`kaide`):** Binário de linha de comando autônomo para NewTerm / SSH, com suporte a comandos one-shot (`kaide "instrução"`), modo interativo REPL, inspeção de repositório (`kaide analyze`), revisão de diff (`kaide diff`), aplicação atômica de patches (`kaide patch`) e catálogo de modelos (`kaide models`).
+   - **App SwiftUI (`Kaide.app`):** Interface IDE móvel completa com chat inteligente, terminal Darwin integrado, visualização de raciocínio, seletor de subagentes e histórico de sessões persistidas.
+   - **CLI Darwin (`kaide`):** Binário de linha de comando autônomo para NewTerm / SSH, com suporte a comandos one-shot (`kaide "instrução"`), modo interativo REPL, subagentes (`kaide agents`, `kaide --agent <nome>`), skills (`kaide skills`), busca (`kaide search`), inspeção de repositório (`kaide analyze`), revisão de diff (`kaide diff`), aplicação de patches (`kaide patch`) e catálogo de modelos (`kaide models`).
 
 ---
 
@@ -51,7 +53,12 @@ apps/ios/
 │   ├── SessionPersistence.swift
 │   ├── TurnMetrics.swift
 │   ├── TurnDiffTracker.swift
-│   └── AgentsMdManager.swift
+│   ├── AgentsMdManager.swift
+│   ├── CustomAgentManager.swift
+│   ├── SkillManager.swift
+│   ├── CodeSearchTool.swift
+│   ├── WorktreeManager.swift
+│   └── ContextCompactor.swift
 ├── UI/                  # Telas e componentes SwiftUI
 │   ├── KaideMainView.swift
 │   ├── KaideMessageRow.swift
