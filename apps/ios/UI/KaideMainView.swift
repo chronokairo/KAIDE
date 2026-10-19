@@ -6,7 +6,6 @@ public struct KaideMainView: View {
     @State private var showSettings: Bool = false
     @State private var showTerminal: Bool = false
     @State private var showSessions: Bool = false
-    @State private var showChess: Bool = false
 
     public init() {}
 
@@ -31,9 +30,6 @@ public struct KaideMainView: View {
         }
         .sheet(isPresented: $showSessions) {
             KaideSessionsView(agent: agent)
-        }
-        .sheet(isPresented: $showChess) {
-            KaideChessView()
         }
         .onAppear {
             if agent.history.isEmpty, let latest = SessionPersistence.shared.latestSessionId() {
@@ -86,15 +82,6 @@ public struct KaideMainView: View {
                 .cornerRadius(12)
             }
 
-            Button(action: { showChess = true }) {
-                Image(systemName: "checkerboard.rectangle")
-                    .font(.system(size: 15))
-                    .foregroundColor(KaideTheme.accent)
-                    .padding(8)
-                    .background(KaideTheme.surface)
-                    .cornerRadius(8)
-            }
-
             Button(action: { showSessions = true }) {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.system(size: 15))
@@ -132,9 +119,6 @@ public struct KaideMainView: View {
     private var quickActionBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                quickButton(title: "♟️ Xadrez", icon: "checkerboard.rectangle") {
-                    showChess = true
-                }
                 quickButton(title: "Novo Chat", icon: "plus.bubble") {
                     agent.newSession()
                 }
@@ -258,7 +242,7 @@ public struct KaideMainView: View {
                     .foregroundColor(KaideTheme.textMuted)
 
                 HStack(spacing: 8) {
-                    Text("`/chess`")
+                    Text("`/clear`")
                     Text("`/status`")
                     Text("`/diff`")
                     Text("`/help`")
@@ -317,7 +301,7 @@ public struct KaideMainView: View {
                         .foregroundColor(KaideTheme.accent)
                         .padding(.leading, 8)
 
-                    TextField("Instrução ou comando (/chess, /help)...", text: $inputText, onCommit: sendCurrent)
+                    TextField("Instrução ou comando (/help, /clear)...", text: $inputText, onCommit: sendCurrent)
                         .font(.system(size: 14))
                         .foregroundColor(KaideTheme.textPrimary)
                         .padding(.vertical, 9)
@@ -359,12 +343,6 @@ public struct KaideMainView: View {
         guard !trimmed.isEmpty else { return }
 
         // Suporte nativo a Slash Commands
-        if trimmed == "/chess" {
-            inputText = ""
-            dismissKeyboard()
-            showChess = true
-            return
-        }
         if trimmed == "/clear" || trimmed == "/new" {
             inputText = ""
             dismissKeyboard()
@@ -408,7 +386,6 @@ public struct KaideMainView: View {
                 role: "assistant",
                 content: """
                 ### Comandos Rápidos do Kaide (Claude Code Style):
-                - `/chess` — Abre o tabuleiro de Xadrez nativo para iOS (portado de `lu4nn3ry/chess`)
                 - `/clear` — Limpa o histórico e inicia uma nova sessão
                 - `/terminal` — Abre o terminal Darwin nativo
                 - `/sessions` — Visualiza e retoma sessões salvas
