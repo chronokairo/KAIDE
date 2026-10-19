@@ -21,7 +21,7 @@ Suíte de Agent Coding autônomo nativo em **Swift 5 / SwiftUI** para iPhone (iO
    - Esconder teclado interativo ao tocar ou arrastar a lista de mensagens.
 
 3. **Execução Dual:**
-   - **App SwiftUI (`Kaide.app`):** Interface IDE móvel completa com chat inteligente, terminal Darwin integrado, visualização de raciocínio, histórico de sessões persistidas e tabuleiro de xadrez integrado (`/chess`).
+   - **App SwiftUI (`Kaide.app`):** Interface IDE móvel completa com chat inteligente, terminal Darwin integrado, visualização de raciocínio e histórico de sessões persistidas.
    - **CLI Darwin (`kaide`):** Binário de linha de comando autônomo para NewTerm / SSH, com suporte a comandos one-shot (`kaide "instrução"`), modo interativo REPL, inspeção de repositório (`kaide analyze`), revisão de diff (`kaide diff`), aplicação atômica de patches (`kaide patch`) e catálogo de modelos (`kaide models`).
 
 ---
@@ -51,15 +51,13 @@ apps/ios/
 │   ├── SessionPersistence.swift
 │   ├── TurnMetrics.swift
 │   ├── TurnDiffTracker.swift
-│   ├── AgentsMdManager.swift
-│   └── ChessEngine.swift
+│   └── AgentsMdManager.swift
 ├── UI/                  # Telas e componentes SwiftUI
 │   ├── KaideMainView.swift
 │   ├── KaideMessageRow.swift
 │   ├── KaideSettingsView.swift
 │   ├── KaideTerminalView.swift
 │   ├── KaideSessionsView.swift
-│   ├── KaideChessView.swift
 │   └── KaideTheme.swift
 ├── Package.swift        # Manifesto Swift Package Manager
 ├── build_kaide.py       # Orquestrador de compilação, assinatura e empacotamento
