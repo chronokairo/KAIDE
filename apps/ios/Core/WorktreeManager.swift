@@ -14,19 +14,19 @@ public enum WorktreeManager {
     /// Lista worktrees ativas no repositório
     public static func listWorktrees(repoPath: String = ".") -> [GitWorktreeInfo] {
         let cmd = "cd \"\(repoPath)\" && git worktree list --porcelain"
-        let output = LocalShell.run(cmd)
+        let output = LocalShell.runSync(cmd)
 
         var result: [GitWorktreeInfo] = []
         let blocks = output.components(separatedBy: "\n\n")
 
-        for b in blocks where !b.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        for b in blocks where !b.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
             var path = ""
             var commit = ""
             var branch = ""
             var locked = false
 
             for line in b.components(separatedBy: "\n") {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                let trimmed = line.trimmingCharacters(in: CharacterSet.whitespaces)
                 if trimmed.hasPrefix("worktree ") {
                     path = String(trimmed.dropFirst("worktree ".count))
                 } else if trimmed.hasPrefix("HEAD ") {
@@ -69,7 +69,7 @@ public enum WorktreeManager {
         }
 
         let cmd = "cd \"\(repoPath)\" && mkdir -p \"$(dirname '\(targetDir)')\" && git worktree add -b \"\(branchName)\" \"\(targetDir)\" \"\(baseBranch)\""
-        let out = LocalShell.run(cmd)
+        let out = LocalShell.runSync(cmd)
 
         if FileManager.default.fileExists(atPath: targetDir) {
             return (true, targetDir, branchName, nil)
@@ -81,7 +81,7 @@ public enum WorktreeManager {
     /// Remove a worktree e limpa metadados
     public static func removeWorktree(repoPath: String = ".", worktreePath: String) -> (success: Bool, message: String) {
         let cmd = "cd \"\(repoPath)\" && git worktree remove --force \"\(worktreePath)\""
-        let out = LocalShell.run(cmd)
+        let out = LocalShell.runSync(cmd)
         let exists = FileManager.default.fileExists(atPath: worktreePath)
         return (!exists, exists ? out : "Worktree removida com sucesso")
     }
