@@ -80,6 +80,7 @@ Kaide works with local models via **Ollama** and cloud models via configured pro
 kaide/
 ├── apps/web/         # Next.js frontend + Control Plane jobs + RAG (apps/web/src/…)
 ├── apps/desktop/     # Tauri app (tauri.conf.json, icons, capabilities)
+├── apps/ios/         # Native iOS SwiftUI App & Darwin CLI (NVIDIA NIM, Claude Code UI)
 ├── kaide-rs/         # Cargo workspace: core/ (zero-lib `kaide`), shell/, intelligence/
 ├── sdk/typescript/   # @chronokairo/kaide-sdk — resolves and runs the `kaide` binary
 ├── tools/            # Absorbed AI tools · mcp/ · supabase/ · docs/
@@ -154,6 +155,7 @@ O Kaide funciona com modelos locais via **Ollama** e modelos de nuvem via proved
 kaide/
 ├── apps/web/         # Frontend Next.js + jobs do Control Plane + RAG (apps/web/src/…)
 ├── apps/desktop/     # App Tauri (tauri.conf.json, icons, capabilities)
+├── apps/ios/         # App SwiftUI nativo para iOS & CLI Darwin (NVIDIA NIM, Claude Code UI)
 ├── kaide-rs/         # Workspace Cargo: core/ (zero-lib `kaide`), shell/, intelligence/
 ├── sdk/typescript/   # @chronokairo/kaide-sdk — resolve e executa o binário `kaide`
 ├── tools/            # Ferramentas de IA absorvidas · mcp/ · supabase/ · docs/
