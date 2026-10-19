@@ -40,12 +40,18 @@ public enum ContextCompactor {
         Gere o resumo condensado do histórico acima para servir de contexto aos próximos turnos.
         """
 
-        let messages: [[String: Any]] = [
-            ["role": "system", "content": compactionSystemPrompt],
-            ["role": "user", "content": prompt]
+        let messages: [NIMMessage] = [
+            NIMMessage(role: "system", content: compactionSystemPrompt),
+            NIMMessage(role: "user", content: prompt)
         ]
 
-        let response = try await client.chatCompletion(model: model, messages: messages, maxTokens: 1500)
+        let response = try await client.complete(
+            messages: messages,
+            tools: nil,
+            model: model,
+            temperature: 0.2,
+            maxTokens: 1500
+        )
         let summaryContent = """
         ### [Contexto Compactado da Sessão Anterior]
         \(response.content)
