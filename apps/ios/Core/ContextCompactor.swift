@@ -57,8 +57,9 @@ public enum ContextCompactor {
         \(response.content)
         """
 
+        let metrics = TurnMetrics.compute(model: model, usage: response.usage, latency: response.latencySeconds)
         var newHistory: [KaideTurn] = [
-            KaideTurn(role: "assistant", content: summaryContent, metrics: response.metrics)
+            KaideTurn(role: "assistant", content: summaryContent, metrics: metrics)
         ]
         newHistory.append(contentsOf: sliceToPreserve)
 
