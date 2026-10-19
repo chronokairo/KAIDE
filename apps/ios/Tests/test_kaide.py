@@ -29,7 +29,12 @@ class KaideStructureTests(unittest.TestCase):
             "TurnDiffTracker.swift",
             "TurnMetrics.swift",
             "ApplyPatch.swift",
-            "SessionPersistence.swift"
+            "SessionPersistence.swift",
+            "CustomAgentManager.swift",
+            "SkillManager.swift",
+            "CodeSearchTool.swift",
+            "WorktreeManager.swift",
+            "ContextCompactor.swift"
         ]
         for name in core_files:
             with self.subTest(file=name):
@@ -83,6 +88,42 @@ class KaideStructureTests(unittest.TestCase):
         self.assertIn("appendTurn", text)
         self.assertIn("loadSession", text)
         self.assertIn("listSessions", text)
+
+    def test_copilot_parity_modules(self):
+        # CustomAgentManager (.copilot/agents parity)
+        agent_mgr = (KAIDE / "Core" / "CustomAgentManager.swift").read_text(encoding="utf-8")
+        self.assertIn("struct AgentPersona", agent_mgr)
+        self.assertIn("class CustomAgentManager", agent_mgr)
+        self.assertIn(".agent.md", agent_mgr)
+
+        # SkillManager (.copilot/skills parity)
+        skill_mgr = (KAIDE / "Core" / "SkillManager.swift").read_text(encoding="utf-8")
+        self.assertIn("struct KaideSkill", skill_mgr)
+        self.assertIn("class SkillManager", skill_mgr)
+        self.assertIn("SKILL.md", skill_mgr)
+
+        # CodeSearchTool
+        search_tool = (KAIDE / "Core" / "CodeSearchTool.swift").read_text(encoding="utf-8")
+        self.assertIn("enum CodeSearchTool", search_tool)
+        self.assertIn("findFiles", search_tool)
+        self.assertIn("searchContent", search_tool)
+
+        # WorktreeManager
+        wt_mgr = (KAIDE / "Core" / "WorktreeManager.swift").read_text(encoding="utf-8")
+        self.assertIn("enum WorktreeManager", wt_mgr)
+        self.assertIn("createWorktree", wt_mgr)
+        self.assertIn("listWorktrees", wt_mgr)
+
+        # ContextCompactor (/compact parity)
+        compactor = (KAIDE / "Core" / "ContextCompactor.swift").read_text(encoding="utf-8")
+        self.assertIn("enum ContextCompactor", compactor)
+        self.assertIn("compact(", compactor)
+
+        # KaideTools exposed definitions
+        tools = (KAIDE / "Core" / "KaideTools.swift").read_text(encoding="utf-8")
+        self.assertIn('"code_search"', tools)
+        self.assertIn('"git_worktree"', tools)
+        self.assertIn('"skill_info"', tools)
 
     def test_builder_tool_exists(self):
         self.assertTrue((KAIDE / "build_kaide.py").is_file())

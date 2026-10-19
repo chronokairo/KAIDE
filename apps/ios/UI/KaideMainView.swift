@@ -59,9 +59,21 @@ public struct KaideMainView: View {
                         .background(KaideTheme.accent)
                         .cornerRadius(4)
                 }
-                Text("NVIDIA NIM • Darwin Native")
-                    .font(.system(size: 11))
-                    .foregroundColor(KaideTheme.textMuted)
+                HStack(spacing: 4) {
+                    Text("NVIDIA NIM")
+                        .font(.system(size: 11))
+                        .foregroundColor(KaideTheme.textMuted)
+                    Text("•")
+                        .font(.system(size: 11))
+                        .foregroundColor(KaideTheme.textMuted)
+                    Text("@\(CustomAgentManager.shared.activeAgent.name)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(KaideTheme.accent)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(KaideTheme.surfaceElevated)
+                        .cornerRadius(4)
+                }
             }
 
             Spacer()
@@ -125,6 +137,28 @@ public struct KaideMainView: View {
                 quickButton(title: "Sessões", icon: "clock.arrow.circlepath") {
                     showSessions = true
                 }
+                quickButton(title: "Subagentes", icon: "person.2.badge.gearshape") {
+                    let list = CustomAgentManager.shared.availableAgents
+                    let active = CustomAgentManager.shared.activeAgent.name
+                    let text = "### Subagentes Disponíveis (\(list.count)):\n" + list.map {
+                        let marker = $0.name.lowercased() == active.lowercased() ? " *(ativo)*" : ""
+                        return "- **\($0.name)**\(marker): \($0.description)"
+                    }.joined(separator: "\n") + "\n\nUse `/agent <nome>` para alternar a persona ativa."
+                    agent.history.append(KaideTurn(role: "assistant", content: text))
+                }
+                quickButton(title: "Skills", icon: "bolt.badge.automatic") {
+                    let skills = SkillManager.shared.availableSkills
+                    let text: String
+                    if skills.isEmpty {
+                        text = "Nenhuma skill encontrada em `.kaide/skills/` ou `.copilot/skills/`."
+                    } else {
+                        text = "### Skills Disponíveis (\(skills.count)):\n" + skills.map { "- **\($0.name)**: \($0.description)" }.joined(separator: "\n")
+                    }
+                    agent.history.append(KaideTurn(role: "assistant", content: text))
+                }
+                quickButton(title: "Compactar", icon: "arrow.triangle.merge") {
+                    Task { await agent.compactHistory() }
+                }
                 quickButton(title: "Analisar Repo", icon: "folder") {
                     sendAction("Analise este repositório com code_analyze_repo e resuma sua arquitetura e arquivos.")
                 }
@@ -133,6 +167,9 @@ public struct KaideMainView: View {
                 }
                 quickButton(title: "Revisar Diff", icon: "doc.text.magnifyingglass") {
                     sendAction("Execute `git diff` e faça uma revisão de código identificando possíveis problemas.")
+                }
+                quickButton(title: "Worktrees", icon: "rectangle.split.2x1") {
+                    sendAction("Use a ferramenta git_worktree com action: 'list' para mostrar o estado das branches isoladas.")
                 }
             }
             .padding(.horizontal, 14)
@@ -343,6 +380,65 @@ public struct KaideMainView: View {
         guard !trimmed.isEmpty else { return }
 
         // Suporte nativo a Slash Commands
+        if trimmed == "/compact" {
+            inputText = ""
+            dismissKeyboard()
+            Task {
+                await agent.compactHistory()
+            }
+            return
+        }
+        if trimmed == "/skills" {
+            inputText = ""
+            dismissKeyboard()
+            let skills = SkillManager.shared.availableSkills
+            let text: String
+            if skills.isEmpty {
+                text = "Nenhuma skill encontrada em `.kaide/skills/` ou `.copilot/skills/`."
+            } else {
+                text = "### Skills Disponíveis (\(skills.count)):\n" + skills.map { "- **\($0.name)**: \($0.description)" }.joined(separator: "\n")
+            }
+            agent.history.append(KaideTurn(role: "assistant", content: text))
+            return
+        }
+        if trimmed.hasPrefix("/agent") {
+            let sub = String(trimmed.dropFirst("/agent".count)).trimmingCharacters(in: .whitespaces)
+            inputText = ""
+            dismissKeyboard()
+            if sub.isEmpty || sub == "list" {
+                let list = CustomAgentManager.shared.availableAgents
+                let active = CustomAgentManager.shared.activeAgent.name
+                let text = "### Subagentes Disponíveis (\(list.count)):\n" + list.map {
+                    let marker = $0.name.lowercased() == active.lowercased() ? " *(ativo)*" : ""
+                    return "- **\($0.name)**\(marker): \($0.description)"
+                }.joined(separator: "\n") + "\n\nUse `/agent <nome>` para alternar a persona ativa."
+                agent.history.append(KaideTurn(role: "assistant", content: text))
+            } else {
+                if CustomAgentManager.shared.switchAgent(name: sub) {
+                    agent.history.append(KaideTurn(role: "assistant", content: "Subagente alterado para: **\(CustomAgentManager.shared.activeAgent.name)** — \(CustomAgentManager.shared.activeAgent.description)"))
+                } else {
+                    agent.history.append(KaideTurn(role: "assistant", content: "Subagente '\(sub)' não encontrado. Use `/agent` para listar os disponíveis."))
+                }
+            }
+            return
+        }
+        if trimmed.hasPrefix("/search") {
+            let q = String(trimmed.dropFirst("/search".count)).trimmingCharacters(in: .whitespaces)
+            inputText = ""
+            dismissKeyboard()
+            if q.isEmpty {
+                agent.history.append(KaideTurn(role: "assistant", content: "Uso: `/search <termo_ou_arquivo>`"))
+            } else {
+                sendAction("Use a ferramenta code_search para buscar ocorrências de '\(q)'.")
+            }
+            return
+        }
+        if trimmed == "/worktrees" {
+            inputText = ""
+            dismissKeyboard()
+            sendAction("Use a ferramenta git_worktree com action: 'list' para mostrar o estado das branches isoladas.")
+            return
+        }
         if trimmed == "/clear" || trimmed == "/new" {
             inputText = ""
             dismissKeyboard()
@@ -385,7 +481,12 @@ public struct KaideMainView: View {
             let helpTurn = KaideTurn(
                 role: "assistant",
                 content: """
-                ### Comandos Rápidos do Kaide (Claude Code Style):
+                ### Comandos Rápidos do Kaide (Copilot & Claude Code Style):
+                - `/agent [nome]` — Alterna ou lista personas especializadas (`.copilot/agents`)
+                - `/skills` — Lista habilidades carregadas no ambiente (`.copilot/skills`)
+                - `/compact` — Compacta e sintetiza o histórico da conversa para liberar tokens
+                - `/search <termo>` — Busca símbolos, regex ou arquivos no repositório
+                - `/worktrees` — Gerencia branches e worktrees isoladas do Git
                 - `/clear` — Limpa o histórico e inicia uma nova sessão
                 - `/terminal` — Abre o terminal Darwin nativo
                 - `/sessions` — Visualiza e retoma sessões salvas

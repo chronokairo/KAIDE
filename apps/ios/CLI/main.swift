@@ -22,6 +22,54 @@ struct KaideCLI {
             return
         }
 
+        if args.first == "agents" {
+            let list = CustomAgentManager.shared.availableAgents
+            let active = CustomAgentManager.shared.activeAgent.name
+            print("[+] Subagentes disponíveis (\(list.count)):")
+            for a in list {
+                let m = a.name == active ? " (ativo)" : ""
+                print("  - \(a.name)\(m): \(a.description)")
+            }
+            return
+        }
+
+        if args.first == "skills" {
+            let skills = SkillManager.shared.availableSkills
+            if skills.isEmpty {
+                print("[-] Nenhuma skill encontrada em .kaide/skills/ ou .copilot/skills/.")
+            } else {
+                print("[+] Skills disponíveis (\(skills.count)):")
+                for s in skills {
+                    print("  - \(s.name): \(s.description) (\(s.sourcePath))")
+                }
+            }
+            return
+        }
+
+        if args.first == "search" {
+            guard args.count > 1 else {
+                print("[-] Uso: kaide search <termo> [caminho]")
+                return
+            }
+            let q = args[1]
+            let p = args.count > 2 ? args[2] : "."
+            let res = CodeSearchTool.searchContent(rootPath: p, query: q)
+            print("[+] Resultados para '\(q)' (\(res.totalMatches) ocorrências):")
+            for m in res.matches {
+                print("  [\(m.file):\(m.line)] \(m.snippet)")
+            }
+            return
+        }
+
+        if args.first == "worktrees" {
+            let wts = WorktreeManager.listWorktrees()
+            print("[+] Worktrees ativas (\(wts.count)):")
+            for w in wts {
+                print("  - [\(w.branch)] \(w.path) (commit: \(w.commit))")
+            }
+            return
+        }
+
         if args.first == "sessions" {
             listSessions()
             return
@@ -66,6 +114,17 @@ struct KaideCLI {
         var customModel: String? = nil
         var resumeSessionId: String? = nil
         var remainingArgs = args
+
+        if let aIdx = remainingArgs.firstIndex(of: "--agent"), aIdx + 1 < remainingArgs.count {
+            let personaName = remainingArgs[aIdx + 1]
+            if CustomAgentManager.shared.switchAgent(name: personaName) {
+                print("[+] Subagente ativado: \(CustomAgentManager.shared.activeAgent.name)")
+            } else {
+                print("[-] Subagente '\(personaName)' não encontrado.")
+            }
+            remainingArgs.remove(at: aIdx + 1)
+            remainingArgs.remove(at: aIdx)
+        }
 
         if let mIdx = remainingArgs.firstIndex(of: "--model"), mIdx + 1 < remainingArgs.count {
             customModel = remainingArgs[mIdx + 1]
@@ -121,10 +180,15 @@ struct KaideCLI {
           kaide continue                        Continua a sessão mais recente gravada
           kaide resume <id_da_sessao>           Retoma uma sessão específica do disco
           kaide sessions                        Lista histórico de sessões persistidas (.jsonl)
+          kaide agents                          Lista subagentes especializados (.copilot/agents)
+          kaide skills                          Lista habilidades disponíveis (.copilot/skills)
+          kaide search <termo> [path]           Busca no repositório por arquivos ou texto
+          kaide worktrees                       Lista branches e worktrees isoladas
           kaide patch <arquivo.diff>            Aplica um patch Git/Codex atômico
           kaide analyze [caminho] [prof]        Inventaria arquivos e módulos
           kaide diff [arquivo_diff]             Revisa alterações e aponta riscos
           kaide models                          Lista modelos disponíveis no NVIDIA NIM
+          kaide --agent <nome>                  Define o subagente ativo para a execução
           kaide --key <nvapi-...>               Configura a chave do NVIDIA NIM
           kaide --model <nome_modelo>           Define o modelo ativo para a execução
         """)
