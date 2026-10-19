@@ -46,6 +46,10 @@ public struct NIMTool: Codable {
     public let type: String
     public let function: NIMFunctionDef
 
+    public var name: String {
+        function.name
+    }
+
     public init(name: String, description: String, parameters: [String: AnyCodable]) {
         self.type = "function"
         self.function = NIMFunctionDef(name: name, description: description, parameters: parameters)
