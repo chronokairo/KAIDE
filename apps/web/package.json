@@ -7,7 +7,8 @@
     "./rapunzel": "./src/modules/ai/components/RapunzelChat.tsx",
     "./data-screens": "./src/modules/ai/data-screens/index.ts",
     "./governance": "./src/modules/governance/index.ts",
-    "./osint": "./src/modules/osint/index.ts"
+    "./osint": "./src/modules/osint/index.ts",
+    "./ui/ai-chat": "./src/infrastructure/ui/organisms/AiChatPanel/index.ts"
   },
   "scripts": {
     "dev": "next dev --webpack -p 3010",
@@ -58,11 +59,14 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@tauri-apps/cli": "^2.11.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/three": "^0.186.0",
     "cross-env": "^10.1.0",
+    "jsdom": "^25.0.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.2",

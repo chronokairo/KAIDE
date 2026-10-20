@@ -151,6 +151,7 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 | [0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) | Reunificação do monorepo Kaide no layout de `openai/codex` (reversão da ADR-0027) + rebrand `ck` → `kaide` |
 | [0043](docs/adr/0043-remocao-totvs-supabase-sem-platform.md) | Remoção da integração TOTVS, religação ao Supabase prod e saída do `@chronokairo/platform` |
 | [0044](docs/adr/0044-absorcao-company-autopilot-tools.md) | Absorção do `company-autopilot` no Kaide (`tools/company-autopilot`, via subtree) |
+| [0045](docs/adr/0045-ai-chat-panel-propriedade-ai.md) | Propriedade do `AiChatPanel` pelo produto AI (organismo UI em `apps/web`, entrada `./ui/ai-chat`) |
 
 ### Mapas de código — `docs/maps/`
 
