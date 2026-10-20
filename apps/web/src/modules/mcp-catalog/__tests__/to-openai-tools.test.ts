@@ -13,7 +13,7 @@ import {
 
 const baseDef: McpToolDefinition = {
   name: 'demo_tool',
-  category: 'demo',
+  category: 'Cadastros',
   title: 'Demo Tool',
   description: 'Faz algo de demonstração',
   outputHint: 'texto',
@@ -52,7 +52,7 @@ describe('toOpenAITool (regressão)', () => {
   it('marca required e prefixa [category] na description', () => {
     const tool = toOpenAITool(baseDef);
     expect(tool.function.parameters.required).toEqual(['query']);
-    expect(tool.function.description).toBe('[demo] Faz algo de demonstração');
+    expect(tool.function.description).toBe('[Cadastros] Faz algo de demonstração');
   });
 
   it('adiciona sufixo deprecated e filtra via includeDeprecated', () => {
@@ -67,7 +67,7 @@ describe('toAnthropicTool', () => {
   it('emite shape { name, description, input_schema }', () => {
     const tool = toAnthropicTool(baseDef);
     expect(tool.name).toBe('demo_tool');
-    expect(tool.description).toBe('[demo] Faz algo de demonstração');
+    expect(tool.description).toBe('[Cadastros] Faz algo de demonstração');
     expect(tool.input_schema.type).toBe('object');
     expect(tool.input_schema.required).toEqual(['query']);
     expect(tool.input_schema.properties.mode).toMatchObject({ type: 'string', enum: ['a', 'b'] });
