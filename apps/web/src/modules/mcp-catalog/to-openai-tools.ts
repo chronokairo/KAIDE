@@ -70,12 +70,19 @@ function fieldToProperty(field: McpToolField): OpenAIFunctionParameter {
   return prop;
 }
 
-// ── main converter ────────────────────────────────────────────────────────────
+// ── shared input-schema builder ───────────────────────────────────────────────
+
+export interface ToolInputSchema {
+  type: 'object';
+  properties: Record<string, OpenAIFunctionParameter>;
+  required: string[];
+}
 
 /**
- * Convert a single McpToolDefinition to an OpenAI tool object.
+ * Build the JSON-Schema object shared by all provider converters
+ * (OpenAI `parameters`, Anthropic `input_schema`, Gemini `parameters`).
  */
-export function toOpenAITool(def: McpToolDefinition): OpenAITool {
+export function buildToolInputSchema(def: McpToolDefinition): ToolInputSchema {
   const properties: Record<string, OpenAIFunctionParameter> = {};
   const required: string[] = [];
 
@@ -84,17 +91,26 @@ export function toOpenAITool(def: McpToolDefinition): OpenAITool {
     if (field.required) required.push(field.name);
   }
 
+  return { type: 'object', properties, required };
+}
+
+function toolDescription(def: McpToolDefinition): string {
+  return `[${def.category}] ${def.description}` +
+    (def.deprecated ? ' ⚠️ DEPRECATED — prefira alternativa mais recente.' : '');
+}
+
+// ── main converter ────────────────────────────────────────────────────────────
+
+/**
+ * Convert a single McpToolDefinition to an OpenAI tool object.
+ */
+export function toOpenAITool(def: McpToolDefinition): OpenAITool {
   return {
     type: 'function',
     function: {
       name: def.name,
-      description: `[${def.category}] ${def.description}` +
-        (def.deprecated ? ' ⚠️ DEPRECATED — prefira alternativa mais recente.' : ''),
-      parameters: {
-        type: 'object',
-        properties,
-        required,
-      },
+      description: toolDescription(def),
+      parameters: buildToolInputSchema(def),
     },
   };
 }
@@ -110,4 +126,93 @@ export function catalogToOpenAITools(
   return defs
     .filter((d) => includeDeprecated || !d.deprecated)
     .map(toOpenAITool);
+}
+
+// ── Anthropic tool shapes ─────────────────────────────────────────────────────
+
+export interface AnthropicTool {
+  name: string;
+  description: string;
+  input_schema: ToolInputSchema;
+}
+
+/**
+ * Convert a single McpToolDefinition to an Anthropic tool object
+ * (Messages API `tools` format).
+ */
+export function toAnthropicTool(def: McpToolDefinition): AnthropicTool {
+  return {
+    name: def.name,
+    description: toolDescription(def),
+    input_schema: buildToolInputSchema(def),
+  };
+}
+
+/**
+ * Convert the full catalog to an array of Anthropic tools.
+ * Optionally filter out deprecated tools.
+ */
+export function catalogToAnthropicTools(
+  defs: McpToolDefinition[],
+  { includeDeprecated = false }: { includeDeprecated?: boolean } = {},
+): AnthropicTool[] {
+  return defs
+    .filter((d) => includeDeprecated || !d.deprecated)
+    .map(toAnthropicTool);
+}
+
+// ── Gemini tool shapes ────────────────────────────────────────────────────────
+
+export interface GeminiFunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: ToolInputSchema;
+}
+
+export interface GeminiTool {
+  functionDeclarations: GeminiFunctionDeclaration[];
+}
+
+/**
+ * Convert a single McpToolDefinition to a Gemini tool object
+ * (Generative AI `functionDeclarations` format).
+ *
+ * Restriction: Gemini accepts an OpenAPI subset of JSON Schema. Fields of
+ * type `json` are emitted as `{ type: 'object' }` without nested properties,
+ * since arbitrary free-form objects cannot be expressed in that subset.
+ */
+export function toGeminiTool(def: McpToolDefinition): GeminiTool {
+  const schema = buildToolInputSchema(def);
+  const properties: Record<string, OpenAIFunctionParameter> = {};
+  for (const [key, prop] of Object.entries(schema.properties)) {
+    if (prop.type === 'object') {
+      // OpenAPI subset: strip nested properties from free-form json fields
+      const { properties: _omit, ...rest } = prop;
+      properties[key] = rest;
+    } else {
+      properties[key] = prop;
+    }
+  }
+  return {
+    functionDeclarations: [
+      {
+        name: def.name,
+        description: toolDescription(def),
+        parameters: { type: 'object', properties, required: schema.required },
+      },
+    ],
+  };
+}
+
+/**
+ * Convert the full catalog to an array of Gemini tools.
+ * Optionally filter out deprecated tools.
+ */
+export function catalogToGeminiTools(
+  defs: McpToolDefinition[],
+  { includeDeprecated = false }: { includeDeprecated?: boolean } = {},
+): GeminiTool[] {
+  return defs
+    .filter((d) => includeDeprecated || !d.deprecated)
+    .map(toGeminiTool);
 }
