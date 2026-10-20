@@ -46,7 +46,7 @@ Thumbs.db
 # Project specific
 # ChromaDB vector database
 chroma_db/
-data/
+/data/
 vector_store/
 
 # Ollama models (if downloaded locally)
