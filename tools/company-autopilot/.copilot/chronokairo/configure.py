@@ -235,8 +235,6 @@ def route_prompt(key,domain,steps,project):
     return prompt+execution_contract(steps),root_agent
 
 def configure(target, live=False):
-    if live and (ROOT.parent / 'minimal-team' / 'team.json').exists():
-        raise RuntimeError('Equipe mínima ativa: use .copilot/minimal-team/install.py --apply; o instalador da equipe completa está desativado (ADR 0001).')
     c=sqlite3.connect(target,timeout=20)
     c.row_factory=sqlite3.Row
     c.execute('PRAGMA foreign_keys=ON')

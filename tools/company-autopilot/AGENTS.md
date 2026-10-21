@@ -1,11 +1,5 @@
 # Chronokairo — operação de agentes
 
-## Configuração ativa — ADR 0001
-
-Desde 2026-10-07, a equipe ativa para teste tem somente `comercial`, `security` e `payment`. Fontes ativas: `.copilot/minimal-team/team.json`, `.copilot/minimal-team/agents/` e `.copilot/minimal-team/install.py`. Agenda em America/Manaus: comercial diário 01:00, security segunda-feira 00:00, payment diário 02:00. Não reinstalar a equipe completa por `configure.py` ou `install.py`. O restante deste documento e `.copilot/chronokairo/` mantêm o histórico e convenções gerais; a decisão atual prevalece onde houver conflito.
-
-Payment trabalha somente com oportunidades pesquisadas, carteira local/testnet e paper trading. Não executa custódia, ordens, investimento ou transferências de fundos reais. Comercial pode persistir leads no CRM por acesso autorizado e corrigir o CRM em branch/worktree própria, com testes e PR; não faz merge/deploy nem contato externo. Security registra cobertura e evidências sem explorar produção. Os três executam diretamente, sem ampliar a equipe por delegação.
-
 Este repositório versiona automações, definições dos agentes e scripts de operação da empresa. Fontes canônicas: `.copilot/agents/`, `.copilot/chronokairo/configure.py`, `company-context.json` e `POLICY.md`. O runtime é `~/.copilot/chronokairo`, ligado a este checkout.
 
 Preservar alterações simultâneas e preferências de modelos/providers. Não executar configure/install global para corrigir um único cadastro. Alterações no banco do Copilot exigem backup SQLite consistente, transação, integridade e readback no aplicativo. Não editar segredos, contas OAuth ou credenciais dos providers.
@@ -25,7 +19,6 @@ Preferência do dono (2026-10-06): coordenadores encaminham tarefas mecânicas d
 Sistemas proprietários: a Chronokairo opera com seus próprios produtos (mapa em `.copilot/chronokairo/company-context.json` → `systems`). Não introduzir nem registrar como em uso SaaS de terceiros para funções da empresa (HubSpot, Notion, Zendesk, Slack, Calendly etc.); lacunas viram feature no produto próprio ou em `@chronokairo/platform`. Terceiros apenas como infraestrutura (GitHub/GitLab, Cloudflare, Supabase, Resend no Mail, modelos, gateways via payments) ou obrigação externa (fiscal, banco, contador), com aprovação do dono.
 
 Código compartilhado: produtos internos usam `@chronokairo/platform` (lacunas são implementadas na platform, nunca duplicadas no produto); SaaS (Workmed, Agroflow) e projetos de clientes (Audiomed) são independentes, com código próprio.
-
 
 <!-- BEGIN:chronokairo-ui-hexagonal-migration -->
 ## Diretriz de migração de UI e arquitetura — 2026-10-07

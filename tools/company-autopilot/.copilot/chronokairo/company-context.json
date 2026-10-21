@@ -175,7 +175,7 @@
     "secrets": "gitlab.com/chronokairo/vault — cofre de segredos",
     "control": "gitlab.com/chronokairo/control — cockpit, scheduler e release gate",
     "infra": "gitlab.com/chronokairo/nimbus — provisionamento e DevOps",
-    "ai": "github.com/chronokairo/kaide - agentes (Kaide), RAG e harness (reunificado; ex-repos ai/cli deletados)",
+    "ai": "gitlab.com/chronokairo/ai + chronokairo/cli — agentes, RAG e harness",
     "saas": "workmed e agroflow têm código próprio, sem platform (regra de 2026-10-06); audiomed é projeto de cliente, independente"
   },
   "hardware": {
