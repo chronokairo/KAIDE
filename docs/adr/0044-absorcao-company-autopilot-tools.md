@@ -44,3 +44,42 @@ possível — o Kaide é a única fonte. Histórico do `cli` não foi importado
   credenciais da máquina — nunca commitar `.env`/tokens (já fora do Git).
 - Sinergia óbvia com o Kaide: jobs `commercial.daily/followup` e Control Plane
   podem delegar rotinas a esses agentes via ACP (`acp.py`) — integração futura.
+
+## Adendo (2026-10-21) — reabsorção com histórico integral
+
+O repo `chronokairo/company-autopilot` foi **recriado** na org depois da
+deleção de 2026-10-08 e voltou a ter atividade própria (branch `main` com o
+portfólio SaaS, mais 3 branches de feature). A cópia no Kaide, vinda do
+`git subtree add` com squash, ficou desatualizada: trazia os agentes arquivados
+em `.copilot/agent-archive/full-team/` e não tinha o histórico do repo-fonte.
+
+Reabsorção feita com o mesmo método do monorepo `erp`:
+
+1. `git filter-repo --to-subdirectory-filter tools/company-autopilot` no repo
+   original (35 commits em `main` + 3 branches de feature) e
+   `git merge --allow-unrelated-histories` no Kaide. Os 35 commits do `main`
+   entram como segundo pai do merge — histórico integral, autoria e datas
+   preservados.
+2. Árvore final de `tools/company-autopilot` = a do repo-fonte em `main`
+   (91 arquivos): agentes ativos em `.copilot/agents/`, portfólio SaaS e as
+   correções de reliability. O `git` reconheceu as movidas de
+   `agent-archive/full-team/` para `agents/` como renomes.
+3. **Preservado o que era local do Kaide**: o bloco de diretriz
+   `chronokairo-ui-hexagonal-migration` no `AGENTS.md` (commit local `7b9867c`,
+   que nao existe em nenhuma branch do repo-fonte) e a remoção do
+   `acp-adapters/package-lock.json` (paths locais `file:../../../Documents/...`,
+   conforme o ponto 2 da decisão original).
+4. As 3 branches de feature do repo-fonte foram preservadas no Kaide em
+   `legacy/company-autopilot/*`:
+   - `ck/minimal-team-madrugada` (3 commits: equipe mínima da madrugada,
+     ADRs 0001–0004)
+   - `feat/saas-agroflow-workmed-20261005` (10 commits)
+   - `lu4nn3ry-adr-0005-night-team-expansion` (4 commits, era a PR #1 aberta)
+
+O bloco "Configuração ativa — ADR 0001" **não** foi restaurado na árvore: ele
+apontava para `.copilot/minimal-team/`, que existe apenas na branch
+`ck/minimal-team-madrugada` (preservada), e contradiria a postura de `main`
+(equipe completa ativa). Fica no histórico do Kaide.
+
+Repos `chronokairo/company-autopilot` e `chronokairo/forgepair` deletados
+após a absorção; o Kaide é a única fonte.
