@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "timezone": "America/Manaus",
+  "team": [
+    {"id":"comercial","name":"Comercial — prospecção e CRM","model":"z-ai/glm-5.3","interval":"daily","hour":1,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/chronokairo.git","profile":"comercial.agent.md"},
+    {"id":"security","name":"Security — auditoria semanal","model":"z-ai/glm-5.3","interval":"weekly","hour":0,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/kaide.git","profile":"security.agent.md"},
+    {"id":"payment","name":"Payment — cripto em ambiente de teste","model":"z-ai/glm-5.3","interval":"daily","hour":2,"minute":0,"weekday":1,"repository":"https://github.com/chronokairo/chronokairo.git","profile":"payment.agent.md"},
+    {"id":"vigia","name":"Vigia — sentinela de CI e saúde operacional","model":"z-ai/glm-5.3","interval":"daily","hour":3,"minute":0,"weekday":1,"repository":"","profile":"vigia.agent.md"},
+    {"id":"radar","name":"Radar — open source e comunidade","model":"z-ai/glm-5.3","interval":"daily","hour":4,"minute":0,"weekday":1,"repository":"","profile":"radar.agent.md"},
+    {"id":"briefing","name":"Briefing — consolidação matinal","model":"z-ai/glm-5.3","interval":"daily","hour":5,"minute":0,"weekday":1,"repository":"","profile":"briefing.agent.md"}
+  ]
+}

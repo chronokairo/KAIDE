@@ -1,5 +1,11 @@
 # Chronokairo — operação de agentes
 
+## Configuração ativa — ADR 0005
+
+Desde 2026-10-20 (versionada no kaide em 2026-10-21), a equipe ativa tem seis agentes: `comercial`, `security`, `payment`, `vigia`, `radar` e `briefing`. Fontes ativas: `.copilot/minimal-team/team.json`, `.copilot/minimal-team/agents/` e `.copilot/minimal-team/install.py`. Agenda completa em America/Manaus: comercial diário 01:00, payment diário 02:00, vigia diário 03:00, radar diário 04:00, briefing diário 05:00, security segunda-feira 00:00. Não reinstalar a equipe completa por `configure.py` ou `install.py`. O restante deste documento e `.copilot/chronokairo/` mantêm o histórico e convenções gerais; a decisão atual prevalece onde houver conflito.
+
+Payment trabalha somente com oportunidades pesquisadas, carteira local/testnet e paper trading. Não executa custódia, ordens, investimento ou transferências de fundos reais. Comercial pode persistir leads no CRM do monorepo `chronokairo/chronokairo` (apps/crm) por acesso autorizado e corrigir o CRM em branch/worktree própria, com testes e PR; não faz merge/deploy nem contato externo. Security registra cobertura e evidências no kaide sem explorar produção. Vigia corrige apenas quebras triviais (lint, teste quebrado por mudança localizada, YAML de workflow) em branch/worktree própria do repositório alvo, com teste local e PR; sem merge, deploy ou force-push. Radar apenas rascunha respostas e triagens, sem envio externo; não posta comentários, não altera labels e só corrige erro trivial de documentação pública em branch própria com PR. Briefing apenas consolida relatórios e o estado do GitHub; não altera repositórios. Os seis executam diretamente, sem ampliar a equipe por delegação.
+
 Este repositório versiona automações, definições dos agentes e scripts de operação da empresa. Fontes canônicas: `.copilot/agents/`, `.copilot/chronokairo/configure.py`, `company-context.json` e `POLICY.md`. O runtime é `~/.copilot/chronokairo`, ligado a este checkout.
 
 Preservar alterações simultâneas e preferências de modelos/providers. Não executar configure/install global para corrigir um único cadastro. Alterações no banco do Copilot exigem backup SQLite consistente, transação, integridade e readback no aplicativo. Não editar segredos, contas OAuth ou credenciais dos providers.
