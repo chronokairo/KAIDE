@@ -76,7 +76,7 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 - **`apps/web`** — frontend Next.js (React 19), subsistema RAG e suíte de controle de inteligência herdada do `thinkcoffee`.
 - **`sdk/typescript`** (`@chronokairo/kaide-sdk`) — resolve e invoca o binário `kaide`; atalhos `desktop:dev`/`desktop:build`.
 - Comandos raiz via **npm** (`dev`, `build`, `typecheck`, `test` delegam para `apps/web`; `rust:check`, `rust:test` para o workspace Cargo).
-- Histórico: `company-autopilot` absorvido com histórico integral via subtree em `tools/`; `cli` vive no código em `kaide-rs/core` (cópia — histórico git do repo deletado não foi importado).
+- Histórico: `company-autopilot` e `forgepair` absorvidos com histórico integral via `git filter-repo` + merge em `tools/` (reabsorção de 2026-10-21, ADR-0044/0045); `cli` vive no código em `kaide-rs/core` (cópia — histórico git do repo deletado não foi importado).
 
 ## Source Control & Forge Integration Rules (ADR-0038)
 
@@ -150,7 +150,8 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 | [0041](docs/adr/0041-consolidacao-ai-github-gitlab.md) | Consolidação do AI no GitHub (GitHub canônico, GitLab histórico auditável) |
 | [0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) | Reunificação do monorepo Kaide no layout de `openai/codex` (reversão da ADR-0027) + rebrand `ck` → `kaide` |
 | [0043](docs/adr/0043-remocao-totvs-supabase-sem-platform.md) | Remoção da integração TOTVS, religação ao Supabase prod e saída do `@chronokairo/platform` |
-| [0044](docs/adr/0044-absorcao-company-autopilot-tools.md) | Absorção do `company-autopilot` no Kaide (`tools/company-autopilot`, via subtree) |
+| [0044](docs/adr/0044-absorcao-company-autopilot-tools.md) | Absorção do `company-autopilot` no Kaide (`tools/company-autopilot`, via subtree; reabsorção com histórico integral em 2026-10-21) |
+| [0045](docs/adr/0045-absorcao-forgepair-tools.md) | Absorção do `forgepair` no Kaide (`tools/forgepair`, histórico integral) |
 
 ### Mapas de código — `docs/maps/`
 
