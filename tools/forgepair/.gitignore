@@ -1,0 +1,4 @@
+.forgepair/runtime/
+.env
+.env.*
+*.fasl
