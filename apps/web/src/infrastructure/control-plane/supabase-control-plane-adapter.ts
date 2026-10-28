@@ -30,11 +30,11 @@ import { ExecuteProductMilestoneSpecUseCase } from '@/application/use-cases/exec
 import { ExecuteSupportTriageUseCase } from '@/application/use-cases/execute-support-triage';
 import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
-const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
+const PROD_USER_ID = process.env.CONTROL_PLANE_ACTOR_USER_ID ?? '';
 
 /**
  * Production Control Plane Adapter for the Virtual Agent Company.
- * Directly connected to official Supabase production (chronokairo-prod / your-project-ref).
+ * Directly connected to official Supabase production (configured via env).
  * Consumes and mutates `employees`, `project_tasks`, `projects`, `ai_tool_executions`,
  * `audit_logs`, `leads` and `crm_activities` strictly under Human Approval Gates.
  */

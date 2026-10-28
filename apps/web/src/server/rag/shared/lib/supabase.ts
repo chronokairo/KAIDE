@@ -12,11 +12,11 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 export const SUPABASE_URL =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
-    'https://your-project-ref.supabase.co';
+    '';
 
 /** Organização padrão (mesmo valor de `@/shared/supabase` PROD_ORGANIZATION_ID). */
 export const PROD_ORGANIZATION_ID =
-    process.env.CONTROL_PLANE_ORGANIZATION_ID || '00000000-0000-4000-8000-000000000001';
+    process.env.CONTROL_PLANE_ORGANIZATION_ID || '';
 
 let client: SupabaseClient | undefined;
 

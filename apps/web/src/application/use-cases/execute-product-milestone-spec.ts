@@ -13,7 +13,7 @@ import {
 import { JobEntity } from '@/domain/company';
 import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 
-const PROD_USER_ID = '00000000-0000-4000-8000-000000000002'; // Luan Nery / Tech Lead Owner
+const PROD_USER_ID = process.env.CONTROL_PLANE_ACTOR_USER_ID ?? '';
 
 /**
  * Job `product.spec_milestones` — AI Product Role.

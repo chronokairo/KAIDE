@@ -1,25 +1,24 @@
 /**
- * Cliente Supabase Oficial de Produção (chronokairo-prod: your-project-ref).
+ * Cliente Supabase Oficial de Produção (configurado via NEXT_PUBLIC_SUPABASE_URL).
  * 
  * ATENÇÃO: Este módulo NÃO é mock nem fallback offline.
- * Ele conecta diretamente ao banco PostgreSQL gerenciado da ChronoKairo no AWS sa-east-1.
+ * Ele conecta diretamente ao banco PostgreSQL gerenciado da Chronokairo no AWS sa-east-1.
  * Todas as leituras e escritas são executadas em produção oficial.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project-ref.supabase.co';
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
 const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'REDACTED_SUPABASE_JWT';
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 
-/** ID da Organização Oficial ChronoKairo no Supabase de Produção */
-export const PROD_ORGANIZATION_ID = '00000000-0000-4000-8000-000000000001';
+/** ID da Organização Oficial Chronokairo no Supabase de Produção */
+export const PROD_ORGANIZATION_ID = process.env.NEXT_PUBLIC_CONTROL_PLANE_ORGANIZATION_ID ?? process.env.CONTROL_PLANE_ORGANIZATION_ID ?? '';
 
 /** ID do Usuário Sócio / Tech Lead no Supabase de Produção */
-export const PROD_USER_ID = '00000000-0000-4000-8000-000000000002';
+export const PROD_USER_ID = process.env.NEXT_PUBLIC_CONTROL_PLANE_ACTOR_USER_ID ?? process.env.CONTROL_PLANE_ACTOR_USER_ID ?? '';
 
 /** Cliente Supabase autenticado via Chave Pública (Anon) */
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
