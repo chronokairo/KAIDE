@@ -2,14 +2,14 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `research`, `ai`, `rag`, `mcp`, `benchmarks`, `nvidia-nim`, `consolidacao`
 
 ---
 
 ## Contexto
 
-No repositório `chronokairo/research` (laboratório de P&D da ChronoKairo), foram desenvolvidos dois módulos focados em inteligência artificial:
+No repositório `chronokairo/research` (laboratório de P&D da Chronokairo), foram desenvolvidos dois módulos focados em inteligência artificial:
 1. `apps/research`: Um sistema RAG avançado com interface MCP, busca semântica, integração acadêmica e streaming SSE via Ollama local.
 2. `apps/nvidia-llm-ranking`: Uma aplicação Next.js para avaliação, benchmarking e ranking comparativo de modelos LLM (NVIDIA NIM e OpenRouter).
 

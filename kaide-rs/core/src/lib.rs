@@ -1,4 +1,4 @@
-// Biblioteca do núcleo ChronoKairo CLI (ck) — zero-lib.
+// Biblioteca do núcleo Chronokairo CLI (ck) — zero-lib.
 // Expõe os módulos do kaide para consumidores (ex.: a casca Tauri), sem alterar o binário `kaide` (src/main.rs).
 // Fonte de verdade do código Rust: este crate. O restante (casca Tauri) apenas consome esta lib.
 #![allow(dead_code)]

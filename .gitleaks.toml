@@ -1,0 +1,18 @@
+﻿# Gitleaks: secret scanning (Chronokairo / Kaide open source)
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders, redaction regexes and synthetic test fixtures"
+regexes = [
+  '''REDACTED_[A-Z_]+''',
+  '''nvapi-x{10,}''',
+  '''your-(dev-)?project-ref''',
+  # jwt.io sample token used by compressor redaction tests
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.[A-Za-z0-9_-]+''',
+]
+paths = [
+  '''docs/market/changelogs/''',
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)Cargo\.lock$''',
+]

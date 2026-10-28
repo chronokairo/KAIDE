@@ -23,7 +23,7 @@
 **Critério de "pronto" (binário, testável):**
 Pegue 5 tarefas reais que você resolveria manualmente essa semana (Chronokairo ou `chronokairo-*`), rode todas pelo coder sem ajuda, e meça: quantas terminaram com diff aplicável e correto, sem você precisar terminar a tarefa manualmente. Se ≥3 de 5 passarem, você tem um V1 de verdade — não porque bateu uma spec, mas porque resolveu trabalho seu.
 
-O **goal do ChronoKairo Coder v1** deve ser bem estreito:
+O **goal do Chronokairo Coder v1** deve ser bem estreito:
 
 > **Transformar uma tarefa de desenvolvimento em uma mudança de código validada localmente, com o mínimo de intervenção humana.**
 
@@ -64,7 +64,7 @@ Eu definiria o escopo funcional assim:
 
 A definição de **DONE** poderia ser:
 
-> Dado um repositório existente e uma tarefa bem definida, o ChronoKairo Coder consegue produzir autonomamente um patch correto e demonstrar, por testes, build, lint ou outro critério verificável, que a tarefa foi cumprida.
+> Dado um repositório existente e uma tarefa bem definida, o Chronokairo Coder consegue produzir autonomamente um patch correto e demonstrar, por testes, build, lint ou outro critério verificável, que a tarefa foi cumprida.
 
 E eu excluiria explicitamente do v1: interface SaaS, colaboração em equipe, memória de longo prazo, agentes especializados, geração automática de PRs, browser automation, execução distribuída, cloud obrigatória, fine-tuning e suporte perfeito a todas as linguagens.
 

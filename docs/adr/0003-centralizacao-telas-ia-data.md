@@ -10,7 +10,7 @@ em um único monólito rotas de engenharia de dados (ETL, Data Warehouse, Pipeli
 BI (Dashboards, Analytics, Relatórios) e Inteligência Artificial (Modelos de IA, LLMs,
 Automação Inteligente, NLP, Visão Computacional e Agentes Autônomos).
 
-Conforme as regras do ecossistema ChronoKairo (`AGENTS.md`), o `chronokairo/ai` é a
+Conforme as regras do ecossistema Chronokairo (`AGENTS.md`), o `chronokairo/ai` é a
 **fonte única de IA**. Recursos de UI e gestão de IA não devem ser duplicados nem
 isolados em produtos periféricos.
 

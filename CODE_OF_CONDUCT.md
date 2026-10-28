@@ -1,8 +1,8 @@
-# Código de Conduta — ChronoKairo
+# Código de Conduta — Chronokairo
 
 ## Nosso compromisso
 
-A ChronoKairo quer participação livre de assédio, para todas as pessoas, em
+A Chronokairo quer participação livre de assédio, para todas as pessoas, em
 todos os espaços do grupo: issues, MRs, wikis, comentários e comunicações.
 Este texto é uma adaptação do
 [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
@@ -29,7 +29,7 @@ Este texto é uma adaptação do
 ## Escopo
 
 Vale em qualquer espaço do grupo `chronokairo` no GitLab e em
-representações oficiais da ChronoKairo.
+representações oficiais da Chronokairo.
 
 ## Consequências
 

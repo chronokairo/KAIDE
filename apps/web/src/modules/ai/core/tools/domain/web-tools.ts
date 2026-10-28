@@ -39,7 +39,7 @@ export const webTools: AiToolDefinition[] = [
       try {
         const response = await fetch(input.url, {
           headers: {
-            'User-Agent': 'ChronoKairo-ERP/1.0',
+            'User-Agent': 'Chronokairo-ERP/1.0',
           },
           signal: AbortSignal.timeout(10000),
         });

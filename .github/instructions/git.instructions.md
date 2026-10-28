@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# Git, GitHub & GitLab (Organização ChronoKairo)
+# Git, GitHub & GitLab (Organização Chronokairo)
 
 Os agentes têm acesso e devem operar sobre os repositórios da organização/grupo **`chronokairo`** no GitHub e GitLab:
 

@@ -1,4 +1,4 @@
-# ADR 0020 — ChronoKairo Rebranding and CKC Binary Transition
+# ADR 0020 — Chronokairo Rebranding and CKC Binary Transition
 
 - **Status:** Accepted (2026-09-10)
 - **Related ADRs:** ADR-0002 Harness Parity (GLM-5.2), ADR-0015 Competitive Backlog
@@ -6,15 +6,15 @@
 
 ## Context
 
-The repository was migrated to the chronokairo/cli GitHub namespace. However, the codebase retained legacy namnesic identifiers across source code, configurations, logs, temporary directory prefixes, user agents, and documentation. Furthermore, the binary name in Cargo.toml remained cki, whereas the project's canonical binary name is ckc (ChronoKairo Coder).
+The repository was migrated to the chronokairo/cli GitHub namespace. However, the codebase retained legacy namnesic identifiers across source code, configurations, logs, temporary directory prefixes, user agents, and documentation. Furthermore, the binary name in Cargo.toml remained cki, whereas the project's canonical binary name is ckc (Chronokairo Coder).
 
 ## Decision
 
-1. **Rebrand to ChronoKairo**:
-   - Update all occurrences of ANAMNESIC / Anamnesic / namnesic to CHRONOKAIRO / ChronoKairo / chronokairo.
+1. **Rebrand to Chronokairo**:
+   - Update all occurrences of ANAMNESIC / Anamnesic / namnesic to CHRONOKAIRO / Chronokairo / chronokairo.
    - Update user paths from ~/.anamnesic to ~/.chronokairo (including settings.json, providers.toml, models/, skills/, and memory.db).
    - Rename default log file to chronokairo.log.
-   - Update GitHub repository description/About to reflect ChronoKairo Coder (CKC).
+   - Update GitHub repository description/About to reflect Chronokairo Coder (CKC).
 
 2. **Binary Name Transition (ckc)**:
    - Set package name and binary name in Cargo.toml to ckc.

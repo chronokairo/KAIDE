@@ -135,11 +135,11 @@ const DEFAULT_GLOBAL_ACTIONS: ContextAction[] = [
   },
   {
     id: 'global-assistant',
-    title: 'Consultar Assistente Geral ChronoKairo IA',
+    title: 'Consultar Assistente Geral Chronokairo IA',
     subtitle: 'Pergunte qualquer dúvida sobre processos, relatórios ou dados do ERP',
     icon: 'psychology',
-    module: 'ChronoKairo IA',
-    prompt: 'Olá ChronoKairo IA! Como você pode me ajudar a gerenciar a organização hoje?',
+    module: 'Chronokairo IA',
+    prompt: 'Olá Chronokairo IA! Como você pode me ajudar a gerenciar a organização hoje?',
   },
   {
     id: 'global-browser',
@@ -281,7 +281,7 @@ export const AiCommandPalette: React.FC = () => {
             <span className="material-symbols-outlined text-[15px] text-secondary shrink-0">explore</span>
             <span className="truncate">Contexto: <strong className="text-primary">{activeModule.name}</strong></span>
             <span>•</span>
-            <span className="truncate">{currentOrganization?.name || 'ChronoKairo ERP'}</span>
+            <span className="truncate">{currentOrganization?.name || 'Chronokairo ERP'}</span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

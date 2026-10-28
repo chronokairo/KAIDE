@@ -75,7 +75,7 @@ export async function resolveApproval(
       try {
         const sent = await email.sendEmail({
           to: lead.contactEmail,
-          subject: `ChronoKairo — ${lead.companyName}`,
+          subject: `Chronokairo — ${lead.companyName}`,
           text: draft,
           organizationId: gate.organizationId,
           leadId: lead.id,

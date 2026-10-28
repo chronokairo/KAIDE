@@ -1,4 +1,4 @@
-<p align="center"><strong>Kaide</strong> is a coding agent from ChronoKairo (Kairos Code + AI + IDE) that runs locally on your computer.</p>
+<p align="center"><strong>Kaide</strong> is a coding agent from Chronokairo (Kairos Code + AI + IDE) that runs locally on your computer.</p>
 
 <p align="center">
   <a href="#english">English</a> · <a href="#português">Português</a>
@@ -20,7 +20,7 @@ If you want Kaide in your terminal, build the core and run <code>npx kaide</code
 
 ## English
 
-**Kaide** (Kairos Code + AI + IDE) is ChronoKairo's coding agent: a zero-lib Rust core (`kaide`), a Tauri 2 desktop app, a Next.js web app with RAG (Ollama + Supabase) and a virtual-agents Control Plane — all in one monorepo, mirroring the layout of [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
+**Kaide** (Kairos Code + AI + IDE) is Chronokairo's coding agent: a zero-lib Rust core (`kaide`), a Tauri 2 desktop app, a Next.js web app with RAG (Ollama + Supabase) and a virtual-agents Control Plane — all in one monorepo, mirroring the layout of [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
 
 ### Installing and running Kaide
 
@@ -89,13 +89,13 @@ kaide/
 
 ### License
 
-**Proprietary — internal ChronoKairo use.** All rights reserved.
+**Proprietary — internal Chronokairo use.** All rights reserved.
 
 ---
 
 ## Português
 
-**Kaide** (Kairos Code + AI + IDE) é o coding agent da ChronoKairo: um núcleo Rust zero-lib (`kaide`), um app desktop Tauri 2, um app web Next.js com RAG (Ollama + Supabase) e um Control Plane de agentes virtuais — tudo num monorepo só, espelhando o layout do [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
+**Kaide** (Kairos Code + AI + IDE) é o coding agent da Chronokairo: um núcleo Rust zero-lib (`kaide`), um app desktop Tauri 2, um app web Next.js com RAG (Ollama + Supabase) e um Control Plane de agentes virtuais — tudo num monorepo só, espelhando o layout do [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
 
 ### Instalando e executando o Kaide
 
@@ -164,4 +164,4 @@ kaide/
 
 ### Licença
 
-**Proprietária — uso interno da ChronoKairo.** Todos os direitos reservados.
+**Proprietária — uso interno da Chronokairo.** Todos os direitos reservados.

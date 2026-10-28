@@ -6,7 +6,7 @@
 
 ## Contexto
 
-O LMS da ChronoKairo usa um navegador real com sessões logadas (Cloudflare, autenticação)
+O LMS da Chronokairo usa um navegador real com sessões logadas (Cloudflare, autenticação)
 e o opencode precisa controlar esse navegador. Um servidor MCP puro (Node) não tem acesso
 ao DOM nem às sessões; extensões MV3 não podem abrir portas de rede nem servir HTTP.
 

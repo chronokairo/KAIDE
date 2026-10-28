@@ -135,7 +135,7 @@ export function useAutomations() {
       trigger_type: data.trigger_type || 'event_driven',
       trigger_details: data.trigger_details || '',
       execution_mode: data.execution_mode || 'agentic_ai',
-      assigned_agent: data.assigned_agent || 'ChronoKairo Assistant',
+      assigned_agent: data.assigned_agent || 'Chronokairo Assistant',
       status: 'active',
       config: {
         executionsCount: 0,

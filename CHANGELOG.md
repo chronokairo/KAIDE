@@ -12,7 +12,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   - `src-tauri/core/` (263 arquivos, crate `ckc`) foi extraído para [`chronokairo/cli`](https://gitlab.com/chronokairo/cli), onde vive como raiz do projeto Rust. O histórico dos 144 commits do antigo `chronokairo/cli` foi preservado como base.
   - A casca Tauri (`src-tauri/shell`) passou a consumir o núcleo por `git` + `tag = "v0.1.0"`: `ckc = { git = "https://gitlab.com/chronokairo/cli.git", tag = "v0.1.0" }`. O workspace `src-tauri` ficou com os membros `shell` e `intelligence`.
   - O binário foi renomeado de `ckc` para **`ck`**; o package/lib continuam `ckc` para não quebrar a git dependency. Uso/help, user-agent HTTP e `serverInfo` do MCP server passaram a usar `ck`.
-  - O `ckc` deixa de ser só o coding agent do desktop e passa a ser a interface de linha de comando dos produtos ChronoKairo.
+  - O `ckc` deixa de ser só o coding agent do desktop e passa a ser a interface de linha de comando dos produtos Chronokairo.
   - **Impacto:** builds do desktop passam a exigir rede na primeira resolução da git dependency; toda evolução do agente, tools, runtime de LLM e testes `p0_*` passa a acontecer no repo `chronokairo/cli`, não neste.
 
 #### Removido
@@ -58,7 +58,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - **Campo de Texto do Chat (Composer):** Correção do cálculo de posicionamento do cursor considerando `display_width` Unicode e quebras de linha visuais (soft-wrap); adição de suporte à tecla `Delete` e quebra de linha com `Shift+Enter`.
 - **Congelamento na Inicialização da TUI:** Indexação de arquivos do workspace (`file_search::walk_files`) convertida para execução assíncrona em background; filtro para ignorar diretórios ocultos (`.cache`, `.local`, etc.) e limite de segurança de 5.000 arquivos.
 - **Resiliência do Roteador de Modelos (ckc):** Fallback automático e transparente para a API HTTP do Ollama (`http://localhost:11434`) na ausência de arquivos GGUF manuais em disco; comandos de diagnóstico (`check`, `models`, `ps`) desacoplados da carga de modelos.
-- Migração da UI do chat RAG (`/rag`) para o design system ChronoKairo (ADR-0005, débito #3 parcial): `RagApp` consome `ThemeProvider`, `ThemeToggle` e `Button` de `@chronokairo/platform/ui`; tema claro/escuro alternável no header (persistido em `localStorage`).
+- Migração da UI do chat RAG (`/rag`) para o design system Chronokairo (ADR-0005, débito #3 parcial): `RagApp` consome `ThemeProvider`, `ThemeToggle` e `Button` de `@chronokairo/platform/ui`; tema claro/escuro alternável no header (persistido em `localStorage`).
 - Sistema de tokens themáveis em `src/app/globals.css`: `@theme` Tailwind v4 apontando para CSS vars com paletas `.dark` (padrão, valores inalterados) e `.light`; `RagApp.css` reescrito com as mesmas vars (prose, scrollbar, focus, typing cursor) e sem diretivas `@tailwind` v3 vestigiais.
 - Migração do backend RAG para Next API routes (ADR-0005, débito #2): 47 rotas em `src/app/api/*` (chat, search, conversas, mensagens, TOTVS, auth, admin, health, proxy catch-all) com adaptadores `_lib` (rag, http, rate-limit, auth, sse, totvs-proxy); clients SOAP/REST migrados de `shared/lib/http` (Express) para `http-core`; `resolve.extensionAlias` no webpack para imports ESM `.js`→`.ts` do legado.
 - Migração hexagonal Fase 0/1 sem deleção de código (ADR-0022): `src/domain`, `src/application` (portas e caso de uso `send-message`), `src/infrastructure` (adapters), composição em `src/features/ai-chat` e rota `/api/ai/chat` reescrita como adapter HTTP fino; suíte de testes com Vitest (11 testes).
@@ -75,7 +75,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   - dependências de markdown instaladas (`remark-math`, `remark-gfm`, `rehype-katex`, `rehype-raw`).
 
 #### Alterado
-- `RagApp.tsx`: ~80 classes de cor hardcoded (`gray`, `indigo`, `amber`) substituídas por tokens semânticos (`surface-container`, `on-surface-variant`, `outline`, `primary`, `secondary`); branding Athena → ChronoKairo AI (header, welcome, export PDF, IDs de chat); cores de status semânticas (verde/vermelho/azul etc.) preservadas; export PDF e gráficos Chart.js leem cores via `cssVar()` para acompanhar o tema.
+- `RagApp.tsx`: ~80 classes de cor hardcoded (`gray`, `indigo`, `amber`) substituídas por tokens semânticos (`surface-container`, `on-surface-variant`, `outline`, `primary`, `secondary`); branding Athena → Chronokairo AI (header, welcome, export PDF, IDs de chat); cores de status semânticas (verde/vermelho/azul etc.) preservadas; export PDF e gráficos Chart.js leem cores via `cssVar()` para acompanhar o tema.
 - `.npmrc` com `allow-git=root` — npm >= 12 bloqueia dependências git por padrão (EALLOWGIT).
 
 ### 2026-09-25

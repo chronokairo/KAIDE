@@ -12,7 +12,7 @@ import { normalizeEmailStatus } from '@/domain/control-plane';
 
 export interface ResendEmailAdapterConfig {
   readonly apiKey: string;
-  /** Ex.: 'ChronoKairo <contato@chronokairo.com.br>' */
+  /** Ex.: 'Chronokairo <contato@chronokairo.com.br>' */
   readonly fromEmail: string;
 }
 

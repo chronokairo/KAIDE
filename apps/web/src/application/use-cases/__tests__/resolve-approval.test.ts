@@ -24,7 +24,7 @@ async function setup(opts: { email?: FakeEmailOutreach } = {}) {
     contactRole: 'Diretora de Operações',
   });
   await crm.updateLead(lead.id, {
-    approachDraft: 'Olá, Marina! Sou da ChronoKairo…',
+    approachDraft: 'Olá, Marina! Sou da Chronokairo…',
   });
 
   const { job } = await store.createJob({

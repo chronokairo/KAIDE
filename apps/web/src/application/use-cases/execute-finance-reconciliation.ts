@@ -141,7 +141,7 @@ export class ExecuteFinanceReconciliationUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Financial Reconciliation of Accounts Receivable & Contracts (MRR)',
-      client: 'ChronoKairo Corp Financial Operations',
+      client: 'Chronokairo Corp Financial Operations',
       project: 'Financial Management & Invoicing',
       stage: 'finance',
       agentRole: 'finance',

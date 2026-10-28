@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `cki-lite`, `nvidia-nim`, `terminal-agent`, `guardrails`, `winforms`, `consolidacao`
 
 ---
@@ -16,5 +16,5 @@ Dois repositórios satélites orbitavam o ecossistema com ferramentas para NVIDI
 ## Decisão
 
 1. Absorver o agente de terminal `cki-lite.py`, seus 8 ADRs arquiteturais de segurança e o cliente nativo Windows em `chronokairo-ai/tools/cki-lite/`.
-2. Preservar o crate oficial `ckc` em Rust (`src-tauri/core`) como o coding agent padrão da ChronoKairo.
+2. Preservar o crate oficial `ckc` em Rust (`src-tauri/core`) como o coding agent padrão da Chronokairo.
 3. Deletar os repositórios remotos redundantes `chronokairo/ckc` e `chronokairo/cki-lite-desktop`.

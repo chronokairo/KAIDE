@@ -1,4 +1,4 @@
-# Política de Segurança — ChronoKairo
+# Política de Segurança — Chronokairo
 
 ## Reportando uma vulnerabilidade
 
@@ -7,9 +7,9 @@ vulnerabilidades internas e para achados em código de terceiros já absorvido.
 
 Canais privados, em ordem de preferência:
 
-1. **GitLab Security Advisory** deste projeto, em
-   `https://gitlab.com/chronokairo/<repo>/-/security/report_finding`
-2. E-mail privado para o time de segurança da ChronoKairo.
+1. **GitHub Private Vulnerability Reporting** deste projeto, em
+   `https://github.com/chronokairo/KAIDE/security/advisories/new`
+2. E-mail privado para o time de segurança da Chronokairo.
 
 Inclua sempre:
 

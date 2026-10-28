@@ -34,7 +34,7 @@ export const ChatMessageList: React.FC<Props> = ({
       <div className="flex justify-center mb-2">
         <div className="bg-surface-container-low border border-outline-variant/40 rounded-full px-4 py-1 text-xs text-on-surface-variant flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isTauri ? 'bg-secondary animate-pulse' : 'bg-accent animate-pulse'}`} />
-          {isTauri ? 'ChronoKairo IA Sidecar Conectado' : 'Modo Web (NVIDIA NIM)'}
+          {isTauri ? 'Chronokairo IA Sidecar Conectado' : 'Modo Web (NVIDIA NIM)'}
         </div>
       </div>
 
@@ -178,7 +178,7 @@ export const ChatMessageList: React.FC<Props> = ({
                 <span key={i} className="w-2 h-2 rounded-full bg-secondary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
             </span>
-            <span className="text-xs text-on-surface-variant">ChronoKairo está processando…</span>
+            <span className="text-xs text-on-surface-variant">Chronokairo está processando…</span>
           </div>
         </div>
       )}

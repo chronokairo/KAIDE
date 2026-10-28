@@ -191,7 +191,7 @@ export const AiAutomationAgentsPanel: React.FC = () => {
         trigger_type: builderTrigger,
         trigger_details: TRIGGER_META[builderTrigger].label,
         execution_mode: builderExecutionMode,
-        assigned_agent: 'ChronoKairo IA Agent',
+        assigned_agent: 'Chronokairo IA Agent',
         status: 'active',
         config: { icon: TRIGGER_META[builderTrigger].icon, executionsCount: 0, successRate: '100%', lastExecutedAt: 'Criada agora' },
       });
@@ -222,7 +222,7 @@ export const AiAutomationAgentsPanel: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-outline-variant/50">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-on-surface-variant">
-            <span className="text-secondary font-bold">ChronoKairo ERP</span>
+            <span className="text-secondary font-bold">Chronokairo ERP</span>
             <span>/</span>
             <span>IA &amp; Automações</span>
           </div>
@@ -299,7 +299,7 @@ export const AiAutomationAgentsPanel: React.FC = () => {
                   <span className="material-symbols-outlined text-[18px]">psychology</span>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-primary truncate">ChronoKairo Master IA</div>
+                  <div className="text-xs font-bold text-primary truncate">Chronokairo Master IA</div>
                   <div className="text-[10px] text-on-surface-variant font-mono">NVIDIA NIM • Domain Tools</div>
                 </div>
               </div>
@@ -418,7 +418,7 @@ export const AiAutomationAgentsPanel: React.FC = () => {
           <div className="bg-surface-container-low border border-outline-variant/60 rounded-2xl p-4">
             <h3 className="font-bold text-sm text-primary flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary">auto_awesome</span>
-              Receitas Prontas de Automação para o ChronoKairo ERP
+              Receitas Prontas de Automação para o Chronokairo ERP
             </h3>
             <p className="text-xs text-on-surface-variant mt-1">
               Ative rotinas de ponta a ponta com 1 clique. Cada template já vem com gatilho, agentes e regras configurados.

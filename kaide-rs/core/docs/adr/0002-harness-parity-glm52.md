@@ -6,7 +6,7 @@
 
 ## Context
 
-The ChronoKairo harness lagged modern coding agents (Claude Code, Codex CLI,
+The Chronokairo harness lagged modern coding agents (Claude Code, Codex CLI,
 Antigravity) in several structural ways: no transactional workspace, no
 interactive approval, sequential-only tool execution, no capability filtering,
 no `tool_choice`, no deterministic diff/rollback, divergent orchestration paths,

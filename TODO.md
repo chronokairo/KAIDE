@@ -11,7 +11,7 @@
   - Requer aprovação humana do Diretor (`payment_release`) antes de emitir cobranças.
 - [x] **Job `finance.cash_flow`** (Contas a Pagar e Conciliação Bancária):
   - Consumir tabela `accounts_payable` (8 contas pagas: honorários advocatícios R$ 1.000, domínios `chronokairo.com.br` R$ 80 e `manausdev.com.br` R$ 40).
-  - Reconciliar com as 3 contas em `financial_accounts` (`Banco Inter ChronoKairo/RLV`, `Conta VLM`, `Nubank pessoal Riad`).
+  - Reconciliar com as 3 contas em `financial_accounts` (`Banco Inter Chronokairo/RLV`, `Conta VLM`, `Nubank pessoal Riad`).
   - Gerar DRE preliminar e relatório de fluxo de caixa segregando PJ e PF.
 - [x] **Job `finance.nfe_allocation`** (Alocação de NFS-e e Faturamento):
   - Consumir tabela `service_invoices` (6 notas fiscais emitidas) e mapear através de `service_invoice_receivable_allocations` (7 alocações).

@@ -58,7 +58,7 @@ function saveLocalSessions(sessions: LocalSavedConversation[]) {
 
 export const AiChatInterface: React.FC<AiChatInterfaceProps> = ({
   sessionId = null,
-  selectedProjectName = 'ChronoKairo ERP',
+  selectedProjectName = 'Chronokairo ERP',
   availableProjects = [],
   onSelectProjectName,
   onMessageSent,
@@ -407,7 +407,7 @@ export const AiChatInterface: React.FC<AiChatInterfaceProps> = ({
             finalPrompt,
             () => {},
             {
-              workspace: selectedProjectName !== 'ChronoKairo ERP' ? selectedProjectName : undefined,
+              workspace: selectedProjectName !== 'Chronokairo ERP' ? selectedProjectName : undefined,
               model: selectedModel,
               session_id: currentSessionId,
             }
@@ -416,7 +416,7 @@ export const AiChatInterface: React.FC<AiChatInterfaceProps> = ({
           console.error('Failed to stream in Tauri:', err);
         }
       } else {
-        await sendAiMessage(rawContent, `You are Kaide, an intelligent ERP assistant built into the ChronoKairo ERP system. You help users manage their business operations including finance, CRM, projects, billing, contracts, and more. Current model: ${selectedModel}. Respond in Portuguese when the user writes in Portuguese. Be helpful, concise, and professional.`);
+        await sendAiMessage(rawContent, `You are Kaide, an intelligent ERP assistant built into the Chronokairo ERP system. You help users manage their business operations including finance, CRM, projects, billing, contracts, and more. Current model: ${selectedModel}. Respond in Portuguese when the user writes in Portuguese. Be helpful, concise, and professional.`);
       }
 
       onMessageSent?.();

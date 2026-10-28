@@ -171,7 +171,7 @@ export const TerminalBottomPanel: React.FC = () => {
         {/* Node Identity Tab */}
         {activeTab === 'node' && (
           <div className="h-full overflow-y-auto p-3 font-mono text-[11px] leading-relaxed space-y-1.5">
-            <div className="text-teal-400 font-bold">[NODE IDENTITY] ChronoKairo Local Peer</div>
+            <div className="text-teal-400 font-bold">[NODE IDENTITY] Chronokairo Local Peer</div>
             <div>Node ID: <span className="text-amber-300">{identity?.node_id || 'N/A'}</span></div>
             <div>Public Key: <span className="text-zinc-400 font-mono text-[10px] break-all">{identity?.public_key || 'N/A'}</span></div>
             <div>Peers Confiáveis: <span className="text-teal-400">{(nodeResult?.data as any)?.trustedPeerCount ?? 0}</span></div>

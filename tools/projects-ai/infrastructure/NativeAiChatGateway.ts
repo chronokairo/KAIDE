@@ -56,7 +56,7 @@ export class NativeAiChatGateway implements AiChatGateway {
     const model = options.model || (isNvidia ? (this.env.NVIDIA_NIM_MODEL || 'meta/llama-3.1-70b-instruct') : (this.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'));
     const thinking = options.thinking || 'off';
     const body = { model, messages, temperature: thinking === 'off' ? 0.2 : 0.1, max_tokens: thinking === 'high' ? 2400 : 1200, ...(isNvidia ? { chat_template_kwargs: { enable_thinking: thinking !== 'off' } } : thinking !== 'off' ? { reasoning: { effort: thinking } } : {}) };
-    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'ChronoKairo Projects' }) }, body: JSON.stringify(body) });
+    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'Chronokairo Projects' }) }, body: JSON.stringify(body) });
     if (!response.ok) throw new Error(`Falha no provider de IA (${response.status}).`);
     const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = payload.choices?.[0]?.message?.content;
@@ -72,7 +72,7 @@ export class NativeAiChatGateway implements AiChatGateway {
     const model = options.model || (isNvidia ? (this.env.NVIDIA_NIM_MODEL || 'meta/llama-3.1-70b-instruct') : (this.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'));
     const thinking = options.thinking || 'off';
     const body = { model, messages, stream: true, temperature: thinking === 'off' ? 0.2 : 0.1, max_tokens: thinking === 'high' ? 2400 : 1200 };
-    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'ChronoKairo Projects' }) }, body: JSON.stringify(body) });
+    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'Chronokairo Projects' }) }, body: JSON.stringify(body) });
     if (!response.ok || !response.body) throw new Error(`Falha no provider de IA (${response.status}).`);
     const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = '';
     while (true) {
@@ -103,7 +103,7 @@ export class NativeAiChatGateway implements AiChatGateway {
     const thinking = options.thinking || 'off';
     const providerTools = tools.map(({ name, description, parameters }) => ({ type: 'function', function: { name, description, parameters } }));
     const body = { model, messages, tools: providerTools, tool_choice: 'auto', temperature: thinking === 'off' ? 0.2 : 0.1, max_tokens: thinking === 'high' ? 2400 : 1200, ...(isNvidia ? { chat_template_kwargs: { enable_thinking: thinking !== 'off' } } : thinking !== 'off' ? { reasoning: { effort: thinking } } : {}) };
-    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'ChronoKairo Projects' }) }, body: JSON.stringify(body) });
+    const response = await this.fetchWithRetry(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(isNvidia ? {} : { 'HTTP-Referer': 'https://chronokairo.com.br', 'X-Title': 'Chronokairo Projects' }) }, body: JSON.stringify(body) });
     if (!response.ok) throw new Error(`Falha no provider de IA (${response.status}).`);
     const payload = await response.json() as { usage?: unknown; choices?: Array<{ message?: { content?: string | null; role?: string; reasoning?: string | null; reasoning_content?: string | null; tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }> } }> };
     const message = payload.choices?.[0]?.message;

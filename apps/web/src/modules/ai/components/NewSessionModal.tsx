@@ -9,7 +9,7 @@ interface NewSessionModalProps {
   onCreated: (sessionId: number) => void;
 }
 
-const MODELS = ['GPT-5.2-Codex', 'ChronoKairo Auto (NVIDIA NIM)', 'Claude 3.5 Sonnet', 'Gemini 1.5 Pro'];
+const MODELS = ['GPT-5.2-Codex', 'Chronokairo Auto (NVIDIA NIM)', 'Claude 3.5 Sonnet', 'Gemini 1.5 Pro'];
 const EFFORT_LEVELS = ['Extra high', 'High', 'Medium', 'Low'];
 const ENVIRONMENTS = ['Local', 'Worktree', 'Cloud'];
 

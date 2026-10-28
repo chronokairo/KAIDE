@@ -6,7 +6,7 @@
 
 ## Context
 
-`microsoft/edit` é um editor TUI modeless open-source da Microsoft (Windows 11 + Linux/macOS), escrito 100% em Rust sem dependências pesadas, com binário agressivamente otimizado (-65%). O harness ChronoKairo (`cki`) compartilha a mesma restrição **Zero-Lib Policy (Std-First)** — `AGENTS.md:6` proíbe novos crates em `Cargo.toml`. Analisar `edit` revelou padrões diretamente portáveis para o harness sem violar std-only.
+`microsoft/edit` é um editor TUI modeless open-source da Microsoft (Windows 11 + Linux/macOS), escrito 100% em Rust sem dependências pesadas, com binário agressivamente otimizado (-65%). O harness Chronokairo (`cki`) compartilha a mesma restrição **Zero-Lib Policy (Std-First)** — `AGENTS.md:6` proíbe novos crates em `Cargo.toml`. Analisar `edit` revelou padrões diretamente portáveis para o harness sem violar std-only.
 
 Features do `edit` avaliadas: immediate-mode framebuffer diff, GapBuffer + coordenadas lógicas/visuais + transações, LSH syntax highlighter, VT parser robusto + mouse SGR, Find & Replace com flags ICU, arena bump por frame, build profiles otimizados, i18n `edit.toml` + `EDIT_CFG_LANGUAGES`, file picker `Ctrl+P` + autocompletion, multi-file `DocumentManager`, word wrap, mouse.
 

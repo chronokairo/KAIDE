@@ -23,7 +23,7 @@ export const CapabilityConfirmation: React.FC<CapabilityConfirmationProps> = ({
         <span className="text-amber-400 font-bold text-sm">🛡️ Confirmação Humana Requerida (Human-in-the-Loop)</span>
       </div>
       <p className="text-xs text-zinc-300 mb-3">
-        A ChronoKairo IA propôs a execução da seguinte alteração no ERP. Confirme para prosseguir:
+        A Chronokairo IA propôs a execução da seguinte alteração no ERP. Confirme para prosseguir:
       </p>
 
       <div className="p-3 bg-black/60 rounded-xl border border-zinc-800 text-xs font-mono mb-4">

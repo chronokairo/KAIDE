@@ -56,7 +56,7 @@ impl McpServer {
                         "tools": [
                             {
                                 "name": "run_coder",
-                                "description": "Run a coding task with the ChronoKairo agent. Returns the final result.",
+                                "description": "Run a coding task with the Chronokairo agent. Returns the final result.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {
@@ -68,7 +68,7 @@ impl McpServer {
                             },
                             {
                                 "name": "chrono_get_context",
-                                "description": "Retrieve curated ChronoKairo operational context, MOC guidelines, and active task directives using the Zero-Lib ChronoContext engine.",
+                                "description": "Retrieve curated Chronokairo operational context, MOC guidelines, and active task directives using the Zero-Lib ChronoContext engine.",
                                 "inputSchema": {
                                     "type": "object",
                                     "properties": {

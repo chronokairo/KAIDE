@@ -2,7 +2,7 @@
 
 ## Responsabilidade
 
-Este repositório implementa a **empresa virtual de agentes** da ChronoKairo (software engineering company AI-first, com supervisão humana), o chat de IA da plataforma e sua API de backend. Ele não é apenas uma demonstração de RAG nem um frontend isolado. Ver [ADR-0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md).
+Este repositório implementa a **empresa virtual de agentes** da Chronokairo (software engineering company AI-first, com supervisão humana), o chat de IA da plataforma e sua API de backend. Ele não é apenas uma demonstração de RAG nem um frontend isolado. Ver [ADR-0028](docs/adr/0028-empresa-virtual-de-agentes-control-plane.md).
 
 Modelo operacional: **AI → AI → AI → HUMAN**, nunca AI → produção. Todo trabalho segue `plan → execute → verify → evidence → approval → merge/deploy`. O humano (sócio/CTO) é orquestrador e aprovador; dinheiro real e produção exigem aprovação humana.
 
@@ -10,7 +10,7 @@ O produto deve:
 
 - operar um **Control Plane** (cliente → demanda → projeto → tasks → agentes → tools → evidências → aprovação → entrega), registrando cada execução como `Job` (contexto, agente, prompt, tools usadas, alterações, testes, evidências, custo, duração, status);
 - executar papéis por agentes especializados: Comercial, Analista, Product, Coder, QA, DevOps, Support e Finance/Ops;
-- responder consultas usando dados e contratos dos produtos ChronoKairo;
+- responder consultas usando dados e contratos dos produtos Chronokairo;
 - propor e executar manipulações no backend somente por ferramentas tipadas e autorizadas;
 - expor chat, streaming, histórico, catálogo de ferramentas e auditoria por API;
 - manter provedores de LLM, RAG e integrações externas atrás de portas e adapters;

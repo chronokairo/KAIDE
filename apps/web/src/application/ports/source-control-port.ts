@@ -10,7 +10,7 @@ import {
  * Driven port for source control and forge integrations.
  *
  * The only production implementation shells out to the authenticated `gh` and
- * `glab` CLIs, scoped to the ChronoKairo organization and group. Keeping this
+ * `glab` CLIs, scoped to the Chronokairo organization and group. Keeping this
  * behind a port means the Control Plane never depends on a forge SDK, and
  * tests can supply fixtures without touching the network.
  *

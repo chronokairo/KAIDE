@@ -38,7 +38,7 @@ enum LogOutput {
     File(Mutex<File>),
 }
 
-/// Global native logger for ChronoKairo CLI.
+/// Global native logger for Chronokairo CLI.
 pub struct CkiLogger {
     max_level: AtomicU8,
     output: Mutex<Option<LogOutput>>,

@@ -1,6 +1,6 @@
 //! Management commands for local GGUF models: rm, show, cp, ps, run, and enhanced models list.
 //!
-//! Follows ChronoKairo Zero-Lib policy using only std::* and internal primitives.
+//! Follows Chronokairo Zero-Lib policy using only std::* and internal primitives.
 
 use crate::error::{bail, Context, Result};
 use crate::llm::infer::engine::InferenceEngine;
@@ -212,7 +212,7 @@ pub fn show_model(query: &str) -> Result<()> {
 
 /// Show system hardware, VRAM, and model runtime status
 pub fn ps_status() -> Result<()> {
-    println!("ChronoKairo CLI (ck) — Runtime Status");
+    println!("Chronokairo CLI (ck) — Runtime Status");
     println!("========================================\n");
 
     // 1. Hardware & Acceleration
@@ -297,7 +297,7 @@ pub fn run_direct(query: &str, prompt: Option<&str>, no_gpu: bool) -> Result<()>
             eprintln!("\n[{tokens} tokens in {:.2}s — {:.1} tok/s]", elapsed.as_secs_f64(), tps);
         }
         None => {
-            println!("\nChronoKairo Interactive Model Runner (Zero-Lib Local Inference)");
+            println!("\nChronokairo Interactive Model Runner (Zero-Lib Local Inference)");
             println!("Model: {} | Type /bye, /exit or Ctrl+C to quit.\n", query);
 
             use std::io::BufRead;

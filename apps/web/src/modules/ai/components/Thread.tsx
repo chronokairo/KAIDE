@@ -162,7 +162,7 @@ export function HarnessThread() {
                 <span className="material-symbols-outlined text-[28px]">{currentAgent.icon}</span>
               </div>
               <h2 className="text-lg md:text-xl font-bold text-primary tracking-tight">
-                ChronoKairo {currentAgent.name}
+                Chronokairo {currentAgent.name}
               </h2>
               <p className="text-xs text-on-surface-variant max-w-md mt-1.5 leading-relaxed">
                 {currentAgent.description}. Ambiente de execução autônoma do ERP.

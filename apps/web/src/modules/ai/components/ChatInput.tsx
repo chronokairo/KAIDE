@@ -88,7 +88,7 @@ export const ChatInput: React.FC<Props> = ({
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             className="w-full bg-transparent border-none py-1.5 px-2 text-xs md:text-sm text-on-surface resize-none focus:ring-0 outline-none placeholder:text-on-surface-variant/50"
-            placeholder="Pergunte ao ChronoKairo IA, @ para arquivos, / para comandos…"
+            placeholder="Pergunte ao Chronokairo IA, @ para arquivos, / para comandos…"
             rows={1}
             disabled={isRunning}
           />

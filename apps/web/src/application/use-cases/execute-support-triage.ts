@@ -85,7 +85,7 @@ export class ExecuteSupportTriageUseCase {
     const job: JobEntity = {
       id: jobId,
       title: 'Support Conversation Triage & FAQ Synthesis',
-      client: 'ChronoKairo Corp Customer Success & Support',
+      client: 'Chronokairo Corp Customer Success & Support',
       project: 'Knowledge Base',
       stage: 'support',
       agentRole: 'support',

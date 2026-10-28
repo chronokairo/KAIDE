@@ -23,7 +23,7 @@ Em paralelo, os ADRs [0036](./0036-conexao-oficial-supabase-prod-e-eliminacao-de
 ### 2. Persistência Supabase Prod
 - Migration `supabase/migrations/20261003151824_control_plane.sql` aplicada ao prod (`your-project-ref`): tabelas `cp_jobs`, `cp_job_events` (append-only), `cp_leads`, `cp_approval_gates`, `cp_email_outreach`, todas com `organization_id` para isolamento multitenant.
 - Adapter `src/infrastructure/persistence/control-plane-supabase-store.ts` via PostgREST (service role, server-side only).
-- CRM real: leitura/escrita nas tabelas existentes `leads` e `crm_activities` (13 leads reais da organização ChronoKairo).
+- CRM real: leitura/escrita nas tabelas existentes `leads` e `crm_activities` (13 leads reais da organização Chronokairo).
 
 ### 3. Envio de E-mail via Resend
 - Adapter oficial `src/infrastructure/email/resend-email-adapter.ts` (SDK `resend`), atrás de `EmailOutreachPort`.

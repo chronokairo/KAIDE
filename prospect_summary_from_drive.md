@@ -1,8 +1,8 @@
 # Resumo de Prospecção - Dados do Drive H:\Meu Drive
 
 ## Arquivos encontrados
-- H:\Meu Drive\ChronoKairo\Inteligencia_Comercial\prospeccao_leads_pme_manaus.md
-- H:\Meu Drive\ChronoKairo\Inteligencia_Comercial\prospeccao_leads_pme_manaus.json
+- H:\Meu Drive\Chronokairo\Inteligencia_Comercial\prospeccao_leads_pme_manaus.md
+- H:\Meu Drive\Chronokairo\Inteligencia_Comercial\prospeccao_leads_pme_manaus.json
 - H:\Meu Drive\07_clientes\README.md
 
 ## Leads mapeados em Manaus - 12 PMEs validadas
@@ -72,4 +72,4 @@
 4. Registrar leads no CRM com status e próxima ação
 5. Aprovação humana antes de envio de mensagens externas
 
-Evidências e playbook completo disponíveis em H:\Meu Drive\ChronoKairo\Inteligencia_Comercial\
+Evidências e playbook completo disponíveis em H:\Meu Drive\Chronokairo\Inteligencia_Comercial\

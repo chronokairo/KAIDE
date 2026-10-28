@@ -6,7 +6,7 @@
 
 ## Context
 
-The ChronoKairo agent loop is strictly sequential — a single `AgentState` runs one turn at a time. For complex multi-file refactoring or research tasks, this wastes turns and tokens because the agent has to juggle sub-tasks in-context. All 2026 leaders (Claude Code, Antigravity, Cursor) support sub-agents for isolated task execution.
+The Chronokairo agent loop is strictly sequential — a single `AgentState` runs one turn at a time. For complex multi-file refactoring or research tasks, this wastes turns and tokens because the agent has to juggle sub-tasks in-context. All 2026 leaders (Claude Code, Antigravity, Cursor) support sub-agents for isolated task execution.
 
 ## Decision
 

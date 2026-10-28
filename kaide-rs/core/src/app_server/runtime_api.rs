@@ -1,4 +1,4 @@
-//! Read/query API used by supervisory clients such as ChronoKairo Desktop.
+//! Read/query API used by supervisory clients such as Chronokairo Desktop.
 //! All coding-runtime data is owned here; clients only render the result.
 
 use serde_json::{json, Value};
@@ -225,7 +225,7 @@ fn attribution_policy(workspace: &Path) -> Value {
     json!({
         "co_authored_by": true,
         "include_human": false,
-        "agent_name": if name.is_empty() { "ChronoKairo Agent" } else { &name },
+        "agent_name": if name.is_empty() { "Chronokairo Agent" } else { &name },
         "agent_email": if email.is_empty() { "agent@chronokairo.local" } else { &email },
         "trailer_format": "Co-authored-by: {name} <{email}>"
     })
@@ -240,7 +240,7 @@ fn format_commit_attribution(workspace: &Path, params: &Value) -> Result<Value, 
     let message = params.get("message").and_then(Value::as_str).ok_or("message is required")?;
     let policy = attribution_policy(workspace);
     if !policy.get("co_authored_by").and_then(Value::as_bool).unwrap_or(true) { return Ok(Value::String(message.to_string())); }
-    let name = policy.get("agent_name").and_then(Value::as_str).unwrap_or("ChronoKairo Agent");
+    let name = policy.get("agent_name").and_then(Value::as_str).unwrap_or("Chronokairo Agent");
     let email = policy.get("agent_email").and_then(Value::as_str).unwrap_or("agent@chronokairo.local");
     let trailer = format!("Co-authored-by: {name} <{email}>");
     if message.contains(&trailer) { Ok(Value::String(message.to_string())) }

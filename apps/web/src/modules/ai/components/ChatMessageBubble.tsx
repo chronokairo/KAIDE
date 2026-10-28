@@ -25,7 +25,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ role, cont
           <span className="material-symbols-outlined text-[13px]">
             {isUser ? 'person' : 'smart_toy'}
           </span>
-          <span>{isUser ? 'Você' : 'ChronoKairo IA'}</span>
+          <span>{isUser ? 'Você' : 'Chronokairo IA'}</span>
         </div>
         {isUser ? (
           <div className="text-xs md:text-sm whitespace-pre-wrap leading-relaxed">{content}</div>

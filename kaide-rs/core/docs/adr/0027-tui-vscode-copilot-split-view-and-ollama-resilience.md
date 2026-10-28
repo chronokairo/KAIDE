@@ -6,7 +6,7 @@
 
 ## Context
 
-O ChronoKairo CLI (`ckc`) possuía dois comportamentos que limitavam a experiência de desenvolvimento no terminal:
+O Chronokairo CLI (`ckc`) possuía dois comportamentos que limitavam a experiência de desenvolvimento no terminal:
 1. **Comportamento Binário do Editor vs Chat:** Quando um arquivo era aberto no editor embutido (`app.editor_file`), o editor tomava 100% da viewport, ocultando completamente o transcript e o chat do agente de IA. O desenvolvedor precisava fechar o editor para conversar com o agente e reabri-lo depois, quebrando o fluxo de trabalho integrado estilo "VS Code + GitHub Copilot".
 2. **Gargalo Bloqueante na Inicialização:** Ao iniciar a TUI (`ckc tui`) a partir de workspaces densos (como o home directory `~` contendo `.cache`, `.local`, `.vscode-server` ou drives montados `/mnt/c`), o coletor recursivo `file_search::walk_files` bloqueava a thread principal de interface por dezenas de segundos logo após o `EnterAlternateScreen`, dando a impressão visual de travamento ("tela preta").
 3. **Fragilidade de Resolução de Modelo Local:** O comando `build_router` forçava a busca estrita de arquivos GGUF em disco. Caso o modelo estivesse servido via daemon local do Ollama (como `qwen3.5:2b` ou `qwen2.5-coder:3b`), o CLI abortava com `Model not found` em vez de rotear para `LlmClient::Ollama`.
@@ -15,7 +15,7 @@ O ChronoKairo CLI (`ckc`) possuía dois comportamentos que limitavam a experiên
 
 ### 1. Layout Completo de IDE em 3 Zonas (VS Code + microsoft/edit Inspired)
 Ao iniciar a TUI (`ckc`), o terminal exibe imediatamente a arquitetura completa de uma IDE moderna:
-- **Top AppBar / MenuBar (Linha 0):** `File Edit View Terminal Help` com badges de status em tempo real: `🤖 ChronoKairo`, modelo ativo (`Model: qwen3.5:2b`), branch git atual (`⎇ main`) e diretório do workspace.
+- **Top AppBar / MenuBar (Linha 0):** `File Edit View Terminal Help` com badges de status em tempo real: `🤖 Chronokairo`, modelo ativo (`Model: qwen3.5:2b`), branch git atual (`⎇ main`) e diretório do workspace.
 - **Sidebar Esquerda (Explorer, 24% da viewport):** Exibe a árvore e lista de arquivos do workspace (`app.sidebar_items`) com cursor de seleção visual (`› `), ícones de diretório/arquivo (`📁 `/`📄 `) e navegação via setas. Pressionar `Enter` em um arquivo abre-o diretamente no editor de código integrado.
 - **Painel Direito Principal (76% da viewport):**
   - **Modo Padrão:** Copilot Agent Chat completo com histórico de mensagens, raciocínio interno (`thinking`), chamadas de ferramentas e diffs.

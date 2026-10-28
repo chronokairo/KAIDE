@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "ChronoKairo Desktop",
+        "title": "Chronokairo Desktop",
         "width": 1280,
         "height": 800,
         "resizable": true,

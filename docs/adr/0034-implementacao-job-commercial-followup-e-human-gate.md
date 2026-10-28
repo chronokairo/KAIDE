@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Conforme estipulado no modelo operacional da ChronoKairo AI ([ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md)), a empresa virtual de agentes segue a regra inegociável **`AI → AI → AI → HUMAN`** — nenhuma IA dispara ações no mundo real (como mensagens externas, transferências bancárias ou deploys em produção) sem autorização prévia de um humano supervisor (Sócio/Diretor Técnico).
+Conforme estipulado no modelo operacional da Chronokairo AI ([ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md)), a empresa virtual de agentes segue a regra inegociável **`AI → AI → AI → HUMAN`** — nenhuma IA dispara ações no mundo real (como mensagens externas, transferências bancárias ou deploys em produção) sem autorização prévia de um humano supervisor (Sócio/Diretor Técnico).
 
 O usuário solicitou:
 > "implemente real Execute o job 'commercial.followup' no harness chronokairo/ai. Verifique leads que aguardam contato ou follow-up e elabore rascunho de mensagem. Requer aprovação humana antes do envio."

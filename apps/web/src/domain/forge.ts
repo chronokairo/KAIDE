@@ -1,7 +1,7 @@
 /**
  * Pure domain entities and utilities for multi-forge source control integration.
  *
- * ChronoKairo mirrors its codebases across both GitHub and GitLab:
+ * Chronokairo mirrors its codebases across both GitHub and GitLab:
  *   - GitHub: https://github.com/chronokairo/kaide.git
  *   - GitLab: https://gitlab.com/chronokairo/kaide.git
  *

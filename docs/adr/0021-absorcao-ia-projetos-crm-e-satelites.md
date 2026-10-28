@@ -2,14 +2,14 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-26
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `ai`, `rag`, `mcp`, `providers`, `llm`, `consolidação`, `regra-2`
 
 ---
 
 ## Contexto
 
-Conforme estipulado na **Regra 2** do [AGENTS.md](file:///home/luann/.chronokairo/repos/AGENTS.md), o repositório `chronokairo/ai` (`@chronokairo/ai`) é a **fonte única de IA** do ecossistema ChronoKairo (RAG, MCP, chat, providers de LLM, agent loops e ferramentas de inteligência).
+Conforme estipulado na **Regra 2** do [AGENTS.md](file:///home/luann/.chronokairo/repos/AGENTS.md), o repositório `chronokairo/ai` (`@chronokairo/ai`) é a **fonte única de IA** do ecossistema Chronokairo (RAG, MCP, chat, providers de LLM, agent loops e ferramentas de inteligência).
 
 A auditoria de bounded contexts registrada no [TODO.md](file:///home/luann/.chronokairo/repos/TODO.md) apontou a existência de implementações fragmentadas de IA, chamadas diretas a provedores e ferramentas MCP espalhadas por 11 repositórios satélites:
 

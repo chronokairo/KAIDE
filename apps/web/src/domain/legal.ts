@@ -5,7 +5,7 @@
  * Directly mirrors the production schema from Supabase:
  * `legal_cases` and `contracts`.
  *
- * This module equips ChronoKairo with technical evidence audits (e.g. intellectual
+ * This module equips Chronokairo with technical evidence audits (e.g. intellectual
  * property disputes, software authorship verification, contract compliance).
  * The AI Analyst does not draft legal court pleadings or contact authorities;
  * it strictly generates verified technical fact reports for review by the Legal Director

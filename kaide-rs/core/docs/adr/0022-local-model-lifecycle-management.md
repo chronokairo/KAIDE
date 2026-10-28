@@ -1,7 +1,7 @@
 # ADR 0022 — Local GGUF Model Lifecycle Management (`rm`, `show`, `cp`, `ps`, `run`)
 
 - **Status:** Accepted (2026-09-10)
-- **Related ADRs:** ADR-0020 Rebrand ChronoKairo CKC, ADR-0021 Local GGUF Model Pulling
+- **Related ADRs:** ADR-0020 Rebrand Chronokairo CKC, ADR-0021 Local GGUF Model Pulling
 - **Scope:** Full local model lifecycle management commands mimicking Ollama ergonomics under zero-lib std-first constraints
 
 ## Context

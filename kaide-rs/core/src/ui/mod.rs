@@ -409,7 +409,7 @@ impl App {
                 ("Slash Commands", "/help"),
                 ("System Status", "/ps"),
                 ("File Search", "Ctrl+O"),
-                ("About ChronoKairo", ""),
+                ("About Chronokairo", ""),
             ],
             ActiveMenu::None => Vec::new(),
         }
@@ -2032,7 +2032,7 @@ fn execute_menu_action(
                 app.open_file_search(paths);
             }
             3 => {
-                app.add_message("System", "ChronoKairo v0.9.5 — VS Code + Copilot like TUI Coding Agent with local & cloud SLMs.");
+                app.add_message("System", "Chronokairo v0.9.5 — VS Code + Copilot like TUI Coding Agent with local & cloud SLMs.");
             }
             _ => {}
         },
@@ -2238,7 +2238,7 @@ pub fn run_ui(client: LlmRouter, state: AgentState) -> Result<(), Box<dyn Error>
     // App loop
     {
         let mut init = app.lock().unwrap();
-        init.add_message("System", "ChronoKairo is ready. Type '/' for commands (e.g. /model), ask for a change, or inspect files.");
+        init.add_message("System", "Chronokairo is ready. Type '/' for commands (e.g. /model), ask for a change, or inspect files.");
     }
 
     loop {

@@ -88,7 +88,7 @@ describe('Módulo de Finanças & Controladoria (ADR-0037)', () => {
   const sampleAccounts: FinancialAccount[] = [
     {
       id: 'acc-inter',
-      name: 'Banco Inter — ChronoKairo/RLV — CNPJ 66.051.427/0001-27',
+      name: 'Banco Inter — Chronokairo/RLV — CNPJ 66.051.427/0001-27',
       type: 'Checking',
       currency: 'BRL',
       initialBalanceBrl: 0,

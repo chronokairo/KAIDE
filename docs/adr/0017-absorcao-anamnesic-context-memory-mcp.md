@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `context`, `memory`, `mcp-server`, `guardrails`, `agent-runtime`, `consolidacao`
 
 ---
@@ -16,5 +16,5 @@ Com a aquisição integral dos direitos da organização `anamnesic`, os ativos 
 ## Decisão
 
 1. Absorver o módulo em `chronokairo-ai/tools/context`.
-2. Integrar suas capacidades de MCP server ao catálogo oficial de MCP do ChronoKairo.
+2. Integrar suas capacidades de MCP server ao catálogo oficial de MCP do Chronokairo.
 3. Deletar o repositório remoto redundante `anamnesic/anamnesic-context`.

@@ -92,7 +92,7 @@ export function AppBar({
           </Button>
         )}
 
-        {/* Alternador oficial de tema da plataforma ChronoKairo */}
+        {/* Alternador oficial de tema da plataforma Chronokairo */}
         <ThemeToggle />
 
         {/* Botão de abrir/fechar o inspetor direito (fontes/ferramentas) */}

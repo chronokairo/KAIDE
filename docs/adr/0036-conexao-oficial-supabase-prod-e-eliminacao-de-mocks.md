@@ -5,7 +5,7 @@
 
 ## Contexto
 
-Conforme diretriz inegociável da ChronoKairo AI expressa em `AGENTS.md` ("*Nenhuma resposta mockada em caminhos de produção*") e demanda explícita do usuário:
+Conforme diretriz inegociável da Chronokairo AI expressa em `AGENTS.md` ("*Nenhuma resposta mockada em caminhos de produção*") e demanda explícita do usuário:
 > "esses fake e mock remova, só dados do supabase prod oficial"
 > "vc ta fazendo mock inves de implementar banco"
 
@@ -20,7 +20,7 @@ O harness e o Control Plane não devem depender de dados sintéticos ou stubs em
 ### 2. Implementação do Adaptador de Banco do Control Plane (`SupabaseCompanyControlPlaneAdapter`)
 - Localizado em `src/infrastructure/control-plane/supabase-control-plane-adapter.ts`.
 - **Leitura Real:**
-  - Carrega os 12 colaboradores reais da ChronoKairo da tabela `employees` (Luan Nery, Riad Makarem, Adrielly Souza, Carlos Ruan, ChronoKairo Dev Core, Erick Silva, etc.).
+  - Carrega os 12 colaboradores reais da Chronokairo da tabela `employees` (Luan Nery, Riad Makarem, Adrielly Souza, Carlos Ruan, Chronokairo Dev Core, Erick Silva, etc.).
   - Carrega as tarefas de projetos reais da tabela `project_tasks` (incluindo `AUDIO-ASO-01` de Audiomed e `SECP-01` a `SECP-07` de SecProvas).
   - Consulta contagem de execuções em `ai_tool_executions` e eventos de auditoria em `audit_logs` para telemetria real.
 - **Escrita Real:**
@@ -30,7 +30,7 @@ O harness e o Control Plane não devem depender de dados sintéticos ou stubs em
 
 ### 3. Implementação do Repositório de CRM Oficial (`SupabaseLeadRepository`)
 - Localizado em `src/infrastructure/crm/supabase-lead-repository.ts`.
-- Lê os 13 leads reais da tabela `leads` da organização ChronoKairo:
+- Lê os 13 leads reais da tabela `leads` da organização Chronokairo:
   - Nortesul Logística e Transportes Especializados
   - Contato Serviços de Conservação e Manutenção
   - Manaus Brasil Logística e Transporte

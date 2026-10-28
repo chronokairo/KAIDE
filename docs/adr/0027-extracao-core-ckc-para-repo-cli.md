@@ -19,7 +19,7 @@ Duas pressões pressionam o arranjo:
    (Next.js + 21 ferramentas absorvidas em `tools/`), mesmo sendo mudança que
    só toca Rust.
 2. **Direção de produto.** O `ckc` deixa de ser só o "coding agent do desktop"
-   e passa a ser a interface de linha de comando dos produtos ChronoKairo
+   e passa a ser a interface de linha de comando dos produtos Chronokairo
    (AI, platform, BI, CRM, Finance, Legal, People, Projects, Support,
    Marketing). Isso exige um ciclo de release próprio, versionado por tag,
    consumível de forma independente por qualquer repo do ecossistema.

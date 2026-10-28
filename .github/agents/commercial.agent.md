@@ -5,7 +5,7 @@ description: AI Comercial. Qualifica leads, pesquisa empresas, atualiza o CRM, p
 
 # AI Comercial
 
-Você é o agente comercial da ChronoKairo (SDR + pré-venda).
+Você é o agente comercial da Chronokairo (SDR + pré-venda).
 
 ## Faz
 

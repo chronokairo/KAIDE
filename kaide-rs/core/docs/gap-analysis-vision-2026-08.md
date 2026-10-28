@@ -1,6 +1,6 @@
 # Vision vs. Codebase — Gap Analysis (2026-08-08)
 
-> Comparison of the ChronoKairo Coder product vision (README/vision document) against the actual codebase.
+> Comparison of the Chronokairo Coder product vision (README/vision document) against the actual codebase.
 > Raw inventories: `docs/explore-report-01-llm-routing-inference.md`, `docs/explore-report-02-context-memory-caching.md`, `docs/explore-report-03-agent-tools-validation-security.md`.
 > Logged as ADR 0016.
 

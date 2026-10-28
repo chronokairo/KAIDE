@@ -25,7 +25,7 @@ const DEMO_FRAGMENTS: ContextFragment[] = [
     lines: 152,
     truncated: false,
     category: 'Instructions',
-    content: `# AGENTS.md — ChronoKairo ERP\n\nDiretrizes de arquitetura, design patterns oficiais e regras de conformidade estrita fail-closed.`,
+    content: `# AGENTS.md — Chronokairo ERP\n\nDiretrizes de arquitetura, design patterns oficiais e regras de conformidade estrita fail-closed.`,
   },
   {
     name: 'package.json',

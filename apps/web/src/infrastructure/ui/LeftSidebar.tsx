@@ -154,7 +154,7 @@ export function LeftSidebar({
       <div className="p-3 border-t border-outline-variant/60 flex items-center justify-between text-[11px] text-on-surface-variant bg-surface-container-low">
         <div className="flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-secondary" />
-          <span>ChronoKairo Suite</span>
+          <span>Chronokairo Suite</span>
         </div>
         <button
           onClick={onClose}

@@ -1,4 +1,4 @@
-# Contribuindo — ChronoKairo
+# Contribuindo — Chronokairo
 
 Este guia define o padrão de todos os repositórios do grupo
 [`chronokairo`](https://gitlab.com/chronokairo) no GitLab.
@@ -9,7 +9,7 @@ Este guia define o padrão de todos os repositórios do grupo
    mexer em outro repo do grupo, abra issue aqui antes com o vínculo.
 2. Verifique se já existe issue ou MR aberta para o mesmo assunto.
 3. Este código é **proprietário** (ver [`LICENSE`](LICENSE)). Não redistribua,
-   publique nem use fora da ChronoKairo.
+   publique nem use fora da Chronokairo.
 
 ## Fluxo de trabalho
 

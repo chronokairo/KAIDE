@@ -1,4 +1,4 @@
-# ChronoKairo Desktop — análise de gaps em 2026
+# Chronokairo Desktop — análise de gaps em 2026
 
 **Data:** 29 de agosto de 2026  
 **Escopo:** aplicação Tauri/Next.js comparada às superfícies desktop/IDE de Codex, Factory Droid, Hermes, Cline e aos recursos de supervisão oferecidos por Claude Code, OpenCode, Copilot CLI, Pi/Oh My Pi, DeepSeek Harness e Qwen Code.
@@ -110,7 +110,7 @@ O `cargo check` falha buscando permissões geradas no checkout antigo `GitHub\er
 ## Produto-alvo recomendado
 
 ```text
-ChronoKairo Desktop
+Chronokairo Desktop
 ├── Projects / Workspaces
 │   ├── checkout local
 │   └── worktrees gerenciadas

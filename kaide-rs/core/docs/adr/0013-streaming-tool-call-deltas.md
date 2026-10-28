@@ -6,7 +6,7 @@
 
 ## Context
 
-The ChronoKairo agent loop only sees tool calls after the LLM returns a complete response. During SSE streaming, tool call arguments arrive in chunks, but the agent loop discards them and waits for the final JSON. This creates a UX gap: the user sees no indication of what the model is deciding until the full response arrives.
+The Chronokairo agent loop only sees tool calls after the LLM returns a complete response. During SSE streaming, tool call arguments arrive in chunks, but the agent loop discards them and waits for the final JSON. This creates a UX gap: the user sees no indication of what the model is deciding until the full response arrives.
 
 ## Decision
 

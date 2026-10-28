@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `ocr`, `tesseract`, `deduplicacao`, `glm-ocr`, `consolidacao`
 
 ---
@@ -12,7 +12,7 @@
 A absorção do `operations` (commit `901e476 feat(ocr): absorb OCR model and LLM proxy
 servers from operations`) depositou `por.traineddata` (2,4 MB) em
 `src/modules/ocr/` deste repositório. O arquivo veio por arrasto: a implementação real
-de OCR do ChronoKairo **não usa Tesseract**.
+de OCR do Chronokairo **não usa Tesseract**.
 
 O OCR daqui é `src/modules/ocr/ollama-ocr.ts` (281 linhas), que fala com um **LLM de
 visão** — `glm-ocr` — via Ollama em `http://localhost:11434`, com pull do modelo em

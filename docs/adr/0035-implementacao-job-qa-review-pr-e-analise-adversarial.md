@@ -5,7 +5,7 @@
 
 ## Contexto
 
-No modelo operacional da ChronoKairo AI ([ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md)), a empresa virtual de agentes opera sob a diretriz estrita de que nenhum código produzido por agentes de IA (`AI Coder`) deve alcançar a branch `main` ou ambientes de produção sem uma verificação rigorosa e independente. 
+No modelo operacional da Chronokairo AI ([ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md)), a empresa virtual de agentes opera sob a diretriz estrita de que nenhum código produzido por agentes de IA (`AI Coder`) deve alcançar a branch `main` ou ambientes de produção sem uma verificação rigorosa e independente. 
 
 O usuário solicitou:
 > "implemente real Execute o job 'qa.review_pr' no harness chronokairo/ai. Revise os PRs abertos com abordagem adversarial (testes unitários, integração, segurança e tenant/RBAC). Emita relatório PASS/FAIL com evidências."
@@ -59,6 +59,6 @@ O usuário solicitou:
 
 ## Consequências
 
-- A ChronoKairo AI garante proteção ativa contra vazamentos multitenant e falhas de autorização geradas por agentes antes de qualquer deploy.
+- A Chronokairo AI garante proteção ativa contra vazamentos multitenant e falhas de autorização geradas por agentes antes de qualquer deploy.
 - O pipeline de QA opera de modo determinístico, auditável e aderente à arquitetura hexagonal pura.
 - O conjunto de testes automatizados do repositório expandiu para 19 testes sem erros de tipagem (`npm run typecheck` e `npm run test` 100% verdes).

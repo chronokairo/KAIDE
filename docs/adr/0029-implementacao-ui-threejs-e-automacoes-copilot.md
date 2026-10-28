@@ -5,7 +5,7 @@
 
 ## Contexto
 
-A [ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md) definiu a ChronoKairo como uma software engineering company AI-first com supervisão humana, estabelecendo o repositório `chronokairo/ai` como o harness central da operação e definindo que a interface principal seria um adapter primário Three.js somente de acompanhamento com um gate de aprovação humana.
+A [ADR-0028](./0028-empresa-virtual-de-agentes-control-plane.md) definiu a Chronokairo como uma software engineering company AI-first com supervisão humana, estabelecendo o repositório `chronokairo/ai` como o harness central da operação e definindo que a interface principal seria um adapter primário Three.js somente de acompanhamento com um gate de aprovação humana.
 
 Era necessário:
 1. Migrar a fonte de código para o GitHub corporativo (`chronokairo/ai`).

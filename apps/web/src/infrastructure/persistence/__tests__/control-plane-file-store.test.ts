@@ -115,14 +115,14 @@ describe('ControlPlaneFileStore — email outreach', () => {
       resendId: 're-1',
       leadId: 'lead-1',
       toAddress: 'a@b.com',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'queued',
     });
     await store.upsertEmailOutreach({
       organizationId: ORG,
       resendId: 're-1',
       toAddress: 'a@b.com',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'delivered',
     });
     const rows = await store.listEmailOutreach(ORG);

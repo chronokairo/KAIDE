@@ -58,7 +58,7 @@ export class ExecuteLegalContractReviewUseCase {
     const job: JobEntity = {
       id: jobId,
       title: 'Contractual Compliance & Draft Instrument Audit',
-      client: 'ChronoKairo Corp Legal Directorate',
+      client: 'Chronokairo Corp Legal Directorate',
       project: 'Contractual Compliance',
       stage: 'analyst',
       agentRole: 'analyst',

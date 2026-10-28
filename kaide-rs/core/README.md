@@ -1,12 +1,12 @@
-# ChronoKairo Coder (`kaide`)
+# Chronokairo Coder (`kaide`)
 
-> **ChronoKairo CLI (KAIDE)** — Zero-Lib coding agent & context harness.
+> **Chronokairo CLI (KAIDE)** — Zero-Lib coding agent & context harness.
 
 ---
 
 ## 1. Overview & Philosophy
 
-ChronoKairo Coder (`kaide`) is an autonomous, high-resilience AI coding agent and context harness built in Rust following a strict **Zero-Lib (Std-First)** architectural policy.
+Chronokairo Coder (`kaide`) is an autonomous, high-resilience AI coding agent and context harness built in Rust following a strict **Zero-Lib (Std-First)** architectural policy.
 
 - **Zero-Lib Policy**: Avoids external framework bloat. The async runtime, HTTP/SSE client, terminal UI engine, diff rendering, argument parsing, and test runners are implemented exclusively using Rust standard library primitives (`std::*`) and minimal serialization (`serde`, `serde_json`).
 - **In-Process GGUF Inference Engine**: Includes a native, pure-Rust GGUF parser, tokenizer, transformer runtime, and dequantization engine (`F32`, `F16`, `Q4_0`, `Q8_0`, `Q4_K`, `Q5_0`, `Q6_K`, `Q8_K`) with optional OpenCL GPU acceleration.
@@ -134,7 +134,7 @@ kaide --download-embedding-model
 
 ### Local GGUF Model Lifecycle (`pull`, `models`, `run`, `show`, `cp`, `rm`, `ps`)
 
-ChronoKairo operates **100% locally and zero-lib by default**. It natively discovers models stored in `~/.chronokairo/models/` as well as any existing models in Ollama (`~/.ollama/models`, `OLLAMA_MODELS`, `%LOCALAPPDATA%\Ollama\models`) without requiring background daemons:
+Chronokairo operates **100% locally and zero-lib by default**. It natively discovers models stored in `~/.chronokairo/models/` as well as any existing models in Ollama (`~/.ollama/models`, `OLLAMA_MODELS`, `%LOCALAPPDATA%\Ollama\models`) without requiring background daemons:
 
 ```bash
 # 1. Pull verified SLMs for edge hardware (e.g. GTX 1650 4GB VRAM)
@@ -193,7 +193,7 @@ kaide providers test nvidia
 
 ## 5. Configuration & Paths
 
-ChronoKairo maintains its configuration in the user home directory with seamless backward-compatibility for legacy `.anamnesic` installations:
+Chronokairo maintains its configuration in the user home directory with seamless backward-compatibility for legacy `.anamnesic` installations:
 
 | Configuration / Data | Primary Path | Legacy Fallback |
 |----------------------|--------------|-----------------|
@@ -229,6 +229,6 @@ Detailed architectural decision records are maintained in [`docs/adr/`](docs/adr
 - `0001–0010`: LLM router, parity benchmarks, routing resilience, context intelligence, token tracking.
 - `0011–0015`: Sub-agent task delegation, MCP client, streaming deltas, circuit breaker, competitive backlog.
 - `0016–0019`: Vision gap analysis, specification-locked execution, versioned H-battery, provider-native model catalog.
-- `0020`: Rebranding to ChronoKairo and `kaide` binary transition with backward compatibility fallbacks.
+- `0020`: Rebranding to Chronokairo and `kaide` binary transition with backward compatibility fallbacks.
 - `0021`: Local GGUF model pulling and resolution (`kaide pull`).
 - `0022`: Local GGUF model lifecycle management (`rm`, `show`, `cp`, `ps`, `run`).

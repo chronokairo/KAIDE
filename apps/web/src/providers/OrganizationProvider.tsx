@@ -19,7 +19,7 @@ interface OrganizationContextType {
 
 const DEFAULT_ORG: Organization = {
   id: 'org-chronokairo-local',
-  name: 'ChronoKairo Workspace',
+  name: 'Chronokairo Workspace',
   slug: 'chronokairo',
   plan: 'enterprise',
   role: 'owner',

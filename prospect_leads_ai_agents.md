@@ -44,7 +44,7 @@ Foco: Automação com agentes de IA autônomos para atendimento e operações
 
 ## Abordagem Sugerida
 - Ângulo: Empresa Virtual de Agentes com supervisão humana, Control Plane, evidência e aprovação
-- Diferencial ChronoKairo: AI → AI → AI → HUMAN, nunca AI → produção; jobs auditáveis, Three.js de acompanhamento
+- Diferencial Chronokairo: AI → AI → AI → HUMAN, nunca AI → produção; jobs auditáveis, Three.js de acompanhamento
 - Próximo passo: Pesquisa de contato comercial, validação de fit e briefing de reunião
 
 ## Evidências

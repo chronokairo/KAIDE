@@ -55,7 +55,7 @@ describe('syncEmailOutreach', () => {
     // E-mail enviado há 2h (dentro da janela) para o contato do lead.
     await email.sendEmail({
       to: 'Marina <marina@acme.com.br>',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       text: 'abordagem',
       organizationId: ORG,
       leadId: lead.id,
@@ -99,7 +99,7 @@ describe('syncEmailOutreach', () => {
       resendId: 're-old-1',
       leadId: 'lead-9',
       toAddress: 'contato@acme.com.br',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'sent',
       sentAt: new Date(Date.parse('2026-10-03T12:00:00.000Z') - 3 * DAY_MS).toISOString(),
     });
@@ -107,7 +107,7 @@ describe('syncEmailOutreach', () => {
     email.emails.push({
       resendId: 're-old-1',
       to: 'contato@acme.com.br',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'delivered',
       createdAt: new Date(Date.parse('2026-10-03T12:00:00.000Z') - 3 * DAY_MS).toISOString(),
     } satisfies ProviderEmailInfo);
@@ -128,14 +128,14 @@ describe('syncEmailOutreach', () => {
       organizationId: ORG,
       resendId: 're-bounce-1',
       toAddress: 'morto@acme.com.br',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'sent',
       sentAt: new Date(Date.parse('2026-10-03T12:00:00.000Z') - 5 * DAY_MS).toISOString(),
     });
     email.emails.push({
       resendId: 're-bounce-1',
       to: 'morto@acme.com.br',
-      subject: 'ChronoKairo — Acme',
+      subject: 'Chronokairo — Acme',
       status: 'bounced',
       createdAt: new Date(Date.parse('2026-10-03T12:00:00.000Z') - 5 * DAY_MS).toISOString(),
     } satisfies ProviderEmailInfo);

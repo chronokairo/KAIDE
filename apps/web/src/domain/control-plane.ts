@@ -334,14 +334,14 @@ export function buildApproachDraft(
   return [
     `Olá, ${contact}!`,
     '',
-    `Sou da ChronoKairo — engenharia de software com time de agentes de IA${sector}.`,
+    `Sou da Chronokairo — engenharia de software com time de agentes de IA${sector}.`,
     `Pesquisando sobre a ${lead.companyName}, identifiquei: ${topSignals || 'oportunidades de ganho de eficiência operacional com automação e IA'}.`,
     '',
     'Trabalhamos com discovery estruturado, entrega incremental e evidência verificável em cada etapa (plan → execute → verify → evidence → approval).',
     '',
     'Poderia 15 minutos nesta semana para entender seu contexto e dizer com honestidade se há fit?',
     '',
-    '— ChronoKairo · Software Engineering AI-first',
+    '— Chronokairo · Software Engineering AI-first',
   ].join('\n');
 }
 
@@ -356,6 +356,6 @@ export function buildFollowUpDraft(lead: Pick<LeadRecord, 'contactName' | 'compa
     '',
     'Algum momento melhor para falarmos esta semana?',
     '',
-    '— ChronoKairo · Software Engineering AI-first',
+    '— Chronokairo · Software Engineering AI-first',
   ].join('\n');
 }

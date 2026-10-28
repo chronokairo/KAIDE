@@ -1,4 +1,4 @@
-//! Zero-Lib Markdown & Obsidian Context Engine for ChronoKairo
+//! Zero-Lib Markdown & Obsidian Context Engine for Chronokairo
 //!
 //! Strictly adheres to the Zero-Lib (Std-First) policy:
 //! Built 100% using Rust's standard library (`std::*`).
@@ -236,7 +236,7 @@ impl ChronoContextEngine {
     /// Build a curated context pack for a given task within a character budget.
     pub fn build_context_pack(workspace: &Path, task: Option<&str>, char_budget: usize) -> String {
         let mut output = Vec::new();
-        output.push("# ChronoKairo Curated Context Pack (Zero-Lib Engine)".to_string());
+        output.push("# Chronokairo Curated Context Pack (Zero-Lib Engine)".to_string());
 
         // 1. Primary candidate: AGENTS.md
         let agents_path = workspace.join("AGENTS.md");

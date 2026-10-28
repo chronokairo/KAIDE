@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `clamp`, `slm`, `tool-calling`, `json-repair`, `zod`, `harness`, `consolidacao`
 
 ---

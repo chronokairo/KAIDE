@@ -258,7 +258,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
     const taskJobs: JobEntity[] = (dbTasks || []).map((t, idx) => ({
       id: `job-task-${t.id.slice(0, 8)}`,
       title: t.title,
-      client: 'Audiomed / ChronoKairo Clientes',
+      client: 'Audiomed / Chronokairo Clientes',
       project: 'Plataforma de Gestão de Saúde Ocupacional (ACTIVE-AUDIOMED)',
       stage: 'coder',
       agentRole: 'coder',
@@ -313,7 +313,7 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
           type: 'production_deploy',
           title: 'Aprovação de Deploy em Produção (Audiomed)',
           details:
-            'O agente DevOps preparou a release de produção da Plataforma Audiomed. Pelo modelo de governança da ChronoKairo (ADR-0028: AI → AI → AI → HUMAN), deploys em produção requerem autorização humana prévia do Diretor Técnico.',
+            'O agente DevOps preparou a release de produção da Plataforma Audiomed. Pelo modelo de governança da Chronokairo (ADR-0028: AI → AI → AI → HUMAN), deploys em produção requerem autorização humana prévia do Diretor Técnico.',
           requestedBy: 'devops',
           requestedAt: 'Hoje',
           evidence: [

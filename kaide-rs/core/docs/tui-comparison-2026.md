@@ -1,12 +1,12 @@
-# Comparativo de TUI: ChronoKairo vs. Codex CLI, GitHub Copilot CLI e Claude Code (2026)
+# Comparativo de TUI: Chronokairo vs. Codex CLI, GitHub Copilot CLI e Claude Code (2026)
 
-Este documento apresenta uma análise técnica e comparativa aprofundada da interface de usuário em terminal (**TUI**) do **ChronoKairo**, contrastando-a com os três principais harnesses de agentes de código do ecossistema moderno de 2026: **OpenAI Codex CLI**, **GitHub Copilot CLI** e **Anthropic Claude Code**.
+Este documento apresenta uma análise técnica e comparativa aprofundada da interface de usuário em terminal (**TUI**) do **Chronokairo**, contrastando-a com os três principais harnesses de agentes de código do ecossistema moderno de 2026: **OpenAI Codex CLI**, **GitHub Copilot CLI** e **Anthropic Claude Code**.
 
 ---
 
 ## 1. Visão Geral e Matriz Comparativa
 
-| Dimensão / Capacidade | ChronoKairo (v0.9.5+) | OpenAI Codex CLI | GitHub Copilot CLI | Claude Code |
+| Dimensão / Capacidade | Chronokairo (v0.9.5+) | OpenAI Codex CLI | GitHub Copilot CLI | Claude Code |
 | :--- | :--- | :--- | :--- | :--- |
 | **Pilha Gráfica** | Rust + Ratatui + Crossterm | Rust + Ratatui | Node.js + Ink / React | Node.js + Ink / Pastel |
 | **Top Header Bar** | Badges em pílula com contraste, status de provedor, branch git e medidor `ctx: used / max · $cost` | Header compacto de linha única com modelo e tokens | Cabeçalho minimalista em linha | Header interativo com status de context window |
@@ -53,18 +53,18 @@ Este documento apresenta uma análise técnica e comparativa aprofundada da inte
 ## 3. Análise Detalhada por Componente
 
 ### 3.1. Header Bar & Badges de Estado
-- **ChronoKairo**:
+- **Chronokairo**:
   - Badge de marca de alto contraste: `[CHRONOKAIRO]` em Cyan com fundo escuro.
   - Indicador de modelo ativo: `⟡ <model>` em branco negrito (ex: `⟡ GLM-5.2` ou `⟡ Nemotron-3`).
   - Provedor ativo: `· <provider>` em Cyan (ex: `· nvidia`, `· openrouter`, `· ollama`).
   - Contexto e Custo em tempo real: `ctx: <usado> / <máximo> · $<custo>` calculado exatamente com `display_width` e alinhado à extrema direita sem quebras de linha ou sobreposições.
 - **Comparação**:
   - *Claude Code*: Utiliza medidores de barra horizontal progressiva para a janela de contexto.
-  - *Codex CLI*: Utiliza badges textuais compactos similares ao ChronoKairo.
+  - *Codex CLI*: Utiliza badges textuais compactos similares ao Chronokairo.
   - *Copilot CLI*: Não exibe uso de contexto nem custo em tempo real no cabeçalho.
 
 ### 3.2. Fluxo de Raciocínio (DeepSeek-R1 / Qwen / Nemotron / GLM Thinking)
-- **ChronoKairo**:
+- **Chronokairo**:
   - **Streaming Contínuo**: O stream de raciocínio é acumulado no mesmo bloco, impedindo fragmentação de palavras ou múltiplos balões repetidos (`💭`).
   - **Gutter Lateral**: Renderizado em cinza itálico com gutter `│ 💭 ` na primeira linha e recuo `   ` nas seguintes.
   - **Modo Compacto**: Quando colapsado, exibe apenas `💭 Thinking (X chars) · Ctrl+T expand`.
@@ -74,7 +74,7 @@ Este documento apresenta uma análise técnica e comparativa aprofundada da inte
   - *Copilot CLI*: Não renderiza blocos de pensamento internos de modelos de raciocínio.
 
 ### 3.3. Execução de Ferramentas e Rollups
-- **ChronoKairo**:
+- **Chronokairo**:
   - Quando múltiplas chamadas acontecem em sequência, elas são agrupadas em um rollup compacto: `↳ 3 tool uses: read_file ×2, edit_file`.
   - Ao expandir (via clique ou `Ctrl+O`), cada ferramenta exibe seu ícone contextual:
     - 🔍 `list_dir`, `grep_search`, `file_search`
@@ -84,11 +84,11 @@ Este documento apresenta uma análise técnica e comparativa aprofundada da inte
     - 🧪 `run_tests`, `verify`
 - **Comparação**:
   - *Claude Code*: Exibe mini-diffs coloridos inline para cada arquivo editado.
-  - *Codex CLI*: Rollup de ferramentas com contadores `×N` idêntico ao ChronoKairo.
+  - *Codex CLI*: Rollup de ferramentas com contadores `×N` idêntico ao Chronokairo.
   - *Copilot CLI*: Executa comandos sequenciais diretamente no terminal sem rollup.
 
 ### 3.4. Renderização de Markdown e Tabelas
-- **ChronoKairo**:
+- **Chronokairo**:
   - Tabelas markdown são processadas com alinhamento de colunas, bordas verticais `│ ` e separador `├───┼───┤`.
   - Cabeçalhos (`#`, `##`, `###`) usam hierarquia de símbolos (`◆ `, `◈ `, `▪ `) em Cyan negrito.
   - Blocos de código possuem fundo contrastante e recuo lateral de 2 espaços.
@@ -97,17 +97,17 @@ Este documento apresenta uma análise técnica e comparativa aprofundada da inte
   - *Claude Code*: Excelente highlight de sintaxe usando shiki/tree-sitter no Node.js.
 
 ### 3.5. Sanitização de Caminhos e Ambiente Windows
-- **ChronoKairo**:
+- **Chronokairo**:
   - Implementa `clean_display_path`: remove prefixos verbatim do Windows (`\\?\`, `\\?\UNC\`), normaliza separadores para `/` e substitui o diretório de usuário por `~`.
   - Truncamento à esquerda com reticências (`…/Documents/GitHub/...`) preservando o nome da pasta do projeto.
 - **Comparação**:
-  - A maioria das ferramentas baseadas em Node.js deixa escapar caminhos do Windows com barras invertidas duplas ou prefixos longos. O ChronoKairo oferece a experiência de caminho mais limpa do ecossistema Rust no Windows.
+  - A maioria das ferramentas baseadas em Node.js deixa escapar caminhos do Windows com barras invertidas duplas ou prefixos longos. O Chronokairo oferece a experiência de caminho mais limpa do ecossistema Rust no Windows.
 
 ---
 
 ## 4. Arquitetura de Desacoplamento (Core↔UI)
 
-O ChronoKairo adota o mesmo padrão arquitetural do **Codex CLI**:
+O Chronokairo adota o mesmo padrão arquitetural do **Codex CLI**:
 
 ```mermaid
 flowchart LR

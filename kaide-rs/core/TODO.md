@@ -1,4 +1,4 @@
-# TODO — ChronoKairo Coder (August 2026)
+# TODO — Chronokairo Coder (August 2026)
 
 ## TUI parity backlog — Codex / Claude Code
 
@@ -180,7 +180,7 @@ abertos para não confundir aproximação visual com paridade funcional.
 ## P1 — Harness Gaps (competitive parity)
 
 ### ~~G5. Sub-Agent Support (Task tool)~~ ✅ DONE
-- **Gap:** O ChronoKairo tem apenas um loop sequencial. Claude Code, Antigravity e Cursor suportam sub-agentes para delegação de tarefas e pesquisa paralela.
+- **Gap:** O Chronokairo tem apenas um loop sequencial. Claude Code, Antigravity e Cursor suportam sub-agentes para delegação de tarefas e pesquisa paralela.
 - **Impact:** Tarefas complexas (multi-arquivo, refatoração) são lentas e gastam mais tokens.
 - **Files:** `src/agent/agent_loop.rs`, `src/agent/state.rs`
 - **Fix:** Implementado tool `task` que spawna um sub-agente em thread separada com `tokio::runtime::Runtime::new()`. O sub-agente usa `AgentState::clone()` (com `Clone` manual resetando retries/transaction/dirty), roda `run_agent_loop_with_hooks` em modo `Agent`, e retorna o resultado via `mpsc::channel` com timeout de 300s. `execute_tool` e `execute_tool_calls` atualizados para receber `&LlmRouter`. Registrado em `coding_tools()` com parâmetros `task` (required) e `model` (optional).

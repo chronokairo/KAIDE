@@ -1,6 +1,6 @@
 # Kaide — Harness da empresa virtual de agentes
 
-Este repositório (`chronokairo/kaide`) é o **harness**: o sistema operacional dos agentes da ChronoKairo. As regras completas estão em [`AGENTS.md`](../AGENTS.md) e nas [ADRs](../docs/adr/). Leia-os antes de alterar código.
+Este repositório (`chronokairo/kaide`) é o **harness**: o sistema operacional dos agentes da Chronokairo. As regras completas estão em [`AGENTS.md`](../AGENTS.md) e nas [ADRs](../docs/adr/). Leia-os antes de alterar código.
 
 ## Infraestrutura & Organizações Oficiais
 

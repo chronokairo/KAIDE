@@ -66,7 +66,7 @@ export class ExecuteProductMilestoneSpecUseCase {
     const job: JobEntity = {
       id: jobId,
       title: `Milestone & Acceptance Criteria Specification (${projectCode ?? 'all projects'})`,
-      client: 'ChronoKairo Corp Product & Engineering',
+      client: 'Chronokairo Corp Product & Engineering',
       project: 'Technical Specification',
       stage: 'product',
       agentRole: 'product',

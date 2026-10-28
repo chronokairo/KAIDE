@@ -21,7 +21,7 @@ class SlideRenderer {
       .replace(/'/g, '&apos;');
   }
 
-  generateSlideSvg({ slideNumber, totalSlides = 7, type, tag, title, body, cta, brandName = 'ChronoKairo' }) {
+  generateSlideSvg({ slideNumber, totalSlides = 7, type, tag, title, body, cta, brandName = 'Chronokairo' }) {
     const isCover = slideNumber === 1;
     const isCta = slideNumber === totalSlides;
 
@@ -128,7 +128,7 @@ class SlideRenderer {
   }
 
   async renderCarousel({ script, outputDir = null, slug = null, brandId = 'chronokairo', daemonClient = null }) {
-    const brand = this.store.getBrand(brandId) || { name: 'ChronoKairo' };
+    const brand = this.store.getBrand(brandId) || { name: 'Chronokairo' };
     const folderSlug = slug || `carousel_${Date.now()}`;
     const targetDir = outputDir ? path.resolve(outputDir) : path.join(this.store.paths.renderedSlides, folderSlug);
 

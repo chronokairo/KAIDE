@@ -1,13 +1,13 @@
-# ChronoKairo AI — direção de produto e design
+# Chronokairo AI — direção de produto e design
 
 ## Objetivo
 
-O ChronoKairo AI é o chat operacional da plataforma. A interface permite consultar informações e solicitar ações nos produtos conectados; a API executa essas operações por contratos seguros no backend.
+O Chronokairo AI é o chat operacional da plataforma. A interface permite consultar informações e solicitar ações nos produtos conectados; a API executa essas operações por contratos seguros no backend.
 
 ## Experiência-alvo
 
 ```text
-AppBar ChronoKairo
+AppBar Chronokairo
 ├── contexto de organização
 ├── identidade e sessão reais
 └── ícone de tema

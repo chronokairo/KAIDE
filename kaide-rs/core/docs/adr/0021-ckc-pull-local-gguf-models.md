@@ -1,12 +1,12 @@
 # ADR 0021 — Local GGUF Model Pulling and Resolution (`ckc pull`)
 
 - **Status:** Accepted (2026-09-10)
-- **Related ADRs:** ADR-0007 GGUF Safety, ADR-0020 Rebrand ChronoKairo CKC
+- **Related ADRs:** ADR-0007 GGUF Safety, ADR-0020 Rebrand Chronokairo CKC
 - **Scope:** Zero-lib local model download, trusted GGUF catalog, model resolver, GPU auto-activation
 
 ## Context
 
-ChronoKairo Coder (`ckc`) supports 100% local, zero-lib inference via its native GGUF reader and OpenCL execution engine. To operate entirely offline without reliance on third-party cloud APIs or external daemons like Ollama, users need a straightforward way to download and manage verified GGUF models directly to their local machine (targeting 4GB VRAM edge hardware such as the NVIDIA GeForce GTX 1650).
+Chronokairo Coder (`ckc`) supports 100% local, zero-lib inference via its native GGUF reader and OpenCL execution engine. To operate entirely offline without reliance on third-party cloud APIs or external daemons like Ollama, users need a straightforward way to download and manage verified GGUF models directly to their local machine (targeting 4GB VRAM edge hardware such as the NVIDIA GeForce GTX 1650).
 
 ## Decision
 

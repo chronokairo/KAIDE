@@ -6,7 +6,7 @@
 
 ## Context
 
-The ChronoKairo provider chain already has token-bucket rate limiting and per-provider retry with exponential backoff. However, if a provider is consistently failing (e.g., 5xx errors, timeouts), the chain will keep retrying it on every request, wasting time and tokens. There is no mechanism to temporarily disable unhealthy providers.
+The Chronokairo provider chain already has token-bucket rate limiting and per-provider retry with exponential backoff. However, if a provider is consistently failing (e.g., 5xx errors, timeouts), the chain will keep retrying it on every request, wasting time and tokens. There is no mechanism to temporarily disable unhealthy providers.
 
 ## Decision
 

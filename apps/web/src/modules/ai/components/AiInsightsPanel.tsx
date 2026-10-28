@@ -97,7 +97,7 @@ export const AiInsightsPanel: React.FC = () => {
           <span className="material-symbols-outlined text-[16px]">lightbulb</span>
           Sugestão
         </div>
-        <p className="text-xs text-on-surface-variant mb-3">Experimente perguntar ao ChronoKairo:</p>
+        <p className="text-xs text-on-surface-variant mb-3">Experimente perguntar ao Chronokairo:</p>
         {[
           'Analise o fluxo de caixa do mês atual',
           'Quais contratos vencem nos próximos 30 dias?',
@@ -115,7 +115,7 @@ export const AiInsightsPanel: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <span className="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs font-data-tabular text-on-surface flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">folder</span>
-            ChronoKairo ERP
+            Chronokairo ERP
           </span>
           <span className="bg-surface-container border border-outline-variant px-2 py-1 rounded text-xs font-data-tabular text-on-surface flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">calendar_today</span>

@@ -1,7 +1,7 @@
-# Gap Analysis — ChronoKairo Coder vs. 2026 Coding Agent Harnesses
+# Gap Analysis — Chronokairo Coder vs. 2026 Coding Agent Harnesses
 
 **Date:** 2026-08-02  
-**Scope:** Comparação funcional real entre o ChronoKairo Coder e os harnesses líderes de agosto 2026: Claude Code, Codex CLI, Antigravity, Cursor Agent, Aider.
+**Scope:** Comparação funcional real entre o Chronokairo Coder e os harnesses líderes de agosto 2026: Claude Code, Codex CLI, Antigravity, Cursor Agent, Aider.
 
 > **Status (2026-08-06):** Todos os gaps P0 e P1 do roadmap abaixo foram implementados (edit_file, multi_edit_file, approval wired, sub-agentes `task`, MCP, context compaction, token counting, repo map, AGENTS.md, streaming deltas, session persistence) **e os itens "Next" também** (custo em US$, web_search/http_fetch, lint gate, todo tool, memória vetorial via embeddings no inferencer local, remoção de redundâncias). Ver seção "Next" no fim do roadmap.
 
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-O ChronoKairo Coder tem uma base sólida com roteamento multi-provedor, fallback por tier, transações de workspace, e loop de tool-use competitivo. Porém, está **2-3 gerações atrás** dos líderes em áreas críticas: edição de código, sub-agentes, memória persistente, MCP, e observabilidade. Os gaps mais impactantes para SWE-bench performance são: (1) ausência de edição cirúrgica por linha, (2) nenhum sub-agente, (3) nenhum mecanismo de contexto inteligente.
+O Chronokairo Coder tem uma base sólida com roteamento multi-provedor, fallback por tier, transações de workspace, e loop de tool-use competitivo. Porém, está **2-3 gerações atrás** dos líderes em áreas críticas: edição de código, sub-agentes, memória persistente, MCP, e observabilidade. Os gaps mais impactantes para SWE-bench performance são: (1) ausência de edição cirúrgica por linha, (2) nenhum sub-agente, (3) nenhum mecanismo de contexto inteligente.
 
 > [!CAUTION]
 > O approval broker está **definido nos tipos mas não está wired** — writes e commands executam sem pedir aprovação. Isso é um gap de segurança crítico.
@@ -18,7 +18,7 @@ O ChronoKairo Coder tem uma base sólida com roteamento multi-provedor, fallback
 
 ## 1. Tool Inventory — Gap Comparison
 
-| Tool / Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
+| Tool / Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Read file** | ✅ | ✅ | ✅ | ✅ (line ranges) | ✅ | ✅ |
 | **Write file** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -53,7 +53,7 @@ Implementado em `src/tools/fs.rs` + dispatch em `src/agent/agent_loop.rs`:
 
 ## 2. Agent Architecture
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Sub-agent spawning** | ✅ (`task`) | ✅ | ✅ (cloud) | ✅ | ✅ (8x) | ❌ |
 | **Parallel agent execution** | ⚠️ (1 sub-agent/turn) | ✅ | ✅ | ✅ | ✅ | ❌ |
@@ -72,7 +72,7 @@ Tool `task` implementado em `src/agent/agent_loop.rs:1006` — spawna um segundo
 
 ## 3. Context Management
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Max context** | 128K | 1M | 200K | 2M | 200K | Model-dep. |
 | **Context compaction** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -93,7 +93,7 @@ Tool `task` implementado em `src/agent/agent_loop.rs:1006` — spawna um segundo
 
 ## 4. Permission & Safety
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Per-tool approval** | ✅ (Ask/Deny/Allow wired) | ✅ | ✅ (modes) | ✅ | ✅ |
 | **Sandbox isolation** | ❌ (transação+rollback) | ❌ | ✅ (kernel) | ✅ (cloud) | ❌ |
@@ -111,7 +111,7 @@ Tool `task` implementado em `src/agent/agent_loop.rs:1006` — spawna um segundo
 
 ## 5. Memory & Persistence
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Short-term memory** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Long-term memory** | ✅ (SQLite sessions) | ✅ (CLAUDE.md) | ❌ | ✅ (transcripts) | ✅ (memories) | ❌ |
@@ -128,7 +128,7 @@ Tool `task` implementado em `src/agent/agent_loop.rs:1006` — spawna um segundo
 
 ## 6. Verification & Testing
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Auto-detect test cmd** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **Run after mutations** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
@@ -137,13 +137,13 @@ Tool `task` implementado em `src/agent/agent_loop.rs:1006` — spawna um segundo
 | **Rollback on failure** | ✅ | ❌ | ✅ (sandbox) | ❌ | ✅ | ✅ (git) |
 | **Adversarial verify** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-O ChronoKairo é competitivo aqui. Auto-detecção de test command + retry + rollback é forte.
+O Chronokairo é competitivo aqui. Auto-detecção de test command + retry + rollback é forte.
 
 ---
 
 ## 7. LLM Integration
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Aider |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Aider |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **Multi-provider** | ✅ | ❌ (Anthropic) | ❌ (OpenAI) | ❌ (Google) | ✅ (70+) |
 | **Same-tier fallback** | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -155,13 +155,13 @@ O ChronoKairo é competitivo aqui. Auto-detecção de test command + retry + rol
 | **Extended thinking** | ❌ | ✅ | ✅ (o3/o4) | ❌ | ❌ |
 | **Local GGUF inference** | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-O ChronoKairo tem vantagens únicas: multi-provider routing, same-tier fallback, e inferência GGUF local. Nenhum concorrente tem os três.
+O Chronokairo tem vantagens únicas: multi-provider routing, same-tier fallback, e inferência GGUF local. Nenhum concorrente tem os três.
 
 ---
 
 ## 8. Extensibility
 
-| Capability | ChronoKairo | Claude Code | Codex CLI | Antigravity | Cursor |
+| Capability | Chronokairo | Claude Code | Codex CLI | Antigravity | Cursor |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **MCP client** | ✅ (stdio) | ✅ | ✅ | ✅ | ✅ |
 | **Plugin/skill system** | ❌ | ✅ (skills) | ❌ | ✅ (skills) | ✅ (ext.) |
@@ -216,14 +216,14 @@ Antigravity         ██████   ██████       ████�
 Cursor              ██████   ██████       █████░     ████░░    ██████   █████░   ░░░░░░
 Aider               ████░░   ██░░░░       ████░░     ████░░   ███░░░   ░░░░░░   ░░░░░░
 ─────────────────────────────────────────────────────────────────────────────────────────
-ChronoKairo           ██████   ████░░       █████░     █████░   ████░░   █████░   ██████
+Chronokairo           ██████   ████░░       █████░     █████░   ████░░   █████░   ██████
 ```
 
 ---
 
-## ChronoKairo Unique Strengths
+## Chronokairo Unique Strengths
 
-Áreas onde o ChronoKairo é **melhor ou igual** aos líderes:
+Áreas onde o Chronokairo é **melhor ou igual** aos líderes:
 
 1. **Multi-provider routing** — nenhum líder faz roteamento entre providers com fallback por tier
 2. **Local GGUF inference** — único harness com engine de inferência local embutido

@@ -77,7 +77,7 @@ describe('createResendEmailAdapter', () => {
   it('sendEmail devolve info com status queued em sucesso', async () => {
     mocks.send.mockResolvedValue({ data: { id: 'resend-123' }, error: null });
 
-    const adapter = createResendEmailAdapter({ apiKey: 're_x', fromEmail: 'ChronoKairo <a@b.c>' });
+    const adapter = createResendEmailAdapter({ apiKey: 're_x', fromEmail: 'Chronokairo <a@b.c>' });
     const info = await adapter.sendEmail({
       to: 'lead@corp.com',
       subject: 'Hi',
@@ -85,7 +85,7 @@ describe('createResendEmailAdapter', () => {
     });
 
     expect(mocks.send).toHaveBeenCalledWith({
-      from: 'ChronoKairo <a@b.c>',
+      from: 'Chronokairo <a@b.c>',
       to: 'lead@corp.com',
       subject: 'Hi',
       text: 'Body',

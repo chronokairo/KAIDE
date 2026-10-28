@@ -32,6 +32,6 @@ No commit subsequente (`15ed69b3`), o repositório sofreu um expurgo que elimino
    - Ferramenta de captura e extração de concorrentes com hash SHA-256 transferida para `tools/competitor_capture.js`.
 
 ## Consequências
-- Os agentes do ecossistema ChronoKairo passam a contar com capacidades de pesquisa web e due diligence com provas auditáveis.
+- Os agentes do ecossistema Chronokairo passam a contar com capacidades de pesquisa web e due diligence com provas auditáveis.
 - O build de Rust permanece zero-bloat e desacoplado de bibliotecas nativas de sistema.
 - A integridade da propriedade intelectual foi completamente recuperada e versionada.

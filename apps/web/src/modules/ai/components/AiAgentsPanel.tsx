@@ -46,13 +46,13 @@ export const AiAgentsPanel: React.FC = () => {
           <div className="text-xs text-on-surface-variant animate-pulse px-1">Detectando...</div>
         )}
         <div className="flex flex-col gap-2">
-          {/* Built-in ChronoKairo agent always shown */}
+          {/* Built-in Chronokairo agent always shown */}
           <div className="bg-surface border border-secondary/30 p-3 rounded-lg flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-sm">psychology</span>
             </div>
             <div className="min-w-0">
-              <div className="font-body-md text-body-md font-semibold text-on-surface text-sm">ChronoKairo IA</div>
+              <div className="font-body-md text-body-md font-semibold text-on-surface text-sm">Chronokairo IA</div>
               <div className="text-on-surface-variant text-xs flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block"></span>
                 Ativo • NVIDIA NIM

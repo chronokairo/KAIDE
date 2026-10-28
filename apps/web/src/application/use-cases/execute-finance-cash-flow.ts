@@ -110,7 +110,7 @@ export class ExecuteFinanceCashFlowUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Cash Flow Audit, Income Statement & Multi-Account Reconciliation',
-      client: 'ChronoKairo Corp Financial Operations',
+      client: 'Chronokairo Corp Financial Operations',
       project: 'Financial Management & Invoicing',
       stage: 'finance',
       agentRole: 'finance',

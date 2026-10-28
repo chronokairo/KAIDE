@@ -91,7 +91,7 @@
   box-shadow: 1px 1px 0 #1A1A1A;
 }
 
-/* Design tokens ChronoKairo — dark (padrão) e light, alternados via .dark/.light no <html> */
+/* Design tokens Chronokairo — dark (padrão) e light, alternados via .dark/.light no <html> */
 :root,
 .dark {
   --background: #0d0f12;

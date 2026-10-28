@@ -85,7 +85,7 @@ export class ExecuteFinanceNfeAllocationUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Tax Invoice Allocation Audit & Statutory Compliance',
-      client: 'ChronoKairo Corp Financial Operations',
+      client: 'Chronokairo Corp Financial Operations',
       project: 'Tax Compliance & Invoicing',
       stage: 'finance',
       agentRole: 'finance',

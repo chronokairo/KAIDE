@@ -121,7 +121,7 @@ export class ExecuteCoderSprintSyncUseCase {
     const job: JobEntity = {
       id: jobId,
       title: 'Sprint Baseline Synchronization (Backlog ↔ Forge Evidence)',
-      client: 'ChronoKairo Corp Engineering',
+      client: 'Chronokairo Corp Engineering',
       project: 'Sprint & Backlog',
       stage: 'coder',
       agentRole: 'coder',

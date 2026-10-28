@@ -115,7 +115,7 @@ export function Body({
             </div>
             <div className="max-w-4xl mx-auto flex items-center justify-between text-[11px] text-on-surface-variant/60 px-2 mt-1.5 font-mono">
               <span>Shift + Enter para nova linha</span>
-              <span>ChronoKairo Hybrid RAG</span>
+              <span>Chronokairo Hybrid RAG</span>
             </div>
           </div>
         </div>

@@ -2,14 +2,14 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `kairos`, `harness`, `tool-calling`, `ai`, `setores`
 
 ---
 
 ## Contexto
 
-O repositório `chronokairo-kairos` continha o motor `ToolSectorHarness`, responsável pelo registro modular de ferramentas por setor (comercial, vendas, marketing, cobrança, operacional), detecção de intenção do usuário e orquestração de chamadas de LLM. Conforme a diretriz do [AGENTS.md](file:///home/luann/.chronokairo/repos/AGENTS.md), o `ai` é a fonte única de IA do ecossistema ChronoKairo.
+O repositório `chronokairo-kairos` continha o motor `ToolSectorHarness`, responsável pelo registro modular de ferramentas por setor (comercial, vendas, marketing, cobrança, operacional), detecção de intenção do usuário e orquestração de chamadas de LLM. Conforme a diretriz do [AGENTS.md](file:///home/luann/.chronokairo/repos/AGENTS.md), o `ai` é a fonte única de IA do ecossistema Chronokairo.
 
 ## Decisão
 

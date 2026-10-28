@@ -25,7 +25,7 @@ Registrar e priorizar os débitos técnicos:
    (clients SOAP/REST usam `http-core`).
 3. **UI**: 🟡 parcial em 2026-09-26 — `RagApp` (`/rag`) migrado para
    `@chronokairo/platform/ui` (`ThemeProvider`, `ThemeToggle`, `Button`) com
-   tokens ChronoKairo themáveis (dark/light) em `globals.css` e `RagApp.css`
+   tokens Chronokairo themáveis (dark/light) em `globals.css` e `RagApp.css`
    (cores hardcoded → vars semânticas); branding Athena removido. Pendente:
    shell/navegação do app e demais telas; componentes ausentes no barrel do
    platform (Input, Card, Dialog, EmptyState, StatusBadge, ProgressBar) seguem

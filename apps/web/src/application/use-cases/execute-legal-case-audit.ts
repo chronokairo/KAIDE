@@ -61,7 +61,7 @@ export class ExecuteLegalCaseAuditUseCase {
     const job: JobEntity = {
       id: jobId,
       title: `Evidentiary Legal Case Technical Audit (${caseNumber ?? 'all active cases'})`,
-      client: 'ChronoKairo Corp Legal Directorate',
+      client: 'Chronokairo Corp Legal Directorate',
       project: 'Technical Defense & Due Diligence',
       stage: 'analyst',
       agentRole: 'analyst',

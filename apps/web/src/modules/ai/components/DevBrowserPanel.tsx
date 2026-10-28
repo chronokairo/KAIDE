@@ -68,7 +68,7 @@ export const ERP_PLAYBOOKS: PlaybookPreset[] = [
       processo: 'BO-08491/2026 — 10º DIP Manaus',
       tribunal: 'Polícia Civil do AM / 10º DIP',
       cliente: 'Grupo Waldery Areosa (WD Educacional / CIESA)',
-      polo: 'Passivo (Defesa Técnica ChronoKairo)',
+      polo: 'Passivo (Defesa Técnica Chronokairo)',
       status: 'Em Andamento / Defesa Protocolada',
       valorCausa: 'R$ 60.500,00',
       detalhes: 'Auditoria técnica de logs do ERP para contra-notificação por calúnia e cobrança de multa rescisória.',
@@ -222,7 +222,7 @@ export const DevBrowserPanel: React.FC<DevBrowserPanelProps> = ({
           email: pb.sampleData.email,
           phone: pb.sampleData.phone,
           city: pb.sampleData.city,
-          notes: `Prospeccao automatica via ChronoKairo Browser Operator. Segmento: ${pb.sampleData.segmento}`,
+          notes: `Prospeccao automatica via Chronokairo Browser Operator. Segmento: ${pb.sampleData.segmento}`,
         });
         if (!error) {
           setSyncFeedback('✅ Lead Audiomed salvo no CRM!');
@@ -349,7 +349,7 @@ export const DevBrowserPanel: React.FC<DevBrowserPanelProps> = ({
         <iframe
           ref={iframeRef}
           src={url}
-          title="ChronoKairo Viewport"
+          title="Chronokairo Viewport"
           className={`w-full h-full border-0 bg-white ${isHumanTakeover ? 'pointer-events-auto' : 'pointer-events-none'}`}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
         />

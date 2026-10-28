@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `bridges`, `ide`, `antigravity`, `vscode`, `copilot`, `ollama-api`, `consolidacao`
 
 ---

@@ -6,13 +6,13 @@
 
 ## Contexto
 
-Conforme estabelecido no [ADR-0028](0028-empresa-virtual-de-agentes-control-plane.md) e [ADR-0036](0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md), a Empresa Virtual de Agentes da ChronoKairo opera sob o modelo rigoroso de governança **AI → AI → AI → HUMAN**, conectada diretamente ao banco de dados oficial de produção do Supabase (`chronokairo-prod` / `your-project-ref`).
+Conforme estabelecido no [ADR-0028](0028-empresa-virtual-de-agentes-control-plane.md) e [ADR-0036](0036-conexao-oficial-supabase-prod-e-eliminacao-de-mocks.md), a Empresa Virtual de Agentes da Chronokairo opera sob o modelo rigoroso de governança **AI → AI → AI → HUMAN**, conectada diretamente ao banco de dados oficial de produção do Supabase (`chronokairo-prod` / `your-project-ref`).
 
 Na auditoria das 24 tabelas com dados reais, o setor financeiro revelou um ecossistema ativo composto por:
 - `accounts_receivable` (20 faturas cadastradas, sendo 16 quitadas e 4 pendentes de MRR da Audiomed de R$ 300,00/mês);
 - `contracts` (9 contratos, incluindo `AUDIOMED-SAAS-001` de R$ 3.600 e minutas CIESA/Século);
 - `accounts_payable` (8 pagamentos realizados: honorários advocatícios R$ 1.000, domínios `chronokairo.com.br` e `manausdev.com.br`, assinaturas de IA e salários);
-- `financial_accounts` (3 contas ativas: Banco Inter ChronoKairo/RLV, Conta VLM e Nubank pessoal Riad);
+- `financial_accounts` (3 contas ativas: Banco Inter Chronokairo/RLV, Conta VLM e Nubank pessoal Riad);
 - `service_invoices` (6 NFS-e municipais emitidas somando R$ 32.500);
 - `service_invoice_receivable_allocations` (7 alocações fiscais registradas).
 
@@ -47,6 +47,6 @@ Fazia-se necessária a implementação dos três jobs especializados do `AI Fina
 
 ## Consequências
 
-- O `AI Finance / Ops` opera de ponta a ponta sobre os dados reais da ChronoKairo Corp.
+- O `AI Finance / Ops` opera de ponta a ponta sobre os dados reais da Chronokairo Corp.
 - Nenhuma fatura é cobrada ou baixada sem o selo de auditoria humana do Diretor Técnico.
 - Conformidade tributária e conciliação bancária monitoradas em tempo real na cena Three.js.

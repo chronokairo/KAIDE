@@ -8,7 +8,7 @@
 
 ## 1. Contexto
 
-O projeto legado `thinkcoffee` tentou atuar como um assistente autônomo baseado em extensão do VS Code e pipeline encadeado de múltiplos agentes (`PM` → `Arquiteto` → `Backend` → `Frontend` → `QA`). O formato original foi descontinuado devido ao consumo excessivo e descontrolado de tokens de IA e à redundância com o runtime nativo da ChronoKairo (Tauri + Rust `ckc` e CLI).
+O projeto legado `thinkcoffee` tentou atuar como um assistente autônomo baseado em extensão do VS Code e pipeline encadeado de múltiplos agentes (`PM` → `Arquiteto` → `Backend` → `Frontend` → `QA`). O formato original foi descontinuado devido ao consumo excessivo e descontrolado de tokens de IA e à redundância com o runtime nativo da Chronokairo (Tauri + Rust `ckc` e CLI).
 
 Entretanto, o `thinkcoffee` desenvolveu mecanismos avançados de segurança, reversibilidade de operações e roteamento de custos que resolvem carências críticas de operação de coding agents.
 

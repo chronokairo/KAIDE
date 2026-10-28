@@ -2,7 +2,7 @@
 
 - **Status:** Aceito
 - **Data:** 2026-09-25
-- **Decisores:** Time ChronoKairo
+- **Decisores:** Time Chronokairo
 - **Tags:** `dashboard`, `governance`, `runtime`, `spec-lock`, `audit`, `policy`, `consolidacao`
 
 ---
@@ -19,5 +19,5 @@ O repositório `anamnesic/anamnesic-core` continha o dashboard central de contro
 ## Decisão
 
 1. Absorver os componentes visuais e de dados em `chronokairo-ai/src/modules/governance/dashboard`.
-2. Integrar as visões ao módulo de governança do ChronoKairo (`@chronokairo/ai/governance`).
+2. Integrar as visões ao módulo de governança do Chronokairo (`@chronokairo/ai/governance`).
 3. Deletar o repositório remoto redundante `anamnesic/anamnesic-core`.

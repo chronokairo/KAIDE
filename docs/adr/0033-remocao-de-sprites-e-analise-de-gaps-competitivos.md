@@ -7,7 +7,7 @@
 
 A [ADR-0031](./0031-estilo-pokemon-2d-3d-e-interface-minimalista.md) e a [ADR-0032](./0032-refinamento-sprites-threejs-animacao-uv-e-transparencia.md) experimentaram a abordagem híbrida de sprites 2D (billboards) posicionados em um ambiente 3D. 
 
-O usuário solicitou remover completamente os sprites da cena Three.js ("remova os sprites") e realizar uma pesquisa profunda de gaps da plataforma ChronoKairo AI frente aos concorrentes líderes de mercado em 2026.
+O usuário solicitou remover completamente os sprites da cena Three.js ("remova os sprites") e realizar uma pesquisa profunda de gaps da plataforma Chronokairo AI frente aos concorrentes líderes de mercado em 2026.
 
 ## Decisões
 

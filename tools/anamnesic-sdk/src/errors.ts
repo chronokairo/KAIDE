@@ -7,7 +7,7 @@ export class ChronoKairoError extends Error {
   error?: { type?: string; message?: string };
 
   constructor(options: { message?: string; name?: string; status?: number; error?: { type?: string; message?: string }; headers?: Record<string, string> } = {}) {
-    const message = options.message || options.error?.message || 'ChronoKairo error';
+    const message = options.message || options.error?.message || 'Chronokairo error';
     super(message);
     this.name = options.name || 'ChronoKairoError';
     this.status = options.status;

@@ -74,7 +74,7 @@ export const AddFolderModal: React.FC<AddFolderModalProps> = ({ onClose, onAdded
               Detecção Automática de Runtimes
             </div>
             <p className="text-[11px] leading-relaxed">
-              O ChronoKairo inspecionará o diretório buscando por <code className="font-mono text-secondary">.git</code>, <code className="font-mono text-secondary">package.json</code>, <code className="font-mono text-secondary">Cargo.toml</code>, <code className="font-mono text-secondary">pyproject.toml</code> e <code className="font-mono text-secondary">go.mod</code>.
+              O Chronokairo inspecionará o diretório buscando por <code className="font-mono text-secondary">.git</code>, <code className="font-mono text-secondary">package.json</code>, <code className="font-mono text-secondary">Cargo.toml</code>, <code className="font-mono text-secondary">pyproject.toml</code> e <code className="font-mono text-secondary">go.mod</code>.
             </p>
           </div>
         </div>

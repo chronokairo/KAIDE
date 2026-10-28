@@ -4,8 +4,8 @@ Agentes e automações da Chronokairo no GitHub Copilot App, com modelos NVIDIA 
 
 Este repositório unifica ~/Documents/GitHub/env e ~/.copilot/chronokairo. A fonte canônica fica aqui; o diretório de execução em ~/.copilot/chronokairo aponta para .copilot/chronokairo por symlink.
 
-- [Configuração e operação](.copilot/chronokairo/README.md)
-- [Instalação local](.copilot/chronokairo/install.py)
+- [Configuração e operação](https://github.com/chronokairo/chronokairo/tree/main/scripts/company-autopilot) (privado)
+- [Instalação local](https://github.com/chronokairo/chronokairo/tree/main/scripts/company-autopilot) (privado)
 - [Agentes e automações](.copilot/chronokairo/configure.py)
 - [Catálogo, projetos e documentos](.copilot/chronokairo/company.py)
 - [Delegação ACP](.copilot/chronokairo/acp.py)

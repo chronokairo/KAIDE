@@ -1,5 +1,5 @@
 /**
- * Pure domain entities and rules for the ChronoKairo Virtual Agent Company.
+ * Pure domain entities and rules for the Chronokairo Virtual Agent Company.
  * Hexagonal Architecture: Pure Domain (no dependencies on frameworks, Next.js, or React).
  */
 

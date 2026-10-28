@@ -14,7 +14,7 @@ export const TopNavBar: React.FC = () => {
 
   const currentModule = ERP_MODULES.find((m) => m.id === activeNavTab) || {
     id: activeNavTab,
-    name: activeNavTab ? activeNavTab.toUpperCase() : 'ChronoKairo IA',
+    name: activeNavTab ? activeNavTab.toUpperCase() : 'Chronokairo IA',
     icon: 'dashboard',
     description: '',
   };

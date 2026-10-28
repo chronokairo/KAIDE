@@ -3,7 +3,7 @@ name = "kaide-desktop"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
-description = "Casca Tauri fina do ChronoKairo Desktop — consome o núcleo zero-lib kaide."
+description = "Casca Tauri fina do Chronokairo Desktop — consome o núcleo zero-lib kaide."
 
 [lib]
 name = "kaide_desktop_lib"

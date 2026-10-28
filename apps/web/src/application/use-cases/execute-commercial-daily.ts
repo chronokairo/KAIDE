@@ -128,7 +128,7 @@ export class ExecuteCommercialDailyUseCase {
       title: `Aprovação de Abordagem & Follow-up Diário (${drafts.length} leads qualificados)`,
       details:
         `O AI Comercial analisou ${leads.length} empresas no pipeline corporativo e preparou abordagens consultivas de alto valor.\n` +
-        `Pelo modelo de governança da ChronoKairo (ADR-0028: AI → AI → AI → HUMAN), comunicações externas são mantidas em gate até autorização formal do Diretor Técnico.`,
+        `Pelo modelo de governança da Chronokairo (ADR-0028: AI → AI → AI → HUMAN), comunicações externas são mantidas em gate até autorização formal do Diretor Técnico.`,
       requestedBy: 'commercial',
       requestedAt: timestamp,
       evidence: evidenceList,
@@ -142,7 +142,7 @@ export class ExecuteCommercialDailyUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Auditoria e Abordagem Diária de Leads Corporativos (commercial.daily)',
-      client: 'ChronoKairo Enterprise Sales & Pipeline',
+      client: 'Chronokairo Enterprise Sales & Pipeline',
       project: 'Expansão B2B Enterprise & Due Diligence',
       stage: 'commercial',
       agentRole: 'commercial',
@@ -264,7 +264,7 @@ export class ExecuteCommercialDailyUseCase {
       `A/C: ${contactPerson}\n\n` +
       `Acompanhamos a atuação de destaque da ${company} em ${analysis.location} no segmento de ${analysis.segment}.\n\n` +
       `Sabemos que um dos maiores desafios operacionais do setor é ${analysis.keyChallenge.toLowerCase()}. ` +
-      `Na ChronoKairo, desenvolvemos soluções de engenharia de software e inteligência artificial sob o modelo AI → AI → AI → HUMAN, ` +
+      `Na Chronokairo, desenvolvemos soluções de engenharia de software e inteligência artificial sob o modelo AI → AI → AI → HUMAN, ` +
       `garantindo que qualquer automação opere com validação humana e segurança estrita.\n\n` +
       `Com nossa tecnologia de ${analysis.solutionAngle.toLowerCase()}, auxiliamos líderes a otimizarem suas operações com rastreabilidade auditável e garantia de conformidade com a LGPD.\n\n` +
       `Preparamos uma síntese técnica de como essa solução pode ser implementada sem atrito na infraestrutura da ${company}.`;

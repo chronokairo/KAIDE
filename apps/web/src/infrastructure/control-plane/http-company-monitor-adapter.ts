@@ -190,7 +190,7 @@ function mapJob(job: JobRecord, pendingGates: ApprovalGateRecord[]): JobEntity {
     id: job.id,
     title: JOB_TITLES[job.type] ?? job.type,
     client: '—',
-    project: 'Operação ChronoKairo',
+    project: 'Operação Chronokairo',
     stage: roleFromJobType(job.type),
     agentRole: roleFromJobType(job.type),
     status,

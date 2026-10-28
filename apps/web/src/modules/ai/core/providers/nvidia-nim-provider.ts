@@ -23,7 +23,7 @@ export class NvidiaNimLlmProvider implements ILlmProvider {
       model: config?.model || process.env.NEXT_PUBLIC_NVIDIA_NIM_MODEL || 'meta/llama-3.3-70b-instruct',
       temperature: config?.temperature ?? 0.6,
       maxTokens: config?.maxTokens ?? 2048,
-      systemPrompt: config?.systemPrompt || 'Você é o assistente inteligente ChronoKairo ERP potencializado por NVIDIA NIM.',
+      systemPrompt: config?.systemPrompt || 'Você é o assistente inteligente Chronokairo ERP potencializado por NVIDIA NIM.',
       organizationId: config?.organizationId || '',
     };
   }

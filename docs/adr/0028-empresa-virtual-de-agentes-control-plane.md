@@ -5,7 +5,7 @@
 
 ## Contexto
 
-A ChronoKairo quer operar como uma **software engineering company AI-first**: poucas pessoas (sócio/CTO, opcionalmente um Customer/Project Lead, e terceiros sob demanda como contador, jurídico e especialistas) e agentes especializados no lugar da maior parte dos cargos operacionais. O repositório `ai` deixa de ser apenas o chat de IA e passa a ser o sistema operacional dessa empresa.
+A Chronokairo quer operar como uma **software engineering company AI-first**: poucas pessoas (sócio/CTO, opcionalmente um Customer/Project Lead, e terceiros sob demanda como contador, jurídico e especialistas) e agentes especializados no lugar da maior parte dos cargos operacionais. O repositório `ai` deixa de ser apenas o chat de IA e passa a ser o sistema operacional dessa empresa.
 
 ## Decisão
 

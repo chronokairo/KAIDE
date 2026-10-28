@@ -56,7 +56,7 @@ export class ExecuteQaPrReviewUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Auditoria Adversarial de Pull Requests (QA & Segurança)',
-      client: 'Engenharia Interna ChronoKairo',
+      client: 'Engenharia Interna Chronokairo',
       project: 'Core Platform & Security Gates',
       stage: 'qa',
       agentRole: 'qa',

@@ -41,7 +41,7 @@ export class ExecuteCommercialFollowupUseCase {
       jobId,
       type: 'outbound_contact',
       title: 'Aprovação de Envio de Follow-up Comercial',
-      details: `O AI Comercial elaborou ${drafts.length} rascunhos de mensagens para leads qualificados. De acordo com o modelo de governança da ChronoKairo (ADR-0028: AI → AI → AI → HUMAN), comunicações externas requerem autorização humana prévia.`,
+      details: `O AI Comercial elaborou ${drafts.length} rascunhos de mensagens para leads qualificados. De acordo com o modelo de governança da Chronokairo (ADR-0028: AI → AI → AI → HUMAN), comunicações externas requerem autorização humana prévia.`,
       requestedBy: 'commercial',
       requestedAt: timestamp,
       evidence: evidenceList,
@@ -51,7 +51,7 @@ export class ExecuteCommercialFollowupUseCase {
     const jobEntity: JobEntity = {
       id: jobId,
       title: 'Follow-up Comercial & Nutrição de Leads Qualificados',
-      client: 'Pipeline Comercial ChronoKairo',
+      client: 'Pipeline Comercial Chronokairo',
       project: 'Expansão B2B Enterprise',
       stage: 'commercial',
       agentRole: 'commercial',
@@ -105,7 +105,7 @@ export class ExecuteCommercialFollowupUseCase {
     } else {
       // Inbound / early stage
       subject = `Kaide | Recebemos seu interesse em automação inteligente`;
-      body = `Olá ${lead.contactPerson},\n\nAgradecemos seu contato e interesse nas soluções de engenharia AI-first da ChronoKairo para a ${lead.company}.\n\nCom base na sua solicitação sobre ${lead.needsSummary.toLowerCase()}, já auxiliamos clientes similares a reduzirem o tempo de triagem documental em mais de 75% com nossa infraestrutura de agentes e RAG contextual.`;
+      body = `Olá ${lead.contactPerson},\n\nAgradecemos seu contato e interesse nas soluções de engenharia AI-first da Chronokairo para a ${lead.company}.\n\nCom base na sua solicitação sobre ${lead.needsSummary.toLowerCase()}, já auxiliamos clientes similares a reduzirem o tempo de triagem documental em mais de 75% com nossa infraestrutura de agentes e RAG contextual.`;
       callToAction = `Qual seria o melhor dia e horário para um alinhamento rápido de 20 minutos?`;
       rationale = `Primeiro contato inbound para ${lead.contactPerson}, respondendo em menos de 48h.`;
     }

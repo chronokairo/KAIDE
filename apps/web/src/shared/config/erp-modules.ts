@@ -9,7 +9,7 @@ export interface ErpModuleConfig {
 export const ERP_MODULES: ErpModuleConfig[] = [
   {
     id: 'chat',
-    name: 'ChronoKairo IA',
+    name: 'Chronokairo IA',
     description: 'Assistente e chat conversacional com ferramentas de raciocínio e execução local',
     icon: 'psychology',
     path: '/?tab=chat',
