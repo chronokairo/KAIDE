@@ -1,167 +1,159 @@
-<p align="center"><strong>Kaide</strong> is a coding agent from Chronokairo (Kairos Code + AI + IDE) that runs locally on your computer.</p>
+<p align="center"><strong>Kaide</strong> is an open-source coding agent and autonomous multi-agent virtual engineering platform from Chronokairo (Kairos Code + AI + IDE).</p>
 
 <p align="center">
   <a href="#english">English</a> · <a href="#português">Português</a>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Apache 2.0" />
   <img src="https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white" alt="Rust" />
-  <img src="https://img.shields.io/badge/Tauri-24C8DB?style=flat&logo=tauri&logoColor=white" alt="Tauri" />
-  <img src="https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Tauri_2-24C8DB?style=flat&logo=tauri&logoColor=white" alt="Tauri 2" />
+  <img src="https://img.shields.io/badge/Next.js_16-000000?style=flat&logo=next.js&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Supabase-Self--Hosted-3ECF8E?style=flat&logo=supabase&logoColor=white" alt="Supabase" />
 </p>
 
 <p align="center">
-If you want Kaide in your terminal, build the core and run <code>npx kaide</code>.
-</br>If you want the desktop app experience, run <code>npm run desktop:dev</code> (Tauri 2).
-</br>If you want the web experience, run <code>npm run dev</code> (Next.js at <code>http://localhost:3010</code>).</p>
+  Terminal CLI: <code>npx kaide</code> · Desktop App: <code>npm run desktop:dev</code> · Web Studio: <code>npm run dev</code> (<code>http://localhost:3010</code>)
+</p>
 
 ---
 
 ## English
 
-**Kaide** (Kairos Code + AI + IDE) is Chronokairo's coding agent: a zero-lib Rust core (`kaide`), a Tauri 2 desktop app, a Next.js web app with RAG (Ollama + Supabase) and a virtual-agents Control Plane — all in one monorepo, mirroring the layout of [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
+**Kaide** (Kairos Code + AI + IDE) is an AI-first software engineering platform:
+- A high-performance **zero-lib Rust core** (`kaide-rs/core`).
+- A **Tauri 2 desktop client** (`apps/desktop`).
+- A **Next.js web application** with Control Plane supervision, Three.js visualization, and RAG (`apps/web`).
+- A durable **Control Plane** managing roles (Coder, QA, DevOps, Commercial, Finance, Support) governed by the human-in-the-loop principle: **`AI → AI → AI → HUMAN`**.
+- Layout mirroring [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
 
-### Installing and running Kaide
+### Quickstart
 
-Prerequisites: **Node.js 20+**, **npm**, and (for the desktop app) **Rust/Cargo** + the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
+Prerequisites: **Node.js 20+**, **npm**, and optionally **Rust/Cargo** (for desktop/core builds) and **Docker** (for Supabase self-hosted).
 
-```shell
-# Clone (private repo — requires access) and install
-git clone https://github.com/chronokairo/kaide.git
-cd kaide
+```bash
+# 1. Clone the repository
+git clone https://github.com/chronokairo/KAIDE.git
+cd KAIDE
+
+# 2. Install dependencies
 npm install
+
+# 3. Configure environment
+cp .env.example .env
 ```
 
-Build the Rust core and run it through the SDK wrapper (resolves `KAIDE_BIN` → `kaide-rs/target/debug|release/kaide` → `kaide` on PATH):
-
-```shell
-# Build the core binary
+#### Run the Terminal Coding Agent
+```bash
+# Build the Rust binary
 cargo build --manifest-path kaide-rs/Cargo.toml -p kaide --bin kaide
 
-# Then simply run kaide to get started
+# Run via SDK wrapper
 npx kaide --help
 ```
 
-Desktop and web run from the same checkout:
-
-```shell
-# Desktop app (Tauri 2)
-npm run desktop:dev
-
-# Web app (Next.js at http://localhost:3010)
+#### Run the Web Control Plane
+```bash
 npm run dev
+# Open http://localhost:3010
 ```
+
+#### Run the Desktop App (Tauri 2)
+```bash
+npm run desktop:dev
+```
+
+### Self-Hosted Supabase Setup
+
+KAIDE supports both Supabase Cloud and 100% private Self-Hosted deployments.
+To launch the full backend stack (PostgreSQL 15+, pgvector, Auth, PostgREST, Kong Gateway, Studio Web Dashboard) in one command:
+
+```bash
+cd supabase/self-hosted
+cp .env.example .env
+docker compose up -d
+```
+See the [Supabase Guide](supabase/README.md) for full setup instructions and CLI workflows.
+
+### Commands
 
 | Command | Description |
-| --- | --- |
-| `npm run dev` | Next.js frontend at `http://localhost:3010` |
-| `npm run build` | Production frontend build (static export for Tauri) |
-| `npm start` | Serve the production build |
-| `npm run desktop:dev` / `npm run desktop:build` | Tauri desktop app (requires Rust/Cargo) |
-| `npm run rust:check` / `npm run rust:test` | Check / test the `kaide-rs/` workspace |
-| `npm test` | Web tests (Vitest) |
-| `npm run typecheck` | Type checking (`tsc --noEmit`) |
+| :--- | :--- |
+| `npm run dev` | Web Control Plane at `http://localhost:3010` |
+| `npm run build:web` | Production Next.js build |
+| `npm test` | Vitest test suite |
+| `npm run typecheck` | TypeScript verification (`tsc --noEmit`) |
+| `npm run desktop:dev` | Launch Tauri 2 desktop app |
+| `npm run rust:check` | Cargo check across `kaide-rs/` workspace |
+| `npm run rust:test` | Rust unit and integration test suite |
 
-### Using Kaide with your providers
+### Architecture & Security
 
-Kaide works with local models via **Ollama** and cloud models via configured providers (including NVIDIA NIM credentials and an LLM proxy). Provider secrets stay server-side only — they are never bundled into the browser or desktop frontend. See [`AGENTS.md`](AGENTS.md) for the authorization and human-approval rules (AI → AI → AI → HUMAN, never AI → production).
-
-### Docs
-
-- [**Product rules & architecture**](AGENTS.md) (hexagonal, Control Plane, ADR index)
-- [**ADRs**](docs/adr/) (see [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) for the monorepo reunification)
-- [**Contributing**](CONTRIBUTING.md)
-- [**Changelog**](CHANGELOG.md) · [**Tech debt**](TODO.md) · [**RAG**](docs/rag/)
-
-### Repository layout
-
-```text
-kaide/
-├── apps/web/         # Next.js frontend + Control Plane jobs + RAG (apps/web/src/…)
-├── apps/desktop/     # Tauri app (tauri.conf.json, icons, capabilities)
-├── apps/ios/         # Native iOS SwiftUI App & Darwin CLI (NVIDIA NIM, Claude Code UI)
-├── kaide-rs/         # Cargo workspace: core/ (zero-lib `kaide`), shell/, intelligence/
-├── sdk/typescript/   # @chronokairo/kaide-sdk — resolves and runs the `kaide` binary
-├── tools/            # Absorbed AI tools · mcp/ · supabase/ · docs/
-└── package.json      # npm workspaces (apps/web, sdk/typescript)
-```
+- **Hexagonal Architecture:** Domain (`apps/web/src/domain`) and Ports (`src/application/ports`) are completely decoupled from UI and infrastructure adapters.
+- **Fail-Closed Execution:** Destructive actions, tool executions, and deployments require explicit human approval via the Control Plane.
+- **Provider Agnostic:** Supports local inference (**Ollama**) and cloud providers (**NVIDIA NIM**, OpenAI, Anthropic) behind typed ports.
 
 ### License
 
-**Proprietary — internal Chronokairo use.** All rights reserved.
+Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for details.
 
 ---
 
 ## Português
 
-**Kaide** (Kairos Code + AI + IDE) é o coding agent da Chronokairo: um núcleo Rust zero-lib (`kaide`), um app desktop Tauri 2, um app web Next.js com RAG (Ollama + Supabase) e um Control Plane de agentes virtuais — tudo num monorepo só, espelhando o layout do [`openai/codex`](https://github.com/openai/codex) (`kaide-rs/` ↔ `codex-rs/`, `sdk/typescript/` ↔ `codex-cli/`).
+**Kaide** (Kairos Code + AI + IDE) é uma plataforma de engenharia de software AI-first e empresa virtual de agentes autônomos:
+- Núcleo em **Rust zero-lib** de alta performance (`kaide-rs/core`).
+- Casca desktop nativa em **Tauri 2** (`apps/desktop`).
+- Aplicação web em **Next.js** com Control Plane, cena Three.js de monitoramento e RAG (`apps/web`).
+- **Control Plane** resiliente orquestrando papéis (Coder, QA, DevOps, Comercial, Finanças, Suporte) sob o princípio: **`AI → AI → AI → HUMAN`**.
+- Estrutura espelhada do [`openai/codex`](https://github.com/openai/codex).
 
-### Instalando e executando o Kaide
+### Instalação Rápida
 
-Pré-requisitos: **Node.js 20+**, **npm** e (para o app desktop) **Rust/Cargo** + os [pré-requisitos do Tauri](https://tauri.app/start/prerequisites/) do seu SO.
+Pré-requisitos: **Node.js 20+**, **npm**, e opcionalmente **Rust/Cargo** e **Docker**.
 
-```shell
-# Clone (repo privado — requer acesso) e instale
-git clone https://github.com/chronokairo/kaide.git
-cd kaide
+```bash
+# 1. Clone o repositório
+git clone https://github.com/chronokairo/KAIDE.git
+cd KAIDE
+
+# 2. Instale as dependências
 npm install
+
+# 3. Configure as variáveis de ambiente
+cp .env.example .env
 ```
 
-Compile o núcleo Rust e execute pelo wrapper do SDK (resolve `KAIDE_BIN` → `kaide-rs/target/debug|release/kaide` → `kaide` no PATH):
-
-```shell
-# Compila o binário do núcleo
+#### Executar o Agente no Terminal
+```bash
 cargo build --manifest-path kaide-rs/Cargo.toml -p kaide --bin kaide
-
-# E execute o kaide para começar
 npx kaide --help
 ```
 
-Desktop e web rodam do mesmo checkout:
-
-```shell
-# App desktop (Tauri 2)
-npm run desktop:dev
-
-# App web (Next.js em http://localhost:3010)
+#### Executar a Interface Web (Control Plane)
+```bash
 npm run dev
+# Acesse http://localhost:3010
 ```
 
-| Comando | Descrição |
-| --- | --- |
-| `npm run dev` | Frontend Next.js em `http://localhost:3010` |
-| `npm run build` | Build de produção do frontend (export estático para o Tauri) |
-| `npm start` | Serve o build de produção |
-| `npm run desktop:dev` / `npm run desktop:build` | App desktop Tauri (requer Rust/Cargo) |
-| `npm run rust:check` / `npm run rust:test` | Check / testes do workspace `kaide-rs/` |
-| `npm test` | Testes do web (Vitest) |
-| `npm run typecheck` | Verificação de tipos (`tsc --noEmit`) |
-
-### Usando o Kaide com seus provedores
-
-O Kaide funciona com modelos locais via **Ollama** e modelos de nuvem via provedores configurados (incluindo credenciais NVIDIA NIM e proxy LLM). Segredos de provedores ficam somente no backend — nunca no frontend web ou desktop. Veja o [`AGENTS.md`](AGENTS.md) para as regras de autorização e aprovação humana (AI → AI → AI → HUMAN, nunca AI → produção).
-
-### Documentação
-
-- [**Regras do produto e arquitetura**](AGENTS.md) (hexagonal, Control Plane, índice de ADRs)
-- [**ADRs**](docs/adr/) (ver [ADR-0042](docs/adr/0042-reunificacao-monorepo-kaide-estilo-codex.md) sobre a reunificação do monorepo)
-- [**Contribuição**](CONTRIBUTING.md)
-- [**Changelog**](CHANGELOG.md) · [**Débitos técnicos**](TODO.md) · [**RAG**](docs/rag/)
-
-### Estrutura do repositório
-
-```text
-kaide/
-├── apps/web/         # Frontend Next.js + jobs do Control Plane + RAG (apps/web/src/…)
-├── apps/desktop/     # App Tauri (tauri.conf.json, icons, capabilities)
-├── apps/ios/         # App SwiftUI nativo para iOS & CLI Darwin (NVIDIA NIM, Claude Code UI)
-├── kaide-rs/         # Workspace Cargo: core/ (zero-lib `kaide`), shell/, intelligence/
-├── sdk/typescript/   # @chronokairo/kaide-sdk — resolve e executa o binário `kaide`
-├── tools/            # Ferramentas de IA absorvidas · mcp/ · supabase/ · docs/
-└── package.json      # Workspaces npm (apps/web, sdk/typescript)
+#### Executar o App Desktop (Tauri 2)
+```bash
+npm run desktop:dev
 ```
+
+### Supabase Self-Hosted
+
+O KAIDE funciona tanto com Supabase Cloud quanto com instâncias privadas **Self-Hosted**.
+Para iniciar a stack completa do backend (Postgres com pgvector, Auth, PostgREST, Kong, Studio):
+
+```bash
+cd supabase/self-hosted
+cp .env.example .env
+docker compose up -d
+```
+Consulte o [Guia do Supabase](supabase/README.md) para detalhes de configuração e migrations.
 
 ### Licença
 
-**Proprietária — uso interno da Chronokairo.** Todos os direitos reservados.
+Distribuído sob a licença **Apache License 2.0**. Consulte [`LICENSE`](LICENSE) para mais informações.
