@@ -1,10 +1,11 @@
+import 'server-only';
 import { getSupabaseAdmin } from '@/infrastructure/persistence/supabase-admin';
 import { Resend } from 'resend';
 import { PROD_ORGANIZATION_ID } from '@/shared/supabase';
 import { JobEventType } from '@/domain/company';
 
 export const DEFAULT_RESEND_API_KEY =
-  process.env.RESEND_API_KEY || 'REMOVED_EXPOSED_CREDENTIAL';
+  process.env.RESEND_API_KEY ?? '';
 
 export const DEFAULT_FROM_EMAIL =
   process.env.RESEND_FROM || 'Kaide <onboarding@resend.dev>';
@@ -63,17 +64,26 @@ export async function recordJobEvent(
 }
 
 export class ResendEmailService {
-  private readonly client: Resend;
+  private client: Resend | undefined;
+  private readonly apiKey: string | undefined;
   private readonly from: string;
 
-  constructor(apiKey: string = DEFAULT_RESEND_API_KEY, from: string = DEFAULT_FROM_EMAIL) {
-    this.client = new Resend(apiKey);
+  constructor(apiKey?: string, from: string = DEFAULT_FROM_EMAIL) {
+    this.apiKey = apiKey;
     this.from = from;
+  }
+
+  private getClient(): Resend {
+    if (this.client) return this.client;
+    const key = (this.apiKey ?? process.env.RESEND_API_KEY)?.trim();
+    if (!key) throw new Error('RESEND_API_KEY is required for email operations');
+    this.client = new Resend(key);
+    return this.client;
   }
 
   async sendFollowupEmail(params: SendEmailParams): Promise<EmailDispatchResult> {
     try {
-      const response = await this.client.emails.send({
+      const response = await this.getClient().emails.send({
         from: this.from,
         to: params.to,
         subject: params.subject,
@@ -134,7 +144,7 @@ export class ResendEmailService {
     let bouncedCount = 0;
 
     try {
-      const listResponse = await this.client.emails.list();
+      const listResponse = await this.getClient().emails.list();
       if (listResponse.error) {
         console.warn('[ResendEmailService] Sync window list error:', listResponse.error);
         return { syncedCount, bouncedCount };
@@ -146,7 +156,7 @@ export class ResendEmailService {
         const createdAt = email.created_at ? new Date(email.created_at) : new Date();
         if (createdAt >= cutoffTime) {
           try {
-            const detailResponse = await this.client.emails.get(email.id);
+            const detailResponse = await this.getClient().emails.get(email.id);
             const detail = detailResponse.data as any;
             const lastEvent = detail?.last_event || 'sent';
 

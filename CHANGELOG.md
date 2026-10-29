@@ -5,6 +5,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Não lançado]
 
+### 2026-10-29
+
+#### Segurança
+
+- Serviço Resend configurado exclusivamente no backend, sem chave embutida ou inicialização antecipada do SDK.
+- Exemplos Supabase sem credenciais, geração local que preserva configurações existentes e portas administrativas restritas a loopback.
+- Autenticação do gateway e permissões iniciais revisadas; instruções de atualização para volumes existentes e testes de regressão.
+- Scanner de segredos com CLI fixada por digest, saída redigida e leitura do histórico, sem dependência da licença do wrapper.
+
 ### 2026-09-27
 
 #### Alterado

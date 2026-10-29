@@ -72,7 +72,7 @@
   - `ExecuteSupportTriageUseCase` reescrito em inglês puro, sem conteúdo fabricado nem union types bilíngues.
 - **Integração Oficial com Resend SDK & Eventos de Job**:
   - Adição do SDK oficial `resend` (`npm i resend`).
-  - Configuração do serviço de email `ResendEmailService` com chave de API `REMOVED_EXPOSED_CREDENTIAL` e janela de sincronização de 24h.
+  - Configuração do serviço de email `ResendEmailService` com chave configurada exclusivamente por `RESEND_API_KEY` no backend e janela de sincronização de 24h.
   - Adição dos tipos `JobEventType` (`'email.sent'`, `'email.synced'`, `'email.bounced'`) e persistência de eventos no Supabase.
   - Disparo real de emails via Resend ativado no Control Plane ao aprovar o gate humano `outbound_contact`.
 - **Implementação do Job `commercial.daily` (AI Comercial / SDR)**:

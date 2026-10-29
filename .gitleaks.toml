@@ -1,4 +1,4 @@
-﻿# Gitleaks: secret scanning (Chronokairo / Kaide open source)
+# Gitleaks: secret scanning (Chronokairo / Kaide open source)
 [extend]
 useDefault = true
 
@@ -16,3 +16,10 @@ paths = [
   '''(^|/)package-lock\.json$''',
   '''(^|/)Cargo\.lock$''',
 ]
+
+# Detect Resend keys independently of surrounding variable names or entropy.
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key"
+regex = '\bre_[A-Za-z0-9_-]{20,}\b'
+keywords = ["re_"]

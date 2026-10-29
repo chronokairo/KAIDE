@@ -42,7 +42,7 @@ To ensure that autonomous software engineering, customer operations, and commerc
 - `ExecuteSupportTriageUseCase` consolidates tickets, active incidents, and recurring conversation patterns into pure English `SupportTriageReport`s with proposed FAQ knowledge base entries.
 
 ### 5. Resend SDK & Real Outbound Dispatch
-- Integrated official SDK `resend` with API Key fallback (`REMOVED_EXPOSED_CREDENTIAL`).
+- Integrated official SDK `resend` with backend-only `RESEND_API_KEY` configuration; no embedded credential or API key fallback.
 - Defined `JobEventType` in `src/domain/company.ts` with `'email.sent'`, `'email.synced'`, `'email.bounced'`.
 - Implemented `ResendEmailService` (`src/infrastructure/email/resend-email-service.ts`) with a 24-hour sync window and event logging to `cp_job_events` (falling back to `audit_logs`).
 - In `SupabaseCompanyControlPlaneAdapter`, approving an `outbound_contact` Human Gate triggers real email dispatch through `ResendEmailService`.

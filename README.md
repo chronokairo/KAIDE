@@ -67,11 +67,12 @@ npm run desktop:dev
 ### Self-Hosted Supabase Setup
 
 KAIDE supports both Supabase Cloud and 100% private Self-Hosted deployments.
-To launch the full backend stack (PostgreSQL 15+, pgvector, Auth, PostgREST, Kong Gateway, Studio Web Dashboard) in one command:
+The bundled stack is a local/private development baseline. Its ports bind to localhost. Generate private credentials before starting it; production deployments require the maintained upstream Supabase stack and deployment-specific hardening:
 
 ```bash
 cd supabase/self-hosted
-cp .env.example .env
+python configure.py
+python configure.py --check
 docker compose up -d
 ```
 See the [Supabase Guide](supabase/README.md) for full setup instructions and CLI workflows.
@@ -149,7 +150,8 @@ Para iniciar a stack completa do backend (Postgres com pgvector, Auth, PostgREST
 
 ```bash
 cd supabase/self-hosted
-cp .env.example .env
+python configure.py
+python configure.py --check
 docker compose up -d
 ```
 Consulte o [Guia do Supabase](supabase/README.md) para detalhes de configuração e migrations.

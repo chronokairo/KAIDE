@@ -540,29 +540,33 @@ export class SupabaseCompanyControlPlaneAdapter implements CompanyControlPlanePo
     if (job.approvalGate.type === 'outbound_contact') {
       const drafts = (await this.leadRepository.getDraftsByJobId?.(job.id)) || [];
       const dispatchTime = new Date().toISOString();
-      await Promise.all(
-        drafts.map(async (draft) => {
+      const dispatches = await Promise.allSettled(
+        drafts.filter((draft) => draft.status !== 'dispatched').map(async (draft) => {
+          if (!draft.recipientEmail) throw new Error('Draft recipient email is required');
+          const result = await defaultResendEmailService.sendFollowupEmail({
+            to: draft.recipientEmail,
+            subject: draft.subject,
+            body: `${draft.body}\n\n${draft.callToAction}`,
+            jobId: job.id,
+            draftId: draft.id,
+          });
+          if (!result.success) throw new Error('Email dispatch failed');
           await this.leadRepository.updateDraftStatus(draft.id, 'dispatched', dispatchTime);
           await this.leadRepository.updateLeadStatus(
             draft.leadId,
             'in_dialogue',
             'Follow-up message dispatched with Director authorization.'
           );
-
-          if (draft.recipientEmail) {
-            await defaultResendEmailService.sendFollowupEmail({
-              to: draft.recipientEmail,
-              subject: draft.subject,
-              body: `${draft.body}\n\n${draft.callToAction}`,
-              jobId: job.id,
-              draftId: draft.id,
-            });
-          }
         })
       );
-      job.evidence.push(
-        `Disparo Externo Concluído / External Dispatch Completed: Messages successfully transmitted to recipients via Resend at ${new Date().toLocaleTimeString('en-US')}.`
-      );
+      if (dispatches.some((dispatch) => dispatch.status === 'rejected')) {
+        job.status = 'failed';
+        job.evidence.push('External dispatch failed: unsent drafts remain pending. Check backend configuration and provider status.');
+      } else {
+        job.evidence.push(
+          `Disparo Externo Concluído / External Dispatch Completed: Messages successfully transmitted to recipients via Resend at ${new Date().toLocaleTimeString('en-US')}.`
+        );
+      }
     }
 
     if (job.approvalGate.type === 'payment_release') {
