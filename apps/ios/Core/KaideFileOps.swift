@@ -17,8 +17,10 @@ public struct FileToolResult: Codable {
 }
 
 public enum KaideFileOps {
-    public static func readFile(at path: String, maxBytes: Int = 100_000) -> FileToolResult {
-        let expandedPath = resolvePath(path)
+    public static func readFile(at path: String, maxBytes: Int = 100_000, root: String? = nil) -> FileToolResult {
+        guard let expandedPath = resolveGuarded(path, root: root) else {
+            return outsideRootResult(path, root: root)
+        }
         let fm = FileManager.default
 
         guard fm.fileExists(atPath: expandedPath) else {
@@ -47,8 +49,10 @@ public enum KaideFileOps {
         return FileToolResult(ok: true, path: path, content: text, bytes: data.count)
     }
 
-    public static func writeFile(at path: String, content: String) -> FileToolResult {
-        let expandedPath = resolvePath(path)
+    public static func writeFile(at path: String, content: String, root: String? = nil) -> FileToolResult {
+        guard let expandedPath = resolveGuarded(path, root: root) else {
+            return outsideRootResult(path, root: root)
+        }
         let url = URL(fileURLWithPath: expandedPath)
         let parentDir = url.deletingLastPathComponent()
 
@@ -62,8 +66,10 @@ public enum KaideFileOps {
         }
     }
 
-    public static func editFile(at path: String, oldText: String, newText: String) -> FileToolResult {
-        let expandedPath = resolvePath(path)
+    public static func editFile(at path: String, oldText: String, newText: String, root: String? = nil) -> FileToolResult {
+        guard let expandedPath = resolveGuarded(path, root: root) else {
+            return outsideRootResult(path, root: root)
+        }
         let url = URL(fileURLWithPath: expandedPath)
 
         guard oldText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
@@ -100,17 +106,45 @@ public enum KaideFileOps {
         }
     }
 
-    public static func listDirectory(at path: String) -> [String] {
-        let expandedPath = resolvePath(path)
+    public static func listDirectory(at path: String = ".", root: String? = nil) -> [String] {
+        guard let expandedPath = resolveGuarded(path.isEmpty ? "." : path, root: root) else {
+            return []
+        }
         let fm = FileManager.default
         return (try? fm.contentsOfDirectory(atPath: expandedPath)) ?? []
     }
 
+    /// Caminho absoluto, resolvido contra a raiz do projeto ativo.
     public static func resolvePath(_ path: String) -> String {
-        if path.hasPrefix("~") {
-            let home = NSHomeDirectory()
-            return path.replacingOccurrences(of: "~", with: home, range: path.startIndex..<path.index(after: path.startIndex))
+        resolve(path, root: ProjectStore.shared.rootPath)
+    }
+
+    /// Resolve e valida contenção na raiz. `nil` quando o caminho escapa do projeto.
+    public static func resolveGuarded(_ path: String, root: String? = nil) -> String? {
+        let rootPath = root ?? ProjectStore.shared.rootPath
+        let resolved = resolve(path, root: rootPath)
+        return Workspace.contains(resolved, root: rootPath) ? resolved : nil
+    }
+
+    private static func resolve(_ path: String, root: String) -> String {
+        let trimmed = path.isEmpty ? "." : path
+        if trimmed == "~" { return root }
+        if trimmed.hasPrefix("~/") {
+            let relative = String(trimmed.dropFirst(2))
+            return ((root as NSString).appendingPathComponent(relative) as NSString).standardizingPath
         }
-        return (path as NSString).standardizingPath
+        if trimmed.hasPrefix("/") {
+            return (trimmed as NSString).standardizingPath
+        }
+        return ((root as NSString).appendingPathComponent(trimmed) as NSString).standardizingPath
+    }
+
+    private static func outsideRootResult(_ path: String, root: String?) -> FileToolResult {
+        let rootPath = root ?? ProjectStore.shared.rootPath
+        return FileToolResult(
+            ok: false,
+            path: path,
+            error: "Caminho fora do projeto ativo (\(path)). A raiz permitida é \(rootPath). Use caminhos relativos ou dentro da pasta do projeto."
+        )
     }
 }

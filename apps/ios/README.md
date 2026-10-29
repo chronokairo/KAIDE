@@ -73,6 +73,18 @@ apps/ios/
 
 ---
 
+### Projetos (pasta raiz do agente)
+
+Cada projeto é uma pasta raiz; as tools de arquivo (`read_file`, `write_file`, `edit_file`, `list_dir`, `apply_patch`, `code_search`, `code_analyze_repo`) só operam dentro dela.
+
+- **Novo projeto (pasta do app):** `Documents/Kaide/projects/<slug>`.
+- **Adicionar pasta do Arquivos:** `UIDocumentPicker` + security-scoped bookmark (persistido em `Application Support/Kaide/projects.json`).
+- **Sem projeto ativo:** a raiz é `Documents` do container.
+- Caminhos fora da raiz são recusados (`Workspace.contains` com `realpath`, bloqueando `..` e symlink para fora).
+- `bash` roda com `cwd` na raiz do projeto (quando o ambiente permite spawn).
+
+O `Documents` do app fica visível no app Arquivos (`UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace`).
+
 ## Como Compilar e Instalar
 
 No iPhone com toolchain Procursus (ou via SSH / NewTerm):

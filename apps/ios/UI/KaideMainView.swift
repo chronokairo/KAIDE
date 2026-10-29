@@ -6,6 +6,8 @@ public struct KaideMainView: View {
     @State private var showSettings: Bool = false
     @State private var showTerminal: Bool = false
     @State private var showSessions: Bool = false
+    @State private var showProjects: Bool = false
+    @State private var projectsRefresh: UUID = UUID()
 
     public init() {}
 
@@ -31,6 +33,9 @@ public struct KaideMainView: View {
         .sheet(isPresented: $showSessions) {
             KaideSessionsView(agent: agent)
         }
+        .sheet(isPresented: $showProjects, onDismiss: { projectsRefresh = UUID() }) {
+            KaideProjectsView()
+        }
         .onAppear {
             if agent.history.isEmpty, let latest = SessionPersistence.shared.latestSessionId() {
                 agent.resumeSession(id: latest)
@@ -40,6 +45,12 @@ public struct KaideMainView: View {
 
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    /// Projeto ativo exibido no cabeçalho (reavaliado a cada refresh do sheet).
+    private var activeProjectLabel: String {
+        _ = projectsRefresh
+        return ProjectStore.shared.activeProject?.name ?? "sem projeto"
     }
 
     // MARK: - Header Bar
@@ -73,6 +84,18 @@ public struct KaideMainView: View {
                         .padding(.vertical, 1)
                         .background(KaideTheme.surfaceElevated)
                         .cornerRadius(4)
+                    Text("•")
+                        .font(.system(size: 11))
+                        .foregroundColor(KaideTheme.textMuted)
+                    Text(activeProjectLabel)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(KaideTheme.textSecondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(KaideTheme.surfaceElevated)
+                        .cornerRadius(4)
+                        .lineLimit(1)
+                        .id(projectsRefresh)
                 }
             }
 
@@ -92,6 +115,15 @@ public struct KaideMainView: View {
                 .padding(.vertical, 4)
                 .background(KaideTheme.surfaceElevated)
                 .cornerRadius(12)
+            }
+
+            Button(action: { showProjects = true }) {
+                Image(systemName: "folder")
+                    .font(.system(size: 15))
+                    .foregroundColor(ProjectStore.shared.activeProject == nil ? KaideTheme.textSecondary : KaideTheme.accent)
+                    .padding(8)
+                    .background(KaideTheme.surface)
+                    .cornerRadius(8)
             }
 
             Button(action: { showSessions = true }) {

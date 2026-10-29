@@ -229,7 +229,7 @@ public enum KaideTools {
 
             let safety = CommandSafety.classify(cmd)
             do {
-                let result = try await LocalShell.exec(command: cmd)
+                let result = try await LocalShell.exec(command: cmd, currentDirectory: ProjectStore.shared.rootPath)
                 var out = ""
                 if case .needsApproval(let reason) = safety {
                     out += "[Aviso de Segurança: \(reason)]\n"
@@ -283,7 +283,7 @@ public enum KaideTools {
 
         case "apply_patch":
             let patch = argsDict["patch"] ?? ""
-            let root = argsDict["root"] ?? "."
+            let root = argsDict["root"] ?? ProjectStore.shared.rootPath
             do {
                 let applier = ApplyPatch()
                 let patchedFiles = try applier.apply(patch, root: root)
@@ -306,7 +306,7 @@ public enum KaideTools {
             }
 
         case "code_analyze_repo":
-            let path = argsDict["path"] ?? "."
+            let path = argsDict["path"] ?? ProjectStore.shared.rootPath
             let depth = Int(argsDict["depth"] ?? "4") ?? 4
             let result = RepoAnalysis.analyze(at: path, depth: depth)
             return ToolExecutionResult(text: result.summaryFormatted)
@@ -325,7 +325,7 @@ public enum KaideTools {
 
         case "code_search":
             let query = argsDict["query"] ?? ""
-            let path = argsDict["path"] ?? "."
+            let path = argsDict["path"] ?? ProjectStore.shared.rootPath
             let isRegex = (argsDict["is_regex"] ?? "").lowercased() == "true"
             let filesOnly = (argsDict["find_files_only"] ?? "").lowercased() == "true"
 

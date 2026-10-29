@@ -22,7 +22,6 @@ let package = Package(
             exclude: [
                 "CLI",
                 "Tests",
-                "Artifacts",
                 "xtool",
                 "App/Info.plist",
                 "App/entitlements.plist",

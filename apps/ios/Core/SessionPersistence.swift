@@ -8,6 +8,7 @@ public struct SessionMeta: Codable, Identifiable, Equatable {
     public var title: String
     public var model: String
     public var cwd: String
+    public var projectId: String?
     public var turnCount: Int
     public var totalTokens: Int
 
@@ -18,6 +19,7 @@ public struct SessionMeta: Codable, Identifiable, Equatable {
         title: String,
         model: String,
         cwd: String = FileManager.default.currentDirectoryPath,
+        projectId: String? = nil,
         turnCount: Int = 0,
         totalTokens: Int = 0
     ) {
@@ -27,6 +29,7 @@ public struct SessionMeta: Codable, Identifiable, Equatable {
         self.title = title
         self.model = model
         self.cwd = cwd
+        self.projectId = projectId
         self.turnCount = turnCount
         self.totalTokens = totalTokens
     }
@@ -108,7 +111,7 @@ public final class SessionPersistence {
         let shortId = UUID().uuidString.prefix(6)
         let id = "session_\(timestamp)_\(shortId)"
 
-        let resolvedCwd = (cwd == ".") ? fileManager.currentDirectoryPath : cwd
+        let resolvedCwd = (cwd == ".") ? ProjectStore.shared.rootPath : cwd
         let meta = SessionMeta(
             id: id,
             createdAt: Date(),
@@ -116,6 +119,7 @@ public final class SessionPersistence {
             title: title.isEmpty ? "Nova Conversa" : title,
             model: model,
             cwd: resolvedCwd,
+            projectId: ProjectStore.shared.activeProjectID,
             turnCount: 0,
             totalTokens: 0
         )
