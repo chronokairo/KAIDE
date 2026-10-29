@@ -1,5 +1,7 @@
 # Kaide iOS & Darwin CLI (`apps/ios`)
 
+> Migração em andamento: o alvo é iOS sem jailbreak, com APIs de GitHub/GitLab e execução remota pelo Control Plane. Veja a [ADR-0046](../../docs/adr/0046-ios-sandboxed-forges-e-execucao-remota.md). As instruções de rootless/TrollStore abaixo descrevem o fluxo legado; o fluxo sandboxed ainda precisa de validação em aparelho e assinatura/provisionamento válidos.
+
 Suíte de Agent Coding autônomo nativo em **Swift 5 / SwiftUI** para iPhone (iOS 15+, SoC A10 Fusion ou superior), ambiente rootless (Dopamine / TrollStore) e terminal Darwin.
 
 ---

@@ -152,6 +152,7 @@ Layout: `apps/web` (Next.js + RAG + Control Plane) · `apps/desktop` (app Tauri)
 | [0043](docs/adr/0043-remocao-totvs-supabase-sem-platform.md) | Remoção da integração TOTVS, religação ao Supabase prod e saída do `@chronokairo/platform` |
 | [0044](docs/adr/0044-absorcao-company-autopilot-tools.md) | Absorção do `company-autopilot` no Kaide (`tools/company-autopilot`, via subtree; reabsorção com histórico integral em 2026-10-21) |
 | [0045](docs/adr/0045-absorcao-forgepair-tools.md) | Absorção do `forgepair` no Kaide (`tools/forgepair`, histórico integral) |
+| [0046](docs/adr/0046-ios-sandboxed-forges-e-execucao-remota.md) | iOS sem jailbreak: forges HTTPS, providers e execução remota pelo Control Plane |
 
 ### Mapas de código — `docs/maps/`
 

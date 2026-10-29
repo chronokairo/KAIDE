@@ -11,9 +11,9 @@ public struct ToolExecutionResult {
 }
 
 public enum KaideTools {
-    public static func definitions() -> [NIMTool] {
+    public static func definitions() -> [ChatTool] {
         [
-            NIMTool(
+            ChatTool(
                 name: "bash",
                 description: "Executa comandos shell no sistema local Darwin (rootless iOS/iPhone). Use para compilar, rodar testes, git, listar arquivos ou executar ferramentas de terminal.",
                 parameters: [
@@ -27,7 +27,7 @@ public enum KaideTools {
                     "required": .array([.string("command")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "read_file",
                 description: "Lê o conteúdo em texto UTF-8 de um arquivo a partir de um caminho absoluto ou relativo.",
                 parameters: [
@@ -41,7 +41,7 @@ public enum KaideTools {
                     "required": .array([.string("path")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "write_file",
                 description: "Cria um novo arquivo ou substitui completamente o conteúdo de um arquivo existente de forma atômica.",
                 parameters: [
@@ -59,7 +59,7 @@ public enum KaideTools {
                     "required": .array([.string("path"), .string("content")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "edit_file",
                 description: "Edita um trecho exato e único de um arquivo. O texto old_text deve ocorrer exatamente UMA vez no arquivo.",
                 parameters: [
@@ -81,7 +81,7 @@ public enum KaideTools {
                     "required": .array([.string("path"), .string("old_text"), .string("new_text")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "apply_patch",
                 description: "Aplica alterações atômicas a um ou mais arquivos. Suporta formato de diff unificado do Git (diff --git / --- a/ / +++ b/ / @@) e envelope do Codex (*** Begin Patch / *** Update File: / *** Add File: / *** Delete File:).",
                 parameters: [
@@ -99,7 +99,7 @@ public enum KaideTools {
                     "required": .array([.string("patch")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "code_analyze_repo",
                 description: "Realiza inventário do repositório, contando arquivos, linhas, linguagens detectadas e módulos.",
                 parameters: [
@@ -116,7 +116,7 @@ public enum KaideTools {
                     ])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "code_review_diff",
                 description: "Analisa um diff git para detectar vazamento de credenciais, force unwraps perigosos e boas práticas.",
                 parameters: [
@@ -130,7 +130,7 @@ public enum KaideTools {
                     "required": .array([.string("diff")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "code_debug",
                 description: "Analisa uma mensagem de erro ou stack trace e sugere hipóteses de correção.",
                 parameters: [
@@ -152,7 +152,7 @@ public enum KaideTools {
                     "required": .array([.string("error_log")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "code_search",
                 description: "Busca arquivos por nome ou ocorrências de texto/regex dentro do código no repositório com números de linha.",
                 parameters: [
@@ -178,7 +178,7 @@ public enum KaideTools {
                     "required": .array([.string("query")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "git_worktree",
                 description: "Gerencia worktrees do Git para trabalhar em branches isoladas sem sujar a árvore de trabalho principal.",
                 parameters: [
@@ -200,7 +200,7 @@ public enum KaideTools {
                     "required": .array([.string("action")])
                 ]
             ),
-            NIMTool(
+            ChatTool(
                 name: "skill_info",
                 description: "Consulta e lê as instruções completas de uma habilidade especializada (Skill) disponível no ambiente.",
                 parameters: [

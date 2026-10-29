@@ -58,18 +58,6 @@ public struct KaideMainView: View {
     private var headerBar: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text("Kaide")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(KaideTheme.textPrimary)
-                    Text("IDE")
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(KaideTheme.background)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(KaideTheme.accent)
-                        .cornerRadius(4)
-                }
                 HStack(spacing: 4) {
                     Text("NVIDIA NIM")
                         .font(.system(size: 11))

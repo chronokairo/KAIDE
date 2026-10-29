@@ -29,7 +29,7 @@ public struct TurnMetrics: Codable, Equatable {
     }
 
     /// Calcula estimativa de métricas e custo em USD com base na precificação do modelo
-    public static func compute(model: String, usage: NIMUsage?, latency: Double) -> TurnMetrics {
+    public static func compute(model: String, usage: TokenUsage?, latency: Double) -> TurnMetrics {
         let pTokens = usage?.promptTokens ?? 0
         let cTokens = usage?.completionTokens ?? 0
         let tTokens = usage?.totalTokens ?? (pTokens + cTokens)

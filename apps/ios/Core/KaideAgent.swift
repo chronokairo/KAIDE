@@ -184,17 +184,17 @@ public final class KaideAgent: ObservableObject {
         }
 
         while isRunning {
-            var messages: [NIMMessage] = [
-                NIMMessage(role: "system", content: basePrompt)
+            var messages: [ChatMessage] = [
+                ChatMessage(role: "system", content: basePrompt)
             ]
 
             for turn in history {
                 if turn.role == "tool" {
-                    messages.append(NIMMessage(role: "tool", content: turn.content, toolCallId: turn.toolCallId))
+                    messages.append(ChatMessage(role: "tool", content: turn.content, toolCallId: turn.toolCallId))
                 } else if turn.role == "assistant" {
-                    messages.append(NIMMessage(role: "assistant", content: turn.content))
+                    messages.append(ChatMessage(role: "assistant", content: turn.content))
                 } else {
-                    messages.append(NIMMessage(role: "user", content: turn.content))
+                    messages.append(ChatMessage(role: "user", content: turn.content))
                 }
             }
 
