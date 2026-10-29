@@ -1,0 +1,3 @@
+version: 1
+bundleID: com.chronokairo.kaide
+infoPath: App/Info.plist

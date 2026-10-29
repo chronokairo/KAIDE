@@ -107,3 +107,12 @@ supabase/.temp/
 
 # Control Plane file store (dados locais de jobs/aprovações)
 .data/
+
+# iOS / Swift / xtool (build local no WSL)
+apps/ios/.build/
+apps/ios/.sourcekit-lsp/
+apps/ios/xtool/
+apps/ios/Artifacts/
+apps/ios/*.ipa
+apps/ios/*.tipa
+apps/ios/*.app
