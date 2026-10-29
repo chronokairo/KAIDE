@@ -70,7 +70,17 @@ if [ -z "$APP" ]; then
   exit 1
 fi
 EXEC="$(basename "$APP" .app)"
-ldid -S "$APP/$EXEC"
+# Entitlements de jailbreak/rootless (platform-application, no-sandbox,
+# AppDataContainers, keychain groups) — mesmos usados pelo build_kaide.py.
+ENT="App/entitlements.plist"
+if [ -f "$ENT" ]; then
+  ldid -S"$ENT" "$APP/$EXEC"
+  echo "    assinado com $ENT"
+else
+  ldid -S "$APP/$EXEC"
+  echo "    AVISO: $ENT ausente — assinatura sem entitlements (sem acesso rootless)." >&2
+fi
+echo "    entitlements: $(ldid -e "$APP/$EXEC" | grep -c '<key>') chave(s)"
 
 echo "==> [3/4] ícones no bundle"
 cp -f App/AppIcon.png App/AppIcon60x60@2x.png "$APP/" 2>/dev/null || true
