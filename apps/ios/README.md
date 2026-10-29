@@ -87,3 +87,22 @@ python3 apps/ios/build_kaide.py --cli --install
 # Apenas o App (.ipa):
 python3 apps/ios/build_kaide.py --app --install
 ```
+
+### Build no WSL (xtool) — três artefatos
+
+```bash
+wsl bash -lc "cd /mnt/c/Users/luann/Documents/GitHub/KAIDE/apps/ios && bash build_wsl_xtool.sh release"
+```
+
+| Artefato | Assinatura | Instalação | Shell/git |
+| --- | --- | --- | --- |
+| `Kaide-<v>.ipa` | ad-hoc, **sem entitlements** | sideload (AltStore/SideStore/Sideloadly) | indisponível (sandbox) |
+| `Kaide-<v>.tipa` | ad-hoc + `App/entitlements.plist` | TrollStore | disponível |
+| `Kaide-<v>.deb` | ad-hoc + `App/entitlements.plist` | Dopamine/Sileo → `/var/jb/Applications/Kaide.app` | disponível |
+
+Instalação manual no Dopamine (Filza/NewTerm):
+
+```bash
+cp -R Kaide.app /var/jb/Applications/
+uicache -p /var/jb/Applications/Kaide.app
+```

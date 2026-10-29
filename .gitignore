@@ -115,4 +115,5 @@ apps/ios/xtool/
 apps/ios/Artifacts/
 apps/ios/*.ipa
 apps/ios/*.tipa
+apps/ios/*.deb
 apps/ios/*.app
