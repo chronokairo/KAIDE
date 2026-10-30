@@ -2,7 +2,7 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Placeholders, redaction regexes and synthetic test fixtures"
 regexes = [
   '''REDACTED_[A-Z_]+''',
@@ -23,3 +23,18 @@ id = "resend-api-key"
 description = "Resend API key"
 regex = '\bre_[A-Za-z0-9_-]{20,}\b'
 keywords = ["re_"]
+
+# Exact public model identifier, restricted to the LM Studio test fixtures.
+[[allowlists]]
+description = "LM Studio model identifier is not an API credential"
+condition = "AND"
+paths = ['''^tools/anamnesic-sdk/src/features/providers/lmstudio/src/(models|stream|setup)\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^qwen3-8b-instruct$''']
+
+[[allowlists]]
+description = "Synthetic input for SHA-256 hashing unit test"
+condition = "AND"
+paths = ['''^tools/context/packages/core/src/utils/__tests__/crypto\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^test-api-key-12345$''']
